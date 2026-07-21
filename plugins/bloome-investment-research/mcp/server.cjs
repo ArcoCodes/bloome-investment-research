@@ -6,9 +6,9 @@ const readline = require("node:readline");
 const { pathToFileURL } = require("node:url");
 
 const ROOT = path.resolve(__dirname, "..");
-const MANIFEST = JSON.parse(fs.readFileSync(path.join(ROOT, ".codex-plugin", "plugin.json"), "utf8"));
+const PLUGIN_CONFIG = JSON.parse(fs.readFileSync(path.join(ROOT, "plugin.config.json"), "utf8"));
 const SERVER_NAME = "bloome-investment-research";
-const SERVER_VERSION = MANIFEST.version;
+const SERVER_VERSION = PLUGIN_CONFIG.version;
 const WIDGET_URI = `ui://widget/bloome-research-${encodeURIComponent(SERVER_VERSION)}.html`;
 const WIDGET_MIME = "text/html;profile=mcp-app";
 const DEFAULT_SEARCH_URL = "https://research-search-proxy.dev-0da.workers.dev";
@@ -53,6 +53,26 @@ function widgetMeta(visibility = ["model", "app"]) {
   };
 }
 
+function runtimeName(env = process.env) {
+  if (env.BLOOME_RUNTIME === "codex" || env.BLOOME_RUNTIME === "claude-code") return env.BLOOME_RUNTIME;
+  return env.CLAUDE_PLUGIN_ROOT ? "claude-code" : "codex";
+}
+
+function runtimeProfile(runtime = runtimeName()) {
+  if (runtime === "claude-code") {
+    return {
+      name: runtime,
+      supportsWorkbench: false,
+      instructions: "Use Claude Code as the reasoning runtime. Preserve the investment research workflow and assets/template.html report contract. Use the returned reportPath to inspect the finished HTML report.",
+    };
+  }
+  return {
+    name: "codex",
+    supportsWorkbench: true,
+    instructions: "Use Codex as the reasoning runtime. Preserve the investment research workflow and assets/template.html report contract. Bloome styling applies only to the workbench shell.",
+  };
+}
+
 function tool(name, title, description, inputSchema, options = {}) {
   const definition = {
     name,
@@ -70,7 +90,8 @@ function tool(name, title, description, inputSchema, options = {}) {
   return definition;
 }
 
-function toolDefinitions() {
+function toolDefinitions(runtime = runtimeName()) {
+  const profile = runtimeProfile(runtime);
   return [
     tool(
       "research_search",
@@ -109,10 +130,12 @@ function toolDefinitions() {
     ),
     tool(
       "open_research_workspace",
-      "Open Bloome Research",
-      "Open the Bloome research workbench for an absolute project workspace path. The UI promotes from a compact conversation launcher into a native PiP panel and expands to fullscreen for the report while preserving the investment skill's native report HTML.",
+      profile.supportsWorkbench ? "Open Bloome Research" : "Inspect Bloome Research workspace",
+      profile.supportsWorkbench
+        ? "Open the Bloome research workbench for an absolute project workspace path. The UI promotes from a compact conversation launcher into a native PiP panel and expands to fullscreen for the report while preserving the investment skill's native report HTML."
+        : "Inspect an absolute Bloome research workspace path and return progress, evidence, artifacts, and report paths. Read report.html from reportPath to view the finished report in Claude Code.",
       objectSchema({ workspace: { type: "string", minLength: 1 } }, ["workspace"]),
-      { widget: true },
+      { widget: profile.supportsWorkbench },
     ),
     tool(
       "validate_research_workspace",
@@ -126,7 +149,7 @@ function toolDefinitions() {
 async function researchProxy(endpoint, body, signal, fetcher = fetch) {
   const base = (process.env.RESEARCH_SEARCH_URL || DEFAULT_SEARCH_URL).replace(/\/$/, "");
   const token = process.env.RESEARCH_API_TOKEN;
-  if (!token) throw new Error("RESEARCH_API_TOKEN is required; add it to ~/.codex/.env and restart Codex");
+  if (!token) throw new Error("RESEARCH_API_TOKEN is required; set it in the host environment and restart the active runtime");
   let response;
   try {
     response = await fetcher(`${base}${endpoint}`, {
@@ -189,7 +212,7 @@ function stageFromArtifacts(names) {
   return 1;
 }
 
-function buildSnapshot(workspace) {
+function buildSnapshot(workspace, options = {}) {
   const root = workspacePath(workspace);
   const state = readJson(path.join(root, "state.json"), {});
   const plan = readJson(path.join(root, "plan.json"), {});
@@ -204,7 +227,7 @@ function buildSnapshot(workspace) {
   const requiredReady = REQUIRED_FILES.filter((name) => names.has(name)).length +
     (names.has("report_outline.md") || names.has("report_outline.json") ? 1 : 0);
   const progress = Math.min(100, Math.round((requiredReady / 8) * 85 + Math.min(chapterCount, 5) * 3));
-  return {
+  const snapshot = {
     ok: true,
     workspace: root,
     topic: state.topic || plan.topic || path.basename(root),
@@ -217,8 +240,10 @@ function buildSnapshot(workspace) {
     evidence: Array.isArray(evidence) ? evidence.slice(0, 100) : [],
     coverage,
     chapterCount,
-    reportHtml,
+    reportPath: path.join(root, "report.html"),
   };
+  if (options.includeReportHtml !== false) snapshot.reportHtml = reportHtml;
+  return snapshot;
 }
 
 function coverageErrors(coverage) {
@@ -295,22 +320,29 @@ function resources() {
   }];
 }
 
-async function callTool(name, args = {}) {
+async function callTool(name, args = {}, runtime = runtimeName()) {
   if (name === "research_search") return researchProxy("/search", args);
   if (name === "research_get_chunk") return researchProxy("/chunk", args);
   if (name === "research_get_report_context") return researchProxy("/context", args);
-  if (name === "open_research_workspace") return buildSnapshot(args.workspace);
+  if (name === "open_research_workspace") {
+    const profile = runtimeProfile(runtime);
+    return {
+      ...buildSnapshot(args.workspace, { includeReportHtml: profile.supportsWorkbench }),
+      runtime: profile.name,
+      workbenchAvailable: profile.supportsWorkbench,
+    };
+  }
   if (name === "validate_research_workspace") return validateWorkspace(args.workspace);
   throw new Error(`unknown tool: ${name}`);
 }
 
-function toolResult(payload, name) {
+function toolResult(payload, name, runtime = runtimeName()) {
   const result = {
     content: [{ type: "text", text: JSON.stringify(payload) }],
     structuredContent: payload,
     isError: false,
   };
-  if (name === "open_research_workspace") result._meta = widgetMeta();
+  if (name === "open_research_workspace" && runtimeProfile(runtime).supportsWorkbench) result._meta = widgetMeta();
   return result;
 }
 
@@ -322,27 +354,31 @@ function toolError(error) {
 function rpcResponse(id, result) { return { jsonrpc: "2.0", id, result }; }
 function rpcError(id, code, message) { return { jsonrpc: "2.0", id, error: { code, message } }; }
 
-async function handleRpc(message) {
+async function handleRpc(message, runtime = runtimeName()) {
   if (!message || typeof message !== "object" || Array.isArray(message)) return rpcError(null, -32600, "Invalid Request");
   const { id, method } = message;
   const params = message.params && typeof message.params === "object" ? message.params : {};
   if (typeof method !== "string") return id == null ? null : rpcError(id, -32600, "Invalid Request");
   if (method.startsWith("notifications/") || method === "$/cancelRequest") return null;
+  const profile = runtimeProfile(runtime);
   try {
     if (method === "initialize") return rpcResponse(id, {
       protocolVersion: params.protocolVersion || "2024-11-05",
-      capabilities: { tools: { listChanged: false }, resources: { subscribe: false, listChanged: false } },
+      capabilities: profile.supportsWorkbench
+        ? { tools: { listChanged: false }, resources: { subscribe: false, listChanged: false } }
+        : { tools: { listChanged: false } },
       serverInfo: { name: SERVER_NAME, title: "Bloome Investment Research", version: SERVER_VERSION },
-      instructions: "Use Codex as the reasoning runtime. Preserve the investment skill workflow and assets/template.html report contract. Bloome styling applies only to the workbench shell.",
+      instructions: profile.instructions,
     });
     if (method === "ping") return rpcResponse(id, {});
-    if (method === "tools/list") return rpcResponse(id, { tools: toolDefinitions() });
+    if (method === "tools/list") return rpcResponse(id, { tools: toolDefinitions(runtime) });
     if (method === "tools/call") {
-      try { return rpcResponse(id, toolResult(await callTool(params.name, params.arguments || {}), params.name)); }
+      try { return rpcResponse(id, toolResult(await callTool(params.name, params.arguments || {}, runtime), params.name, runtime)); }
       catch (error) { return rpcResponse(id, toolError(error)); }
     }
-    if (method === "resources/list") return rpcResponse(id, { resources: resources() });
+    if (method === "resources/list") return rpcResponse(id, { resources: profile.supportsWorkbench ? resources() : [] });
     if (method === "resources/read") {
+      if (!profile.supportsWorkbench) return rpcError(id, -32601, "Resources are not available in this runtime");
       if (params.uri !== WIDGET_URI) return rpcError(id, -32602, `unknown resource: ${params.uri}`);
       return rpcResponse(id, { contents: [{ uri: WIDGET_URI, mimeType: WIDGET_MIME, text: resourceText(), _meta: resourceMeta() }] });
     }
@@ -373,6 +409,9 @@ module.exports = {
   handleRpc,
   researchProxy,
   resourceText,
+  runStdio,
+  runtimeName,
+  runtimeProfile,
   toolDefinitions,
   validateWorkspace,
 };

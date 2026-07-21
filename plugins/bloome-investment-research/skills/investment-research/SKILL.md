@@ -1,21 +1,21 @@
 ---
 name: investment-research-agent
-description: Runs long-form investment research natively in Codex through staged intermediate artifacts instead of one-shot output. Use for deep company, industry, theme, or thesis reports that separate sell-side logic extraction from primary validation and produce traceable Markdown, HTML, and evidence deliverables.
+description: Runs long-form investment research in Codex or Claude Code through staged intermediate artifacts instead of one-shot output. Use for deep company, industry, theme, or thesis reports that separate sell-side logic extraction from primary validation and produce traceable Markdown, HTML, and evidence deliverables.
 ---
 
 # Investment Research Agent
 
-Use Codex as the reasoning runtime and the bundled `research_search`, `research_get_chunk`, and `research_get_report_context` MCP tools as the corpus interface. Codex's existing account supplies the model; this beta does not require an additional model key or OAuth flow. Access to the private Bloome research gateway is configured separately with `RESEARCH_API_TOKEN`.
+Use the active host—Codex or Claude Code—as the reasoning runtime and the bundled `research_search`, `research_get_chunk`, and `research_get_report_context` MCP tools as the corpus interface. The host's existing account supplies the model; this beta does not require an additional model key or OAuth flow. Access to the private Bloome research gateway is configured separately with `RESEARCH_API_TOKEN`.
 
 Do not write a long report in one pass. Keep `evidence.json` as the unified evidence backbone.
 
-## Codex Native Run
+## Cross-Runtime Run
 
 1. Create a project workspace at `.bloome/research/<topic-slug>/`.
-2. Use the bundled research tools for retrieval and Codex for planning, validation, and synthesis.
+2. Use the bundled research tools for retrieval and the active host for planning, validation, and synthesis.
 3. Save every required staged artifact in that workspace.
 4. Call `validate_research_workspace` before final delivery and repair every reported error.
-5. Call `open_research_workspace` with the absolute workspace path to open the Bloome workbench. The compact conversation launcher should promote into Codex's native PiP panel; use fullscreen for reading the final report. The workbench may frame the report, but the report itself must keep `assets/template.html` unchanged as its visual source of truth.
+5. Call `open_research_workspace` with the absolute workspace path. In Codex, promote the compact launcher into the native PiP panel and use fullscreen for the report. In Claude Code, use the returned `reportPath` to inspect `report.html`; the same progress, evidence, artifact, and validation data remain available without a rendered MCP App panel. The workbench may frame the report where supported, but the report itself must keep `assets/template.html` unchanged as its visual source of truth.
 
 Useful starter requests:
 

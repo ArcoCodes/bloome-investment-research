@@ -1,11 +1,12 @@
 {
   "mcpServers": {
     "bloomeInvestmentResearch": {
-      "title": "Bloome Investment Research",
-      "description": "Search investment research, validate evidence-backed reports, and render the Bloome workbench.",
       "cwd": ".",
       "command": "node",
-      "args": ["./mcp/server.cjs", "--stdio"]
+      "args": [
+        "-e",
+        "const path=require('node:path');const root=process.env.CLAUDE_PLUGIN_ROOT||process.cwd();require(path.resolve(root,'mcp/server.cjs')).runStdio()"
+      ]
     }
   }
 }

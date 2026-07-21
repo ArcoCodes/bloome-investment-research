@@ -48,12 +48,26 @@ async function fixtureWorkspace() {
 }
 
 test("MCP initializes and exposes the five focused tools", async () => {
-  const initialized = await server.handleRpc({ jsonrpc:"2.0",id:1,method:"initialize",params:{} });
-  const listed = await server.handleRpc({ jsonrpc:"2.0",id:2,method:"tools/list",params:{} });
+  const initialized = await server.handleRpc({ jsonrpc:"2.0",id:1,method:"initialize",params:{} }, "codex");
+  const listed = await server.handleRpc({ jsonrpc:"2.0",id:2,method:"tools/list",params:{} }, "codex");
   assert.equal(initialized.result.serverInfo.name, "bloome-investment-research");
   assert.deepEqual(listed.result.tools.map((tool) => tool.name), [
     "research_search", "research_get_chunk", "research_get_report_context", "open_research_workspace", "validate_research_workspace",
   ]);
+});
+
+test("runtime profiles keep host-specific presentation out of the shared research core", async () => {
+  const codex = await server.handleRpc({ jsonrpc:"2.0",id:1,method:"tools/list",params:{} }, "codex");
+  const claude = await server.handleRpc({ jsonrpc:"2.0",id:2,method:"tools/list",params:{} }, "claude-code");
+  const codexOpen = codex.result.tools.find((tool) => tool.name === "open_research_workspace");
+  const claudeOpen = claude.result.tools.find((tool) => tool.name === "open_research_workspace");
+  assert.ok(codexOpen._meta);
+  assert.equal(claudeOpen._meta, undefined);
+  assert.match(claudeOpen.description, /reportPath/);
+
+  const claudeInit = await server.handleRpc({ jsonrpc:"2.0",id:3,method:"initialize",params:{} }, "claude-code");
+  assert.equal(claudeInit.result.capabilities.resources, undefined);
+  assert.match(claudeInit.result.instructions, /Claude Code/);
 });
 
 test("research proxy uses the beta endpoint with an environment credential", async () => {
@@ -92,6 +106,16 @@ test("workspace snapshot drives progress, evidence, and native report preview", 
   assert.equal(snapshot.stage, 5);
   assert.equal(snapshot.evidence.length, 2);
   assert.match(snapshot.reportHtml, /class="report"/);
+  assert.equal(snapshot.reportPath, path.join(workspace, "report.html"));
+});
+
+test("Claude Code workspace response returns paths without injecting report HTML", async () => {
+  const workspace = await fixtureWorkspace();
+  const snapshot = await server.callTool("open_research_workspace", { workspace }, "claude-code");
+  assert.equal(snapshot.runtime, "claude-code");
+  assert.equal(snapshot.workbenchAvailable, false);
+  assert.equal(snapshot.reportHtml, undefined);
+  assert.equal(snapshot.reportPath, path.join(workspace, "report.html"));
 });
 
 test("workspace validator enforces all staged and report contracts", async () => {

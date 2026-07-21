@@ -17,10 +17,12 @@ test("investment report contracts remain byte-for-byte unchanged", async () => {
   }
 });
 
-test("Codex Native skill keeps the original report template as source of truth", async () => {
+test("cross-runtime skill keeps the original report template as source of truth", async () => {
   const skill = await readFile(new URL("skills/investment-research/SKILL.md", root), "utf8");
   assert.match(skill, /Use `assets\/template\.html` as the visual source of truth/);
   assert.match(skill, /Do not replace it with a newly invented card layout/);
   assert.match(skill, /evidence\.json` as the unified evidence backbone/);
-  assert.match(skill, /Codex's existing account supplies the model/);
+  assert.match(skill, /Codex or Claude Code/);
+  assert.match(skill, /host's existing account supplies the model/);
+  assert.match(skill, /returned `reportPath`/);
 });

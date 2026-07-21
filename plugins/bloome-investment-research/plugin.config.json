@@ -1,6 +1,14 @@
 {
+  "$schema": "./schemas/plugin-config.schema.json",
+  "schemaVersion": 1,
   "name": "bloome-investment-research",
   "version": "0.2.0",
+  "displayName": "Bloome Investment Research",
+  "marketplace": {
+    "name": "bloome-research",
+    "displayName": "Bloome Research",
+    "category": "Finance"
+  },
   "description": "Cross-runtime, evidence-first investment research with traceable sources and a Bloome workbench.",
   "author": {
     "name": "Bloome",
@@ -12,13 +20,13 @@
     "finance",
     "evidence"
   ],
-  "skills": "./skills/",
-  "interface": {
-    "displayName": "Bloome Investment Research",
+  "components": {
+    "skills": "./skills/",
+    "mcpServers": "./.mcp.json"
+  },
+  "codex": {
     "shortDescription": "Evidence-first investment research in Codex",
     "longDescription": "Run staged company, industry, theme, and thesis research with sell-side framing, primary-source validation, an evidence ledger, and the investment skill's native report format. The Codex host also provides a Bloome workbench for progress, evidence, and report views.",
-    "developerName": "Bloome",
-    "category": "Finance",
     "capabilities": [
       "Interactive",
       "Read",
@@ -37,6 +45,5 @@
       "./assets/screenshot.png",
       "./assets/screenshot-mobile.png"
     ]
-  },
-  "mcpServers": "./.mcp.json"
+  }
 }

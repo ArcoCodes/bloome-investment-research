@@ -7,7 +7,7 @@ export const DEFAULT_RESEARCH_SEARCH_URL = "https://research-search-proxy.dev-0d
 export async function researchProxy(endpoint, body, signal, fetcher = fetch) {
   const url = (process.env.RESEARCH_SEARCH_URL || DEFAULT_RESEARCH_SEARCH_URL).replace(/\/$/, "");
   const token = process.env.RESEARCH_API_TOKEN;
-  if (!token) throw new Error("RESEARCH_API_TOKEN is required; add it to ~/.codex/.env and restart Codex");
+  if (!token) throw new Error("RESEARCH_API_TOKEN is required; set it in the host environment and restart the active runtime");
   let response;
   try {
     response = await fetcher(`${url}${endpoint}`, {
@@ -46,7 +46,7 @@ export function workspacePath(cwd, requested, topic) {
   const slug = topic.normalize("NFKC").replace(/[^\p{Letter}\p{Number}]+/gu, "-").replace(/^-|-$/g, "").slice(0, 48) || "research";
   const workspace = requested ? path.resolve(cwd, requested) : path.join(root, `${new Date().toISOString().replace(/[:.]/g, "-")}-${slug}`);
   const relative = path.relative(root, workspace);
-  if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("workspace must stay under .pi/research in the current project");
+  if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("workspace must stay under .bloome/research in the current project");
   return workspace;
 }
 
