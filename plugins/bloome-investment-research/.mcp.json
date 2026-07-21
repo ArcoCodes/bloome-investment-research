@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "bloomeInvestmentResearch": {
+      "cwd": ".",
+      "command": "node",
+      "args": [
+        "-e",
+        "const path=require('node:path');const root=process.env.CLAUDE_PLUGIN_ROOT||process.cwd();require(path.resolve(root,'mcp/server.cjs')).runStdio()"
+      ]
+    }
+  }
+}
