@@ -15,7 +15,7 @@ Do not write a long report in one pass. Keep `evidence.json` as the unified evid
 2. Use the bundled research tools for retrieval and Codex for planning, validation, and synthesis.
 3. Save every required staged artifact in that workspace.
 4. Call `validate_research_workspace` before final delivery and repair every reported error.
-5. Call `open_research_workspace` with the absolute workspace path to render the Bloome workbench. The workbench may frame the report, but the report itself must keep `assets/template.html` unchanged as its visual source of truth.
+5. Call `open_research_workspace` with the absolute workspace path to open the Bloome workbench. The compact conversation launcher should promote into Codex's native PiP panel; use fullscreen for reading the final report. The workbench may frame the report, but the report itself must keep `assets/template.html` unchanged as its visual source of truth.
 
 Useful starter requests:
 

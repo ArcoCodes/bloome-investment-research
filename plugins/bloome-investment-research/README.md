@@ -4,7 +4,7 @@ Codex-native evidence-first investment research with a responsive Bloome workben
 
 - Codex is the reasoning runtime; no separate model key is required.
 - `RESEARCH_API_TOKEN` authenticates access to the private Bloome research gateway during beta.
-- The bundled MCP server provides research tools and the native workbench UI.
+- The bundled MCP server provides research tools and a native PiP/fullscreen workbench; the conversation only keeps a compact launcher.
 - Bloome styling applies to the workbench only.
 - `skills/investment-research/assets/template.html` remains the final report's visual source of truth.
 

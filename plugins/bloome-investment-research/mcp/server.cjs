@@ -48,8 +48,8 @@ function widgetMeta(visibility = ["model", "app"]) {
     "ui/resourceUri": WIDGET_URI,
     "openai/outputTemplate": WIDGET_URI,
     "openai/widgetAccessible": true,
-    "openai/toolInvocation/invoking": "Opening research workbench",
-    "openai/toolInvocation/invoked": "Research workbench ready",
+    "openai/toolInvocation/invoking": "Opening research panel",
+    "openai/toolInvocation/invoked": "Research panel ready",
   };
 }
 
@@ -110,7 +110,7 @@ function toolDefinitions() {
     tool(
       "open_research_workspace",
       "Open Bloome Research",
-      "Render the Bloome research workbench for an absolute project workspace path. The report preview preserves the investment skill's native report HTML.",
+      "Open the Bloome research workbench for an absolute project workspace path. The UI promotes from a compact conversation launcher into a native PiP panel and expands to fullscreen for the report while preserving the investment skill's native report HTML.",
       objectSchema({ workspace: { type: "string", minLength: 1 } }, ["workspace"]),
       { widget: true },
     ),
@@ -260,7 +260,7 @@ async function validateWorkspace(workspace) {
 
 function resourceMeta() {
   return {
-    "openai/widgetDescription": "Bloome investment research workbench with progress, evidence, artifacts, and an unmodified native report preview.",
+    "openai/widgetDescription": "Bloome investment research panel with progress, evidence, artifacts, and an unmodified native report preview. The inline surface is only a compact launcher.",
     "openai/widgetPrefersBorder": false,
     "openai/widgetCSP": {
       connect_domains: ["https://fonts.googleapis.com", "https://fonts.gstatic.com"],

@@ -30,12 +30,52 @@ const fixture = {
   coverage:{sell_reports_read:15,primary_sources_read:9},reportHtml,
 };
 
+function fixtureHtml({ disableAutoPanel = false } = {}) {
+  const bridge = `
+    window.__BLOOME_TEST_DATA__=${JSON.stringify(fixture).replaceAll("<", "\\u003c")};
+    window.__BLOOME_DISABLE_AUTO_PANEL__=${disableAutoPanel};
+    window.__BLOOME_MODE_REQUESTS__=[];
+    window.openai={
+      displayMode:"inline",
+      notifyIntrinsicHeight:()=>{},
+      requestDisplayMode:async({mode})=>{
+        window.__BLOOME_MODE_REQUESTS__.push(mode);
+        window.openai.displayMode=mode;
+        window.dispatchEvent(new CustomEvent("openai:set_globals",{detail:{globals:{displayMode:mode}}}));
+        return {mode};
+      },
+    };
+  `;
+  return server.resourceText().replace("<body>", `<body><script>${bridge}<\/script>`);
+}
+
 (async () => {
   const browser = await chromium.launch({ headless:true });
-  const page = await browser.newPage({ viewport:{width:1440,height:900}, deviceScaleFactor:1 });
-  const html = server.resourceText().replace("<body>", `<body><script>window.__BLOOME_TEST_DATA__=${JSON.stringify(fixture).replaceAll("<", "\\u003c")};<\/script>`);
-  await page.setContent(html, { waitUntil:"networkidle" });
+
+  const launcherPage = await browser.newPage({ viewport:{width:900,height:300}, deviceScaleFactor:1 });
+  await launcherPage.setContent(fixtureHtml({disableAutoPanel:true}), { waitUntil:"networkidle" });
+  assert.equal(await launcherPage.locator(".launcher").evaluate((node) => getComputedStyle(node).display), "grid");
+  assert.equal(await launcherPage.locator(".app").evaluate((node) => getComputedStyle(node).display), "none");
+  await launcherPage.getByRole("button", { name:"Open panel" }).click();
+  await launcherPage.locator('html[data-display-mode="pip"]').waitFor();
+  assert.equal(await launcherPage.locator(".app").evaluate((node) => getComputedStyle(node).display), "grid");
+  await launcherPage.close();
+
+  const page = await browser.newPage({ viewport:{width:520,height:844}, deviceScaleFactor:1 });
+  await page.setContent(fixtureHtml(), { waitUntil:"networkidle" });
+  await page.locator('html[data-display-mode="pip"]').waitFor();
   await page.evaluate(() => document.fonts.ready);
+
+  assert.deepEqual(await page.evaluate(() => window.__BLOOME_MODE_REQUESTS__), ["pip"]);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "panel horizontal overflow");
+  assert.equal(await page.locator(".stages").evaluate((node) => getComputedStyle(node).display), "none");
+  const mobileScreenshot = path.resolve(__dirname, "../assets/screenshot-mobile.png");
+  await page.screenshot({ path:mobileScreenshot, fullPage:false });
+
+  await page.getByRole("button", { name:"Report" }).click();
+  await page.locator('html[data-display-mode="fullscreen"]').waitFor();
+  assert.deepEqual(await page.evaluate(() => window.__BLOOME_MODE_REQUESTS__), ["pip", "fullscreen"]);
+  await page.setViewportSize({width:1440,height:900});
 
   assert.equal(await page.locator(".topbar").evaluate((node) => getComputedStyle(node).backgroundColor), "rgb(255, 255, 255)");
   assert.equal(await page.locator(".topbar").evaluate((node) => getComputedStyle(node).backgroundImage), "none");
@@ -63,14 +103,13 @@ const fixture = {
   }
 
   await page.getByRole("button", { name:"Thesis" }).click();
-  assert.equal(await page.locator(".stages").evaluate((node) => getComputedStyle(node).display), "none");
   await page.getByRole("button", { name:"Evidence" }).click();
   await page.getByText("Evidence backbone").waitFor();
   await page.getByRole("button", { name:"Report" }).click();
   assert.equal(await page.locator("#reportFrame").evaluate((frame) => frame.contentDocument.querySelector(".report") !== null), true);
   await page.getByRole("button", { name:"Thesis" }).click();
-  const mobileScreenshot = path.resolve(__dirname, "../assets/screenshot-mobile.png");
-  await page.screenshot({ path:mobileScreenshot, fullPage:false });
+  await page.getByRole("button", { name:"Panel" }).click();
+  await page.locator('html[data-display-mode="pip"]').waitFor();
   await browser.close();
-  process.stdout.write(`UI acceptance passed: ${screenshot}, ${mobileScreenshot}\n`);
+  process.stdout.write(`Native panel acceptance passed: ${screenshot}, ${mobileScreenshot}\n`);
 })().catch((error) => { console.error(error); process.exitCode=1; });

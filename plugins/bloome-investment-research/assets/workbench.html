@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-display-mode="inline">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -18,6 +18,10 @@
     *{box-sizing:border-box}
     html,body{margin:0;width:100%;height:100%;background:var(--white);color:var(--black);font-family:var(--display)}
     button{font:inherit}
+    .launcher{display:none;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:20px;min-height:112px;padding:18px 24px;border-top:4px solid var(--blue);border-bottom:1px solid var(--ink08);background:var(--white)}
+    .launcher-brand{display:flex;align-items:center;gap:12px}.launcher-brand img{width:64px;height:24px;object-fit:contain}.launcher-brand span{color:var(--ink45);font:500 10px/1.2 var(--meta);letter-spacing:.12em;text-transform:uppercase}
+    .launcher-copy{min-width:0}.launcher-topic{margin:0 0 8px;overflow:hidden;font-size:15px;font-weight:500;text-overflow:ellipsis;white-space:nowrap}.launcher-meta{display:flex;align-items:center;gap:12px;color:var(--ink45);font:500 10px/1 var(--meta);letter-spacing:.08em;text-transform:uppercase}.launcher-track{width:min(180px,22vw);height:1px;background:var(--ink20)}.launcher-track span{display:block;width:var(--p);height:1px;background:var(--orange)}
+    html[data-display-mode="inline"],html[data-display-mode="inline"] body{height:auto;min-height:0}html[data-display-mode="inline"] .launcher{display:grid}html[data-display-mode="inline"] .app{display:none}
     .app{height:100vh;min-height:560px;display:grid;grid-template-rows:76px minmax(0,1fr);overflow:hidden;background:var(--white)}
     .topbar{display:grid;grid-template-columns:220px minmax(0,1fr) auto;align-items:center;padding:0 24px;border-top:4px solid var(--blue);border-bottom:1px solid var(--ink08);background:var(--white)}
     .brand{display:flex;align-items:center;gap:16px;min-width:0}.brand img{width:64px;height:24px;object-fit:contain;flex:none}.brand span{font-size:14px;font-weight:500}
@@ -44,6 +48,7 @@
     .toast{position:fixed;right:18px;bottom:18px;padding:11px 16px;border-radius:9999px;background:var(--orange);color:var(--black);font:500 11px/1 var(--meta);opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none}.toast.show{opacity:1;transform:none}
     @media(max-width:1180px){.workspace{grid-template-columns:200px minmax(0,1fr)}.topbar{grid-template-columns:200px minmax(0,1fr) auto}.ledger{display:none}.sidebar{padding-right:20px;padding-left:20px}.stage.current::before{left:-20px}.canvas{padding-right:clamp(28px,5vw,56px);padding-left:clamp(28px,5vw,56px)}}
     @media(max-width:760px){
+      .launcher{grid-template-columns:minmax(0,1fr) auto;gap:14px;min-height:104px;padding:16px}.launcher-brand{display:none}.launcher-track{width:min(110px,24vw)}
       .app{min-height:480px;grid-template-rows:64px minmax(0,1fr)}
       .topbar{grid-template-columns:auto minmax(0,1fr) auto;padding:0 16px}.brand{gap:0}.brand span,.status{display:none}.project{padding:0 12px;text-align:left;font-size:13px}.pill{min-height:36px;padding:0 14px;font-size:12px}
       .workspace{grid-template-columns:minmax(0,1fr);grid-template-rows:49px minmax(0,1fr)}
@@ -57,11 +62,19 @@
   </style>
 </head>
 <body>
+  <section class="launcher" aria-label="Open Bloome Research panel">
+    <div class="launcher-brand"><img src="{{BLOOME_WORDMARK}}" alt="Bloome"><span>Research</span></div>
+    <div class="launcher-copy">
+      <p class="launcher-topic" id="launcherTopic">Investment research</p>
+      <div class="launcher-meta"><span id="launcherStatus">Planning · 0%</span><span class="launcher-track" aria-hidden="true"><span id="launcherProgress" style="--p:0%"></span></span></div>
+    </div>
+    <button class="pill solid" id="openPanelBtn">Open panel</button>
+  </section>
   <main class="app" aria-label="Bloome Investment Research workbench">
     <header class="topbar">
       <div class="brand"><img src="{{BLOOME_WORDMARK}}" alt="Bloome"><span>Research</span></div>
       <div class="project"><strong id="projectTopic">Investment research</strong></div>
-      <div class="top-actions"><div class="status"><span class="status-dot"></span><span id="statusText">Planning · 0%</span></div><button class="pill solid" id="exportBtn">Export</button></div>
+      <div class="top-actions"><div class="status"><span class="status-dot"></span><span id="statusText">Planning · 0%</span></div><button class="pill" id="expandBtn">Expand</button><button class="pill solid" id="exportBtn">Export</button></div>
     </header>
     <section class="workspace">
       <aside class="sidebar">
@@ -116,6 +129,7 @@
     const emptyData = { topic:"Investment research", status:"planning", progress:0, stage:1, judgment:"等待形成可验证的核心判断。", modules:[], artifacts:[], evidence:[], coverage:{}, reportHtml:"", workspace:"" };
     let data = emptyData;
     let evidenceTab = "challenge";
+    let displayMode = "inline";
     const $ = (selector) => document.querySelector(selector);
     const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[char]);
     function flash(message){const toast=$("#toast");toast.textContent=message;toast.classList.add("show");clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>toast.classList.remove("show"),1500)}
@@ -127,16 +141,22 @@
     function renderEvidenceTable(){const rows=data.evidence||[];$("#evidenceCount").textContent=`${rows.length} entries`;$("#evidenceTable").innerHTML=rows.length?rows.slice(0,30).map((item,index)=>`<div class="artifact-row"><span class="module-num">${String(index+1).padStart(2,"0")}</span><span class="artifact-name">${esc(item.claim)}</span><span class="module-scope">${esc(evidenceSource(item))}</span><span class="artifact-size">${esc(item.stance||"")}</span></div>`).join(""):`<div class="empty">所有重要判断、引文、表格和图表来源都必须回到 evidence.json。</div>`}
     function renderLedger(){const support=data.evidence.filter(item=>item.stance==="support");const challenge=data.evidence.filter(item=>item.stance==="challenge");$("#supportCount").textContent=support.length;$("#challengeCount").textContent=challenge.length;const rows=evidenceTab==="support"?support:challenge;$("#ledgerList").innerHTML=rows.length?rows.slice(0,8).map(item=>`<article class="evidence-card"><div class="evidence-meta">${esc(item.chunk_id||item.report_id||item.stance)}</div><h3>${esc(item.claim)}</h3><blockquote>${esc(item.quote||"暂无引文")}</blockquote><div class="source">${esc(evidenceSource(item))}</div></article>`).join(""):`<div class="empty">暂无${evidenceTab==="support"?"支持":"反方"}证据。缺失本身也是需要处理的研究状态。</div>`}
     function renderReport(){const frame=$("#reportFrame");$("#reportState").textContent=data.reportHtml?"report.html":"Not generated";frame.srcdoc=data.reportHtml||`<!doctype html><html><body style="margin:0;padding:64px;font-family:Georgia,serif;color:#1A1A1A"><h1 style="color:#003A5C">Report pending</h1><p style="line-height:1.7">完成验证和章节撰写后，原生 investment report 会显示在这里。</p></body></html>`}
-    function render(next){data={...emptyData,...(next||{})};$("#projectTopic").textContent=data.topic;$("#statusText").textContent=`${data.status} · ${data.progress}%`;$("#workspacePath").textContent=data.workspace?`\n${data.workspace}`:"";$("#judgment").textContent=data.judgment;renderStages();renderModules();renderCoverage();renderArtifacts();renderEvidenceTable();renderLedger();renderReport()}
-    function selectView(name){document.querySelectorAll(".nav button").forEach(button=>button.classList.toggle("active",button.dataset.view===name));document.querySelectorAll(".view").forEach(panel=>panel.classList.toggle("active",panel.dataset.panel===name))}
+    function setDisplayMode(next){displayMode=["inline","pip","fullscreen"].includes(next)?next:"inline";document.documentElement.dataset.displayMode=displayMode;$("#expandBtn").textContent=displayMode==="fullscreen"?"Panel":"Expand";if(displayMode==="inline")window.openai?.notifyIntrinsicHeight?.(112)}
+    async function requestMode(mode){if(!window.openai?.requestDisplayMode){flash("Panel mode is unavailable in this host");return false}try{const result=await window.openai.requestDisplayMode({mode});setDisplayMode(result?.mode||mode);return true}catch{flash("Codex kept the current layout");return false}}
+    function render(next){data={...emptyData,...(next||{})};$("#projectTopic").textContent=data.topic;$("#launcherTopic").textContent=data.topic;$("#statusText").textContent=`${data.status} · ${data.progress}%`;$("#launcherStatus").textContent=`${data.status} · ${data.progress}%`;$("#launcherProgress").style.setProperty("--p",`${data.progress||0}%`);$("#workspacePath").textContent=data.workspace?`\n${data.workspace}`:"";$("#judgment").textContent=data.judgment;renderStages();renderModules();renderCoverage();renderArtifacts();renderEvidenceTable();renderLedger();renderReport()}
+    function selectView(name){document.querySelectorAll(".nav button").forEach(button=>button.classList.toggle("active",button.dataset.view===name));document.querySelectorAll(".view").forEach(panel=>panel.classList.toggle("active",panel.dataset.panel===name));if(name==="report"&&displayMode==="pip")requestMode("fullscreen")}
     document.querySelectorAll(".nav button").forEach(button=>button.addEventListener("click",()=>selectView(button.dataset.view)));
     document.querySelectorAll(".tab").forEach(button=>button.addEventListener("click",()=>{evidenceTab=button.dataset.tab;document.querySelectorAll(".tab").forEach(tab=>tab.classList.toggle("active",tab===button));renderLedger()}));
     $("#exportBtn").addEventListener("click",async()=>{const value=data.workspace||"Research workspace";try{await navigator.clipboard.writeText(value);flash("Workspace path copied")}catch{flash("Report export is available from Codex")}});
+    $("#openPanelBtn").addEventListener("click",()=>requestMode("pip"));
+    $("#expandBtn").addEventListener("click",()=>requestMode(displayMode==="fullscreen"?"pip":"fullscreen"));
     $("#sourceBtn").addEventListener("click",()=>flash("Ask Codex to open the selected evidence source"));
     $("#refreshBtn").addEventListener("click",async()=>{if(window.openai?.callTool&&data.workspace){try{const result=await window.openai.callTool("open_research_workspace",{workspace:data.workspace});render(result?.structuredContent||result);flash("Workspace refreshed");return}catch{}}flash("Ask Codex to refresh this workspace")});
-    window.addEventListener("openai:set_globals",event=>{const next=event.detail?.globals?.toolOutput||event.detail?.globals?.structuredContent;if(next)render(next)});
+    window.addEventListener("openai:set_globals",event=>{const globals=event.detail?.globals||{};const next=globals.toolOutput||globals.structuredContent;if(next)render(next);if(globals.displayMode)setDisplayMode(globals.displayMode)});
     window.__bloomeRender=render;
+    setDisplayMode(window.openai?.displayMode||"inline");
     render(window.__BLOOME_TEST_DATA__||window.openai?.toolOutput||window.openai?.structuredContent||emptyData);
+    if(!window.__BLOOME_DISABLE_AUTO_PANEL__&&displayMode==="inline"&&window.openai?.requestDisplayMode)setTimeout(()=>requestMode("pip"),0);
   </script>
 </body>
 </html>

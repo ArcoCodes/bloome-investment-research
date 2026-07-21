@@ -1,6 +1,6 @@
 # Bloome Investment Research
 
-Codex 原生金融投研插件。它把可追溯的投研工作流、受控研究数据接口和 Bloome 白色自适应工作台打包成一个可安装的 marketplace。
+Codex 原生金融投研插件。它把可追溯的投研工作流、受控研究数据接口和 Bloome 白色自适应工作台打包成一个可安装的 marketplace。对话中只显示紧凑启动条，完整工作台由 Codex 原生 PiP panel 承载，研报阅读可继续展开为 fullscreen。
 
 Codex 使用用户现有账号完成规划、推理和写作，不需要额外的模型 API Key。Investment Research Skill 自带的研报结构、引用规则与 HTML 模板保持为最终输出标准；Bloome 设计语言只用于插件工作台。
 
