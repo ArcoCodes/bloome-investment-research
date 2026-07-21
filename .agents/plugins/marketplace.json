@@ -1,0 +1,20 @@
+{
+  "name": "bloome-research",
+  "interface": {
+    "displayName": "Bloome Research"
+  },
+  "plugins": [
+    {
+      "name": "bloome-investment-research",
+      "source": {
+        "source": "local",
+        "path": "./plugins/bloome-investment-research"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Finance"
+    }
+  ]
+}
