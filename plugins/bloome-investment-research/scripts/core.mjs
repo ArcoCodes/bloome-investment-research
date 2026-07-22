@@ -75,7 +75,7 @@ function locator(item) {
   return `line${item.line_end != null && item.line_end !== item.line_start ? "s" : ""} ${item.line_start}${item.line_end != null && item.line_end !== item.line_start ? `-${item.line_end}` : ""}`;
 }
 
-export function validateReport(report, html, evidence) {
+export function validateReport(report, html, evidence, staged = {}) {
   const errors = [];
   const warnings = [];
   const citations = new Set();
@@ -98,6 +98,47 @@ export function validateReport(report, html, evidence) {
   const requiredTemplateClasses = ["report", "top-bar", "header", "header-title", "header-meta", "section", "judge-box", "source-bar", "bottom-bar"];
   const missingTemplateClasses = requiredTemplateClasses.filter((name) => !new RegExp(`class\\s*=\\s*[\"'][^\"']*\\b${name}\\b`).test(html));
   if (missingTemplateClasses.length) errors.push(`HTML must preserve assets/template.html structure; missing: ${missingTemplateClasses.join(", ")}`);
+  const attributeValues = (attribute) => [...html.matchAll(new RegExp(`${attribute}\\s*=\\s*[\"']([^\"']+)[\"']`, "gi"))].map((match) => match[1]);
+  const reportTabs = new Set(attributeValues("data-report-tab"));
+  const reportPanels = new Set(attributeValues("data-report-panel"));
+  if (!reportTabs.has("report") || !reportTabs.has("evidence") || !reportPanels.has("report") || !reportPanels.has("evidence")) {
+    errors.push("HTML must contain switchable report and evidence tabs in the same document");
+  }
+  if (!/<script\b[\s\S]*data-report-tab[\s\S]*<\/script>/i.test(html)) errors.push("HTML must preserve the tab interaction script");
+  const evidenceSections = new Set(attributeValues("data-evidence-section"));
+  for (const section of ["sell-side-logic", "validation", "ledger"]) {
+    if (!evidenceSections.has(section)) errors.push(`Evidence tab is missing ${section}`);
+  }
+  for (const className of ["logic-item", "validation-item", "evidence-entry"]) {
+    if (!new RegExp(`class\\s*=\\s*[\"'][^\"']*\\b${className}\\b`).test(html)) errors.push(`Evidence tab is missing ${className} content`);
+  }
+  const validationFields = new Set(attributeValues("data-validation-field"));
+  for (const field of ["support", "opposing", "calibration", "unverified", "strength", "falsifier"]) {
+    if (!validationFields.has(field)) errors.push(`Validation view is missing ${field}`);
+  }
+  const claimIds = (markdown) => new Set([...String(markdown ?? "").matchAll(/\bC\d+\b/gi)].map((match) => match[0].toUpperCase()));
+  for (const [label, expectedIds, attribute] of [
+    ["Sell-side logic", claimIds(staged.sellSideLogic), "data-logic-claim-id"],
+    ["Validation", claimIds(staged.validation), "data-validation-claim-id"],
+  ]) {
+    if (!expectedIds.size) continue;
+    const renderedIds = attributeValues(attribute).map((id) => id.toUpperCase());
+    for (const id of expectedIds) {
+      const count = renderedIds.filter((renderedId) => renderedId === id).length;
+      if (count !== 1) errors.push(`${label} claim ${id} must be rendered exactly once`);
+    }
+    if (renderedIds.length !== expectedIds.size) errors.push(`${label} claim count must match its staged Markdown artifact`);
+  }
+  const expectedEvidenceIds = new Map();
+  for (const item of evidence) expectedEvidenceIds.set(String(item.chunk_id), (expectedEvidenceIds.get(String(item.chunk_id)) ?? 0) + 1);
+  const renderedEvidenceIds = new Map();
+  for (const id of attributeValues("data-evidence-id")) renderedEvidenceIds.set(id, (renderedEvidenceIds.get(id) ?? 0) + 1);
+  for (const [id, count] of expectedEvidenceIds) {
+    if (renderedEvidenceIds.get(id) !== count) errors.push(`Evidence ledger must render chunk_id ${id} exactly ${count} time(s)`);
+  }
+  if ([...renderedEvidenceIds.values()].reduce((sum, count) => sum + count, 0) !== evidence.length) {
+    errors.push("Evidence ledger entry count must match evidence.json");
+  }
   if (/\{\{[^}]+\}\}/.test(html)) errors.push("HTML contains unresolved template placeholders");
   const classes = [...html.matchAll(/class\s*=\s*["']([^"']*)["']/gi)].map((match) => match[1].split(/\s+/));
   const sourceCount = classes.filter((names) => names.includes("src")).length;

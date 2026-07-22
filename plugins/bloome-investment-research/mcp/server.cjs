@@ -271,11 +271,13 @@ async function validateWorkspace(workspace) {
   const evidence = readJson(path.join(root, "evidence.json"), []);
   const report = readText(path.join(root, "report.md"));
   const html = readText(path.join(root, "report.html"));
+  const sellSideLogic = readText(path.join(root, "sell_side_logic.md"));
+  const validationMarkdown = readText(path.join(root, "validation.md"));
   const coverage = readJson(path.join(root, "coverage_stats.json"), {});
   errors.push(...coverageErrors(coverage));
   if (Array.isArray(evidence) && report && html) {
     const core = await import(pathToFileURL(path.join(ROOT, "scripts", "core.mjs")).href);
-    const validation = core.validateReport(report, html, evidence);
+    const validation = core.validateReport(report, html, evidence, { sellSideLogic, validation: validationMarkdown });
     errors.push(...validation.errors);
     return { ok: errors.length === 0, workspace: root, errors: [...new Set(errors)], warnings: validation.warnings, artifacts, chapters };
   }

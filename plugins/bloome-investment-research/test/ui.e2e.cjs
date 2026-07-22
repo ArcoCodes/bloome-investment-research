@@ -17,7 +17,28 @@ const reportHtml = fs.readFileSync(path.resolve(__dirname, "../skills/investment
   .replaceAll("{{sell_reports_read}}", "15")
   .replaceAll("{{primary_sources_read}}", "9")
   .replaceAll("{{report_month}}", "2026年7月")
-  .replaceAll("{{primary_quote_source}}", "产业访谈 · 2026-07-02");
+  .replaceAll("{{primary_quote_source}}", "产业访谈 · 2026-07-02")
+  .replaceAll("{{evidence_count}}", "2")
+  .replaceAll("{{logic_claim}}", "推理负载扩大服务器本地闪存需求")
+  .replaceAll("{{logic_causal_chain}}", "推理请求增加 → 中间状态写入增加 → 企业级 SSD 容量需求上升")
+  .replaceAll("{{logic_assumptions}}", "推理负载持续增长，且本地闪存未被其他介质替代")
+  .replaceAll("{{logic_indicators}}", "企业级 SSD 询单、出货量与库存周转")
+  .replaceAll("{{logic_risks}}", "库存回升或单位计算闪存用量下降")
+  .replaceAll("{{validation_claim}}", "需求改善能够传导至价格")
+  .replaceAll("{{support_evidence}}", "高容量企业级 SSD 询单增加")
+  .replaceAll("{{opposing_evidence}}", "库存去化速度低于预期")
+  .replaceAll("{{calibration_result}}", "方向成立，但价格弹性可能推迟一个季度")
+  .replaceAll("{{unverified_point}}", "下游补库能否持续两个季度")
+  .replaceAll("{{evidence_strength}}", "medium")
+  .replaceAll("{{judgment_falsifier}}", "库存连续回升且合约价未改善")
+  .replaceAll("{{evidence_chunk_id}}", "C1")
+  .replaceAll("{{evidence_corpus}}", "primary")
+  .replaceAll("{{evidence_stance}}", "support")
+  .replaceAll("{{evidence_claim}}", "推理负载扩大本地存储需求")
+  .replaceAll("{{evidence_quote}}", "推理系统将更多中间状态卸载到本地闪存。")
+  .replaceAll("{{evidence_title}}", "Technical brief")
+  .replaceAll("{{evidence_published_at}}", "2026-07-01")
+  .replaceAll("{{evidence_locator}}", "p.7");
 const fixture = {
   ok:true,workspace:"/tmp/.bloome/research/ai-nand",topic:"AI 与 NAND 价格周期",status:"researching",progress:64,stage:3,
   judgment:"需求弹性来自推理侧本地存储，供给纪律决定价格传导能持续多久。",
@@ -51,8 +72,10 @@ function fixtureHtml({ disableAutoPanel = false } = {}) {
 
 (async () => {
   const browser = await chromium.launch({ headless:true });
+  const context = await browser.newContext({ viewport:{width:900,height:300}, deviceScaleFactor:1 });
+  await context.route(/https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/, (route) => route.abort());
 
-  const launcherPage = await browser.newPage({ viewport:{width:900,height:300}, deviceScaleFactor:1 });
+  const launcherPage = await context.newPage();
   await launcherPage.setContent(fixtureHtml({disableAutoPanel:true}), { waitUntil:"networkidle" });
   assert.equal(await launcherPage.locator(".launcher").evaluate((node) => getComputedStyle(node).display), "grid");
   assert.equal(await launcherPage.locator(".app").evaluate((node) => getComputedStyle(node).display), "none");
@@ -61,7 +84,8 @@ function fixtureHtml({ disableAutoPanel = false } = {}) {
   assert.equal(await launcherPage.locator(".app").evaluate((node) => getComputedStyle(node).display), "grid");
   await launcherPage.close();
 
-  const page = await browser.newPage({ viewport:{width:520,height:844}, deviceScaleFactor:1 });
+  const page = await context.newPage();
+  await page.setViewportSize({width:520,height:844});
   await page.setContent(fixtureHtml(), { waitUntil:"networkidle" });
   await page.locator('html[data-display-mode="pip"]').waitFor();
   await page.evaluate(() => document.fonts.ready);
@@ -90,23 +114,33 @@ function fixtureHtml({ disableAutoPanel = false } = {}) {
   await page.getByText("sell_side_logic.md").waitFor();
   await page.getByRole("button", { name:"Report" }).click();
   assert.equal(await page.locator('[data-panel="report"]').evaluate((node) => getComputedStyle(node).display), "block");
-  assert.equal(await page.locator("#reportFrame").evaluate((frame) => frame.contentDocument.querySelector(".report") !== null), true);
+  assert.equal(await page.locator("#reportFrame").getAttribute("sandbox"), "allow-scripts");
+  const reportFrame = page.frameLocator("#reportFrame");
+  await reportFrame.locator(".report").waitFor();
+  await reportFrame.getByRole("tab", { name:/证据/ }).click();
+  await reportFrame.getByText("证据与交叉验证").waitFor();
+  assert.equal(await reportFrame.locator('[data-report-panel="report"]').getAttribute("hidden"), "");
+  await reportFrame.getByRole("tab", { name:"研报" }).click();
+  await reportFrame.getByText("AI 推理需求与 NAND 价格周期").waitFor();
 
   const screenshot = path.resolve(__dirname, "../assets/screenshot.png");
   await page.screenshot({ path:screenshot, fullPage:false });
 
+  await reportFrame.getByRole("tab", { name:/证据/ }).click();
   for (const viewport of [{width:1440,height:900},{width:1024,height:768},{width:720,height:900},{width:390,height:844}]) {
     await page.setViewportSize(viewport);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, `horizontal overflow at ${viewport.width}px`);
+    assert.equal(await reportFrame.locator("html").evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, `evidence overflow at ${viewport.width}px`);
     const ledgerDisplay = await page.locator(".ledger").evaluate((node) => getComputedStyle(node).display);
     assert.equal(ledgerDisplay === "none", viewport.width <= 1180, `ledger breakpoint at ${viewport.width}px`);
   }
+  await reportFrame.getByRole("tab", { name:"研报" }).click();
 
   await page.getByRole("button", { name:"Thesis" }).click();
   await page.getByRole("button", { name:"Evidence" }).click();
   await page.getByText("Evidence backbone").waitFor();
   await page.getByRole("button", { name:"Report" }).click();
-  assert.equal(await page.locator("#reportFrame").evaluate((frame) => frame.contentDocument.querySelector(".report") !== null), true);
+  await page.frameLocator("#reportFrame").locator(".report").waitFor();
   await page.getByRole("button", { name:"Thesis" }).click();
   await page.getByRole("button", { name:"Panel" }).click();
   await page.locator('html[data-display-mode="pip"]').waitFor();

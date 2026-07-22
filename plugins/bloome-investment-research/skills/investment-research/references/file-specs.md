@@ -135,3 +135,14 @@ Recommended fields include:
 - `source_path`
 - `published_at`
 - `page_start` or `line_start`
+
+## `report.html`
+
+Treat `report.html` as one self-contained deliverable with two accessible views:
+
+1. `研报`: the complete reader-facing report rendered in the native investment report template.
+2. `证据`: an audit trail rendered from `sell_side_logic.md`, `validation.md`, and every entry in `evidence.json`.
+
+The evidence view must preserve claim IDs using `data-logic-claim-id="<claim_id>"` and `data-validation-claim-id="<claim_id>"`, and show the sell-side causal frame, assumptions, indicators, risks and invalidation conditions. For each validation claim, show support evidence, opposing evidence, calibration result, unverified point, evidence strength, and what would change the judgment. Render the complete evidence ledger with one `data-evidence-id="<chunk_id>"` entry per evidence item, including stance, corpus, quote, title, publication date, and exact page/line locator.
+
+Keep the two views inside the same HTML document. Do not use external pages, external JavaScript, or links to local Markdown files as a substitute for embedded content.

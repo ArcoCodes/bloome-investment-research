@@ -7,7 +7,7 @@ Cross-runtime, evidence-first investment research for Codex and Claude Code.
 - The shared MCP server provides the same research and validation tools in both hosts.
 - Codex renders the native PiP/fullscreen workbench. Claude Code returns progress, evidence, artifacts, and `reportPath` without injecting the complete HTML report into model context.
 - Bloome styling applies to the optional workbench only.
-- `skills/investment-research/assets/template.html` remains the final report's visual source of truth.
+- `skills/investment-research/assets/template.html` remains the final report's visual source of truth and keeps the reader report plus its evidence audit trail in one tabbed HTML deliverable.
 
 Runtime manifests are generated from `plugin.config.json`; do not edit `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`, or either marketplace by hand.
 

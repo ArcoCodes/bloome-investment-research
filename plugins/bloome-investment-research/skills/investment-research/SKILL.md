@@ -37,7 +37,7 @@ Run these stages in order:
 4. Save `validation.md`.
 5. Save `report_outline.md` or `report_outline.json`.
 6. Save one `chapter_XX_*.md` for each substantive report section.
-7. Save and synthesize `final_report.md`, `report.md`, `report.html`, `evidence.json`, and `coverage_stats.json`.
+7. Save and synthesize `final_report.md`, `report.md`, `report.html`, `evidence.json`, and `coverage_stats.json`. The single `report.html` must embed the report and its audit trail as switchable tabs.
 
 Keep all staged files traceable to `evidence.json`. Do not skip from search notes directly to the final report.
 
@@ -67,6 +67,14 @@ Use sell-side material for the analytical frame and structured data; use primary
 Render primary evidence quotations visibly with `<blockquote class="primary-quote">` and replace `{{primary_quote_source}}` with the exact matched `evidence.json` source label. The visible source line should use the returned source party/title and publication date; keep page/line locators inside `evidence.json` for traceability, not in the reader-facing line. Never write a generic label or invent a source. Keep sell-side references as the template's `.src` hover tooltips. Every claim, quote, table source, chart source, and tooltip must map to `evidence.json`. Keep disagreements visible.
 
 Use `assets/template.html` as the visual source of truth; fill its placeholders and insert report content within its existing structure. Do not replace it with a newly invented card layout or a different page structure. Preserve its header, judgment block, section layout, source bar, hover-tooltip system, and existing visual language. Surface source coverage in the report, including sell-side reports read and primary/industry materials read. Pass `report_month` to `research_synthesize` when a data cutoff is specified, for example `2026年7月`.
+
+Keep both views in the same self-contained `report.html`:
+
+- The `研报` tab contains the complete reader-facing investment report and remains the default view.
+- The `证据` tab renders the structured content of `sell_side_logic.md`, then the claim-by-claim content of `validation.md`, then the complete `evidence.json` ledger. Do not link out to the Markdown files or paste raw Markdown into the page.
+- Preserve every claim ID across sell-side logic and validation. Set each logic entry's `data-logic-claim-id` and each validation entry's `data-validation-claim-id` to the exact claim ID. For each validation claim, visibly include support evidence, opposing evidence, calibration result, unverified point, evidence strength, and what would change the judgment.
+- Render every `evidence.json` item once in the ledger and set its entry's `data-evidence-id` to the exact `chunk_id`. Include stance, corpus, quote, source title, publication date, and page/line locator.
+- Preserve the template's accessible tab roles, keyboard behavior, mobile layout, and print behavior. Do not remove the tab script or leave any template placeholders unresolved.
 
 For numeric data, use the available `reson-charts` capability and follow its documented schema; if unavailable, use self-contained inline SVG/CSS. For relationships and mechanisms, use the reusable components in `references/concept-diagrams.md`. Select chart types from the data structure and read `references/chart-rules.md` before rendering.
 
