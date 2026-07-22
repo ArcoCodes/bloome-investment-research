@@ -1,13 +1,13 @@
 ---
 name: investment-research-agent
-description: Runs long-form investment research in Codex or Claude Code through staged intermediate artifacts instead of one-shot output. Use for deep company, industry, theme, or thesis reports that separate sell-side logic extraction from primary validation and produce traceable Markdown, HTML, and evidence deliverables.
+description: Runs long-form multi-agent investment research in Codex or Claude/Cowork through staged intermediate artifacts instead of one-shot output. Use for deep company, industry, theme, or thesis reports that separate sell-side logic extraction from primary validation and produce traceable Markdown, HTML, and evidence deliverables.
 ---
 
 # Investment Research Agent
 
-Use the active host—Codex or Claude Code—as the reasoning runtime and the bundled `research_search`, `research_get_chunk`, and `research_get_report_context` MCP tools as the corpus interface. The host's existing account supplies the model; this beta does not require an additional model key or OAuth flow. Access to the private Bloome research gateway is configured separately with `RESEARCH_API_TOKEN`.
+Use the active host—Codex or Claude/Cowork (including Claude Code plugin runtimes)—as the reasoning runtime and the bundled `research_search`, `research_get_chunk`, and `research_get_report_context` MCP tools as the corpus interface. The host's existing account supplies the model; this beta does not require an additional model key or OAuth flow. Access to the private Bloome research gateway is configured separately with `RESEARCH_API_TOKEN` or `~/.bloome/research-api-token`.
 
-Do not write a long report in one pass. Keep `evidence.json` as the unified evidence backbone.
+Do not write a long report in one pass. Keep `evidence.json` as the unified evidence backbone. MCP is the shared data plane only: it must never spawn an agent, invoke a model CLI, or call a model API.
 
 ## Cross-Runtime Run
 
@@ -25,21 +25,36 @@ Useful starter requests:
 验证当前研报是否满足 investment research 的全部输出要求。
 ```
 
-The research proxy URL defaults to the Bloome beta gateway. `RESEARCH_API_TOKEN` is required and must come from the local environment; `RESEARCH_SEARCH_URL` remains an optional override. If credentials are missing, the proxy is unavailable, or search returns no results, preserve partial artifacts, report the exact retrieval status, and stop evidence-based conclusions.
+The research proxy URL defaults to the Bloome beta gateway. Read the credential from `RESEARCH_API_TOKEN` first, then the user-only `~/.bloome/research-api-token` file; the file is read for each request so Codex Desktop does not need to forward or reload environment variables. `RESEARCH_SEARCH_URL` remains an optional override. If credentials are missing, the proxy is unavailable, or search returns no results, preserve partial artifacts, report the exact retrieval status, and stop evidence-based conclusions.
+
+## Parent and Subagent Roles
+
+The parent owns the landscape pass, module plan, evidence reconciliation, outline, chapter writing, final assembly, HTML rendering, and validation. Workers produce evidence memos only.
+
+After the landscape pass, save `plan.json` with 3–5 non-overlapping modules and the fields defined in `references/module-contract.md`. Prefer host-native delegation:
+
+- **Claude/Cowork:** delegate module scopes to the bundled `research-module` subagent and optionally use `evidence-auditor` after all memos exist.
+- **Codex:** use native subagents with the same module and auditor contracts. Do not require users to install custom `.codex/agents` files.
+
+Run no more than three workers concurrently. Each worker handles one scope and writes only `modules/<id>.md`; it must not write shared evidence or report files. If native subagents are unavailable, denied, lack research-tool access, or fail, run only the missing modules sequentially in the parent with the identical contract. Never replace host delegation with a spawned Claude, Codex, Pi, or model-API process.
+
+Read `references/multiagent-workflow.md` and `references/module-contract.md` before planning or dispatching workers.
 
 ## Required Workflow
 
 Run these stages in order:
 
-1. Search both `sell` and `primary` corpora.
-2. Run at least two retrieval rounds for each corpus, with multiple query seeds, at least one recency window per corpus, and at least 40 retrieved records per corpus. The `size=20` limit is per call, not the project total.
-3. Save `sell_side_logic.md`.
-4. Save `validation.md`.
+1. Search both `sell` and `primary` corpora for the initial landscape.
+2. Save the 3–5 module plan, dispatch host-native workers or use the sequential fallback, and read every `modules/<id>.md` memo.
+3. Complete at least two retrieval rounds for each corpus, with multiple query seeds, at least one recency window per corpus, and at least 40 retrieved records per corpus. The `size=20` limit is per call, not the project total.
+4. Reconcile module evidence in the parent, then save `sell_side_logic.md`, `validation.md`, and the unified `evidence.json`.
 5. Save `report_outline.md` or `report_outline.json`.
-6. Save one `chapter_XX_*.md` for each substantive report section.
-7. Save and synthesize `final_report.md`, `report.md`, `report.html`, `evidence.json`, and `coverage_stats.json`. The single `report.html` must embed the report and its audit trail as switchable tabs.
+6. Save one `chapter_XX_*.md` for each substantive report section. Every chapter needs source citations and an explicit boundary, opposing-evidence, risk, or invalidation section.
+7. Assemble `final_report.md` directly from the chapter drafts; do not summarize or rewrite away chapter bodies or citations.
+8. Copy the complete `final_report.md` narrative and citations into `report.md` without compression, then render all of `report.md` into the `研报` tab of a static `report.html`. The same HTML must embed the complete audit trail in a switchable `证据` tab and include `coverage_stats.json`. Charts must be static HTML/CSS/SVG.
+9. Call `validate_research_workspace`, repair every error, and only then deliver or open the workspace.
 
-Keep all staged files traceable to `evidence.json`. Do not skip from search notes directly to the final report.
+Keep all staged files traceable to `evidence.json`. Do not skip from search notes or module memos directly to the final report.
 
 The bundled `research_search` and `research_get_chunk` tools are the research corpus interface. Do not infer that the corpus is unavailable merely because no separate “knowledge base” skill is installed. If search returns no results or the research proxy is unavailable, report that exact retrieval status and stop evidence-based conclusions; do not replace the research with unsupported industry generalizations.
 
@@ -58,7 +73,7 @@ For every material claim, record support, opposing evidence, calibration result,
 - Use at least five substantive sections for a deep report, excluding the opening judgment, source coverage, and references.
 - Each substantive section needs at least two argument units. Each unit should connect a conclusion, source-backed data, causal transmission, comparison or calculation, boundary/opposing evidence, and investment implication.
 - Use extracted sell-side data, primary calibration, disagreements, scenarios, sensitivities, and company-level transmission to add depth. Do not add generic filler or repeat the same number.
-- Preserve chapter detail, tables, charts, citations, and unresolved points in the final assembly.
+- Preserve chapter detail, tables, charts, citations, and unresolved points in the final assembly. Assemble chapter bodies directly; never generate a fresh compressed report after chapter drafting.
 
 ## Final Report and HTML
 
@@ -81,6 +96,8 @@ For numeric data, use the available `reson-charts` capability and follow its doc
 ## Output References
 
 Read `references/file-specs.md` for staged artifact shapes, evidence fields, and coverage statistics.
+
+Read `references/multiagent-workflow.md` and `references/module-contract.md` for host-native delegation, fallback, plan fields, and module memo output.
 
 Read `references/chart-rules.md` for chart selection and rendering requirements.
 

@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
 export const MAX_MODULES = 5;
@@ -6,8 +7,12 @@ export const DEFAULT_RESEARCH_SEARCH_URL = "https://research-search-proxy.dev-0d
 
 export async function researchProxy(endpoint, body, signal, fetcher = fetch) {
   const url = (process.env.RESEARCH_SEARCH_URL || DEFAULT_RESEARCH_SEARCH_URL).replace(/\/$/, "");
-  const token = process.env.RESEARCH_API_TOKEN;
-  if (!token) throw new Error("RESEARCH_API_TOKEN is required; set it in the host environment and restart the active runtime");
+  let token = process.env.RESEARCH_API_TOKEN;
+  if (!token) {
+    try { token = (await readFile(process.env.RESEARCH_API_TOKEN_FILE || path.join(os.homedir(), ".bloome", "research-api-token"), "utf8")).trim(); }
+    catch (error) { if (error.code !== "ENOENT") throw error; }
+  }
+  if (!token) throw new Error("Bloome research credential is required; set RESEARCH_API_TOKEN or ~/.bloome/research-api-token");
   let response;
   try {
     response = await fetcher(`${url}${endpoint}`, {
@@ -75,6 +80,31 @@ function locator(item) {
   return `line${item.line_end != null && item.line_end !== item.line_start ? "s" : ""} ${item.line_start}${item.line_end != null && item.line_end !== item.line_start ? `-${item.line_end}` : ""}`;
 }
 
+function normalizedNarrative(value) {
+  return value.replace(/[^\p{Letter}\p{Number}]+/gu, "").toLowerCase();
+}
+
+function htmlNarrative(html) {
+  return normalizedNarrative(html
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&(?:amp|lt|gt|quot|#39);/g, " "));
+}
+
+function preservesNarrative(report, html) {
+  const rendered = htmlNarrative(html);
+  const segments = report
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/\[([^\]\n]+)\]\([^)\n]+\)/g, "$1")
+    .replace(/(?:\[[^\]\n]+\]|〔[^〕\n]+〕|【[^】\n]+】)/g, "\n")
+    .split(/\n+/)
+    .map((line) => normalizedNarrative(line.replace(/<[^>]*>/g, " ")))
+    .filter(Boolean);
+  return segments.every((segment) => rendered.includes(segment));
+}
+
 export function validateReport(report, html, evidence, staged = {}) {
   const errors = [];
   const warnings = [];
@@ -95,6 +125,7 @@ export function validateReport(report, html, evidence, staged = {}) {
   if (!evidence.some((item) => item.stance === "challenge")) errors.push("At least one challenge evidence item is required");
   if (/\b(?:sell|primary|corpus|report_id|chunk_id|BM25|research_(?:search|plan|run_modules|synthesize))\b|模块/i.test(report)) errors.push("Report contains internal workflow jargon");
   if (!/^<!doctype html>/i.test(html.trimStart()) || !/class=["'][^"']*report/i.test(html)) errors.push("HTML must be a complete report document");
+  if (!preservesNarrative(report, html)) errors.push("HTML omits report.md narrative; render every heading, paragraph, table row, and citation context instead of rewriting a summary");
   const requiredTemplateClasses = ["report", "top-bar", "header", "header-title", "header-meta", "section", "judge-box", "source-bar", "bottom-bar"];
   const missingTemplateClasses = requiredTemplateClasses.filter((name) => !new RegExp(`class\\s*=\\s*[\"'][^\"']*\\b${name}\\b`).test(html));
   if (missingTemplateClasses.length) errors.push(`HTML must preserve assets/template.html structure; missing: ${missingTemplateClasses.join(", ")}`);

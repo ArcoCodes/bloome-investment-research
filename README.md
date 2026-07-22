@@ -35,21 +35,17 @@ claude --plugin-dir ./plugins/bloome-investment-research
 
 模型推理不需要额外密钥，但 Bloome 的受控研究数据服务需要独立的 beta token。不要把 token 写入仓库或插件源码。
 
-Codex 用户可在 `~/.codex/.env` 中添加：
+Codex Desktop 会过滤插件 MCP 子进程的普通环境变量。内测期间，把 token 写入仅当前用户可读的凭证文件；MCP 每次请求都会重新读取，不需要重启 Codex：
 
-```dotenv
-RESEARCH_API_TOKEN=your-beta-token
+```bash
+mkdir -p ~/.bloome
+printf '%s\n' 'your-beta-token' > ~/.bloome/research-api-token
+chmod 600 ~/.bloome/research-api-token
 ```
 
-如需切换测试服务，也可以设置：
+`RESEARCH_API_TOKEN` 环境变量仍具有更高优先级，适合 Codex CLI、Claude Code 和 CI。插件通过 `.mcp.json` 的 `env_vars` allowlist 请求 Codex 转发该变量；如需切换测试服务，也可以设置 `RESEARCH_SEARCH_URL`。不要把 token 写进 `.mcp.json`、仓库内 `.env` 或项目设置。
 
-```dotenv
-RESEARCH_SEARCH_URL=https://your-research-gateway.example.com
-```
-
-重启 Codex Desktop 后生效。正式公开版本计划改为匿名试用额度和 Bloome 账号认证，不会要求用户手动维护长期 token。
-
-Claude Code 用户应通过启动 Claude Code 的 shell 或受控环境配置注入同名变量，不要把 token 写进 `.mcp.json`、仓库内 `.env` 或项目设置。配置后重启 Claude Code。
+正式公开版本计划改为 Bloome 账号和远程 MCP OAuth，不会要求用户手动维护长期 token。
 
 ## 使用
 

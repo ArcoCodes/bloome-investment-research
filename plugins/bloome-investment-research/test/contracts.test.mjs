@@ -23,7 +23,7 @@ test("cross-runtime skill keeps the original report template as source of truth"
   assert.match(skill, /Use `assets\/template\.html` as the visual source of truth/);
   assert.match(skill, /Do not replace it with a newly invented card layout/);
   assert.match(skill, /evidence\.json` as the unified evidence backbone/);
-  assert.match(skill, /Codex or Claude Code/);
+  assert.match(skill, /Codex or Claude\/Cowork/);
   assert.match(skill, /host's existing account supplies the model/);
   assert.match(skill, /returned `reportPath`/);
   assert.match(skill, /same self-contained `report\.html`/);
@@ -31,4 +31,23 @@ test("cross-runtime skill keeps the original report template as source of truth"
   assert.match(template, /data-report-tab="evidence"/);
   assert.match(template, /data-evidence-section="validation"/);
   assert.match(template, /data-evidence-id="\{\{evidence_chunk_id\}\}"/);
+});
+
+test("shared workflow delegates bounded memos with a sequential fallback", async () => {
+  const [skill, moduleContract, workflow, worker, auditor] = await Promise.all([
+    "skills/investment-research/SKILL.md",
+    "skills/investment-research/references/module-contract.md",
+    "skills/investment-research/references/multiagent-workflow.md",
+    "agents/research-module.md",
+    "agents/evidence-auditor.md",
+  ].map((file) => readFile(new URL(file, root), "utf8")));
+  assert.match(skill, /Run no more than three workers concurrently/);
+  assert.match(skill, /run only the missing modules sequentially in the parent/);
+  assert.match(skill, /render all of `report\.md` into the `研报` tab of a static `report\.html`/);
+  assert.match(skill, /writes only `modules\/<id>\.md`/);
+  assert.match(workflow, /MCP provides research data and deterministic validation; it never starts agents or calls a model/);
+  assert.match(moduleContract, /# Conflicts and date reconciliation/);
+  assert.match(moduleContract, /must not write an executive summary, chapter, outline, `evidence\.json`, or final report/);
+  assert.match(worker, /Write only the assigned module memo/);
+  assert.match(auditor, /Do not edit files or write report prose/);
 });

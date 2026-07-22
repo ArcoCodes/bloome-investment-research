@@ -1,6 +1,7 @@
 "use strict";
 
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const readline = require("node:readline");
 const { pathToFileURL } = require("node:url");
@@ -146,10 +147,16 @@ function toolDefinitions(runtime = runtimeName()) {
   ];
 }
 
+function researchApiToken(env = process.env) {
+  if (env.RESEARCH_API_TOKEN) return env.RESEARCH_API_TOKEN;
+  const file = env.RESEARCH_API_TOKEN_FILE || path.join(os.homedir(), ".bloome", "research-api-token");
+  return readText(file).trim();
+}
+
 async function researchProxy(endpoint, body, signal, fetcher = fetch) {
   const base = (process.env.RESEARCH_SEARCH_URL || DEFAULT_SEARCH_URL).replace(/\/$/, "");
-  const token = process.env.RESEARCH_API_TOKEN;
-  if (!token) throw new Error("RESEARCH_API_TOKEN is required; set it in the host environment and restart the active runtime");
+  const token = researchApiToken();
+  if (!token) throw new Error("Bloome research credential is required; set RESEARCH_API_TOKEN or ~/.bloome/research-api-token");
   let response;
   try {
     response = await fetcher(`${base}${endpoint}`, {
@@ -259,24 +266,95 @@ function coverageErrors(coverage) {
   return errors;
 }
 
+function citations(markdown) {
+  return [...markdown.matchAll(/(?:\[([^\]\n]+)\]|〔([^〕\n]+)〕|【([^】\n]+)】)/g)]
+    .map((match) => match[1] ?? match[2] ?? match[3])
+    .filter((value) => /,\s*(?:p{1,2}\.\d+(?:-\d+)?|lines? \d+(?:-\d+)?)/.test(value));
+}
+
+function bodyParagraphs(markdown) {
+  return markdown
+    .replace(/^#{1,6}\s+.*$/gm, "")
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
+function moduleErrors(id, markdown) {
+  const errors = [];
+  const bodyLength = bodyParagraphs(markdown).join("").length;
+  if (bodyLength < 120) errors.push(`module ${id} is title-only or lacks substantive evidence`);
+  for (const heading of ["Direct answer", "Claim–evidence pairs", "Metrics", "Conflicts and date reconciliation", "Invalidating conditions", "Remaining gaps"]) {
+    if (!new RegExp(`^#{1,6}\\s+${heading}\\s*$`, "im").test(markdown)) errors.push(`module ${id} missing section: ${heading}`);
+  }
+  if (!citations(markdown).length) errors.push(`module ${id} requires at least one exact source citation`);
+  return errors;
+}
+
+function chapterErrors(name, markdown) {
+  const errors = [];
+  if (bodyParagraphs(markdown).join("").length < 160) errors.push(`${name} is title-only or lacks substantive analysis`);
+  if (!citations(markdown).length) errors.push(`${name} requires at least one exact source citation`);
+  if (!/^#{1,6}\s+.*(?:边界|反方|挑战|限制|风险|失效|证伪|不确定|争议|opposing|challenge|boundary|limitation|risk|invalidat|falsif)/im.test(markdown)) {
+    errors.push(`${name} requires an explicit boundary, opposing-evidence, risk, or invalidation section`);
+  }
+  return errors;
+}
+
+function finalAssemblyErrors(finalReport, chapters) {
+  const errors = [];
+  const normalizedFinal = finalReport.replace(/\s+/g, " ").trim();
+  const finalCitations = new Set(citations(finalReport));
+  for (const { name, markdown } of chapters) {
+    if (bodyParagraphs(markdown).some((paragraph) => !normalizedFinal.includes(paragraph))) {
+      errors.push(`final_report.md drops body text from ${name}`);
+    }
+    const missing = citations(markdown).filter((citation) => !finalCitations.has(citation));
+    if (missing.length) errors.push(`final_report.md drops citations from ${name}: ${[...new Set(missing)].join(", ")}`);
+  }
+  return errors;
+}
+
 async function validateWorkspace(workspace) {
   const root = workspacePath(workspace);
+  const core = await import(pathToFileURL(path.join(ROOT, "scripts", "core.mjs")).href);
   const artifacts = artifactList(root);
   const names = new Set(artifacts.map((item) => item.name));
   const errors = REQUIRED_FILES.filter((name) => !names.has(name)).map((name) => `missing ${name}`);
   if (!names.has("report_outline.md") && !names.has("report_outline.json")) errors.push("missing report_outline.md or report_outline.json");
-  const chapters = artifacts.filter((item) => item.name.startsWith("chapter_")).length;
+  const chapterArtifacts = artifacts.filter((item) => item.name.startsWith("chapter_"));
+  const chapters = chapterArtifacts.length;
   if (chapters < 5) errors.push("deep report requires at least 5 chapter_XX_*.md files");
+
+  const plan = readJson(path.join(root, "plan.json"), {});
+  const modules = Array.isArray(plan.modules) ? plan.modules : [];
+  if (!names.has("plan.json")) errors.push("missing plan.json");
+  if (modules.length < 3 || modules.length > 5) errors.push("deep report requires 3-5 research modules");
+  try { core.assertPlan(modules); } catch (error) { errors.push(error.message); }
+  for (const module of modules) {
+    const id = String(module.id || "");
+    if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) { errors.push(`invalid module id: ${id || "missing"}`); continue; }
+    const memo = readText(path.join(root, "modules", `${id}.md`));
+    if (!memo) errors.push(`missing modules/${id}.md`);
+    else errors.push(...moduleErrors(id, memo));
+  }
+
+  const chapterFiles = chapterArtifacts.map(({ name }) => ({ name, markdown: readText(path.join(root, name)) }));
+  for (const chapter of chapterFiles) errors.push(...chapterErrors(chapter.name, chapter.markdown));
+  const finalReport = readText(path.join(root, "final_report.md"));
+  errors.push(...finalAssemblyErrors(finalReport, chapterFiles));
 
   const evidence = readJson(path.join(root, "evidence.json"), []);
   const report = readText(path.join(root, "report.md"));
+  if (report.replace(/\s+/g, " ").trim() !== finalReport.replace(/\s+/g, " ").trim()) {
+    errors.push("report.md must preserve final_report.md narrative and citations without compression");
+  }
   const html = readText(path.join(root, "report.html"));
   const sellSideLogic = readText(path.join(root, "sell_side_logic.md"));
   const validationMarkdown = readText(path.join(root, "validation.md"));
   const coverage = readJson(path.join(root, "coverage_stats.json"), {});
   errors.push(...coverageErrors(coverage));
   if (Array.isArray(evidence) && report && html) {
-    const core = await import(pathToFileURL(path.join(ROOT, "scripts", "core.mjs")).href);
     const validation = core.validateReport(report, html, evidence, { sellSideLogic, validation: validationMarkdown });
     errors.push(...validation.errors);
     return { ok: errors.length === 0, workspace: root, errors: [...new Set(errors)], warnings: validation.warnings, artifacts, chapters };

@@ -3,7 +3,7 @@
 Cross-runtime, evidence-first investment research for Codex and Claude Code.
 
 - Codex or Claude Code is the reasoning runtime; no separate model key is required.
-- `RESEARCH_API_TOKEN` authenticates access to the private Bloome research gateway during beta.
+- `RESEARCH_API_TOKEN` or the user-only `~/.bloome/research-api-token` file authenticates access to the private Bloome research gateway during beta.
 - The shared MCP server provides the same research and validation tools in both hosts.
 - Codex renders the native PiP/fullscreen workbench. Claude Code returns progress, evidence, artifacts, and `reportPath` without injecting the complete HTML report into model context.
 - Bloome styling applies to the optional workbench only.
