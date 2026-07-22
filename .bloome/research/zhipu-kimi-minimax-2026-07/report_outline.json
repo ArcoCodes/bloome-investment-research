@@ -1,0 +1,11 @@
+{
+  "sections": [
+    {"id":1,"title":"执行摘要","claims":["C1","C2","C3","C4","C5"],"argument_units":3},
+    {"id":2,"title":"研究框架","claims":["C1","C3","C4"],"argument_units":2},
+    {"id":3,"title":"智谱","claims":["C1","C2"],"argument_units":3},
+    {"id":4,"title":"Kimi","claims":["C3"],"argument_units":3},
+    {"id":5,"title":"MiniMax","claims":["C4","C5"],"argument_units":3},
+    {"id":6,"title":"横向配置与证伪","claims":["C1","C2","C3","C4","C5"],"argument_units":3},
+    {"id":7,"title":"来源覆盖","claims":[],"argument_units":2}
+  ]
+}

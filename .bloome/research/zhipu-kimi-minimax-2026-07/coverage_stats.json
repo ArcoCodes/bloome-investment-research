@@ -1,0 +1,30 @@
+{
+  "retrieval_rounds": [
+    {"corpus":"sell","query":"智谱 OR GLM 投资 估值 收入","published_from":null,"records":12},
+    {"corpus":"sell","query":"Kimi OR 月之暗面 K3 模型 商业化","published_from":null,"records":7},
+    {"corpus":"sell","query":"MiniMax M3 ARR 定价 目标价","published_from":null,"records":10},
+    {"corpus":"sell","query":"中国大模型 智谱 Kimi MiniMax","published_from":"2026-01-01","records":19},
+    {"corpus":"primary","query":"智谱 ARR 收入 算力 客户","published_from":null,"records":10},
+    {"corpus":"primary","query":"Kimi Coding 长上下文 商业化","published_from":null,"records":10},
+    {"corpus":"primary","query":"MiniMax API 海外 收入结构 M3","published_from":null,"records":12},
+    {"corpus":"primary","query":"头部大模型 算力 部署 商业化","published_from":"2026-01-01","records":14}
+  ],
+  "query_seeds": ["智谱 GLM5.2 ARR", "Kimi K3 Coding", "MiniMax M3 API", "大模型算力部署", "收入结构", "定价权", "目标价", "模型差异化"],
+  "sell_reports_retrieved": 48,
+  "sell_reports_deduped": 21,
+  "sell_reports_read": 8,
+  "sell_reports_cited": 3,
+  "primary_sources_retrieved": 46,
+  "primary_sources_deduped": 16,
+  "primary_sources_read": 10,
+  "primary_sources_cited": 5,
+  "sources_cited": 8,
+  "recent_30d_count": 8,
+  "recent_30d_share": 1.0,
+  "recent_90d_count": 8,
+  "recent_90d_share": 1.0,
+  "recent_180d_count": 8,
+  "recent_180d_share": 1.0,
+  "as_of": "2026-07-22",
+  "note": "仅使用插件受控研报数据库；检索记录数按各轮返回计，去重数按报告标识合并。"
+}

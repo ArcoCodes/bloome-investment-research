@@ -1,0 +1,36 @@
+{
+  "topic": "智谱、Kimi（月之暗面）与 MiniMax 投资逻辑比较",
+  "generated_at": "2026-07-22T00:00:00+08:00",
+  "report_month": "2026年7月",
+  "source_policy": "controlled-corpus-only",
+  "modules": [
+    {
+      "id": "zhipu",
+      "question": "智谱的技术、商业化、生态和资本化路径是否构成可持续投资逻辑？",
+      "scope": "模型能力、企业与政府客户、开源生态、收入与融资、竞争风险",
+      "support_hypothesis": "全栈模型与政企商业化形成差异化壁垒",
+      "challenge_hypothesis": "同质化竞争、项目制交付和高成本限制规模化回报"
+    },
+    {
+      "id": "kimi",
+      "question": "Kimi 的用户心智、产品增长和模型能力能否转化为可持续收入？",
+      "scope": "用户增长、产品留存、搜索与Agent、订阅和广告潜力、融资与成本",
+      "support_hypothesis": "强消费者品牌与产品迭代形成稀缺流量入口",
+      "challenge_hypothesis": "流量波动、获客成本和商业化不确定削弱投资价值"
+    },
+    {
+      "id": "minimax",
+      "question": "MiniMax 的多模态产品矩阵和全球化收入是否形成更好的资本效率？",
+      "scope": "海螺、Talkie、模型与API、多模态、海外收入、合规与竞争",
+      "support_hypothesis": "多产品全球化和多模态能力带来更早商业闭环",
+      "challenge_hypothesis": "产品生命周期、平台依赖和监管风险降低收入质量"
+    },
+    {
+      "id": "comparison",
+      "question": "三家公司在技术壁垒、商业化质量、资本效率和退出路径上谁更具投资吸引力？",
+      "scope": "横向比较、关键差异、共同风险、投资者适配与证伪条件",
+      "support_hypothesis": "三家公司形成可比较但不同的投资暴露",
+      "challenge_hypothesis": "非上市信息不足与高估值可能使任何排序都缺乏可靠性"
+    }
+  ]
+}

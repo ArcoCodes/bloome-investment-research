@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Georgia','Times New Roman',serif;background:#fff;color:#1A1A1A}
+  .report{max-width:680px;margin:0 auto;border:1px solid #E0DCD4}
+  .top-bar{height:4px;background:linear-gradient(90deg,#003A5C,#B59A57)}
+  .bottom-bar{height:3px;background:#003A5C}
+  .header{padding:24px 28px 16px;border-bottom:1px solid #E0DCD4}
+  .header-label{font-size:11px;letter-spacing:2px;color:#B59A57;text-transform:uppercase;margin-bottom:6px;font-family:'Helvetica Neue',Arial,sans-serif}
+  .header-title{font-size:22px;font-weight:700;color:#003A5C;line-height:1.3}
+  .header-meta{font-size:12px;color:#5A5A5A;margin-top:8px;font-family:'Helvetica Neue',Arial,sans-serif}
+  .section{padding:20px 28px;border-bottom:1px solid #E0DCD4}
+  .section:last-child{border-bottom:none}
+  .section-label{font-size:11px;letter-spacing:1.5px;color:#B59A57;text-transform:uppercase;margin-bottom:10px;font-family:'Helvetica Neue',Arial,sans-serif}
+  .analysis-text{font-size:14px;color:#1A1A1A;line-height:1.8}
+  .analysis-text p{margin-bottom:12px}
+  .chart-row{display:flex;gap:16px;padding:16px 0 0}
+  .chart-col{flex:1;min-width:0}
+  .chart-source{font-size:10px;color:#5A5A5A;font-family:'Helvetica Neue',Arial,sans-serif;margin-top:6px;text-align:right}
+  .data-table{padding:0 28px 20px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead tr{border-bottom:2px solid #003A5C}
+  th{text-align:left;padding:8px 0;color:#003A5C;font-weight:600;font-family:'Helvetica Neue',Arial,sans-serif}
+  th:last-child,td:last-child{text-align:right}
+  tbody tr{border-bottom:1px solid #E0DCD4}
+  td{padding:8px 0;color:#1A1A1A}
+  .source-bar{padding:16px 28px;border-top:1px solid #E0DCD4;font-size:10px;color:#5A5A5A;font-family:'Helvetica Neue',Arial,sans-serif;line-height:1.6}
+  .highlight{color:#003A5C;font-weight:700}
+  .upside{color:#003A5C;font-weight:700}
+  .judge-box{background:#F7F5F0;border-left:3px solid #B59A57;padding:20px 24px}
+  .judge-label{font-size:11px;letter-spacing:1.5px;color:#B59A57;text-transform:uppercase;margin-bottom:8px;font-family:'Helvetica Neue',Arial,sans-serif}
+  .confidence{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:6px 14px;background:#003A5C;color:#fff;border-radius:9999px;font-size:12px;font-family:'Helvetica Neue',Arial,sans-serif;font-weight:500}
+  .confidence .dot{width:6px;height:6px;border-radius:50%;background:#B59A57}
+  .src{position:relative;color:#5A5A5A;font-size:12px;font-family:'Helvetica Neue',Arial,sans-serif;border-bottom:1px dashed #B59A57;cursor:help}
+  .src:hover{color:#003A5C;border-bottom-color:#003A5C}
+  .src .tip{display:none;position:absolute;bottom:calc(100% + 8px);left:0;width:min(440px,calc(100vw - 40px));padding:14px 18px;background:#003A5C;color:#fff;font-size:13px;line-height:1.7;border-radius:8px;z-index:100;white-space:pre-wrap;font-family:'Helvetica Neue',Arial,sans-serif}
+  .src .tip::after{content:'';position:absolute;top:100%;left:20px;border:6px solid transparent;border-top-color:#003A5C}
+  .src .tip .tip-hd{display:block;font-size:11px;font-weight:600;color:#B59A57;margin-bottom:8px}
+  .src .tip .tip-bd{color:#fff}
+  .src .tip u{text-decoration:underline;text-underline-offset:2px}
+  .src:hover .tip,.src:focus .tip{display:block}
+  .primary-quote{margin:16px 0;padding:4px 0;color:#5A5A5A;font-size:13px;line-height:1.7;font-family:'Georgia','Times New Roman',serif}
+  .primary-quote cite{display:block;margin-top:7px;color:#5A5A5A;font-size:10px;font-style:normal;font-family:'Helvetica Neue',Arial,sans-serif}
+  .data-callout{display:flex;gap:12px;margin:12px 0}
+  .data-card{flex:1;padding:10px 12px;background:#F7F5F0;border-radius:8px;text-align:center}
+  .data-card .val{font-size:18px;font-weight:700;color:#003A5C;font-family:'Helvetica Neue',Arial,sans-serif}
+  .data-card .lbl{font-size:10px;color:#5A5A5A;margin-top:3px;font-family:'Helvetica Neue',Arial,sans-serif}
+  svg text{font-family:'Helvetica Neue',Arial,sans-serif}
+  @media(max-width:560px){.report{border-left:0;border-right:0}.header,.section,.source-bar{padding-left:18px;padding-right:18px}.chart-row,.data-callout{flex-direction:column}.src .tip{position:fixed;left:20px;bottom:20px}}
+  @media print{.report{max-width:none;border:0}.src .tip{display:none!important}}
+</style>
+</head>
+<body>
+<div class="report">
+  <div class="top-bar"></div>
+  <div class="header">
+    <div class="header-label">Global Investment Research</div>
+    <div class="header-title">智谱、Kimi、MiniMax：投资逻辑与证伪条件</div>
+    <div class="header-meta">机构研报精读 8 篇 · 专家资料精读 10 篇 · 数据截至 2026年7月22日</div>
+  </div>
+
+  <div class="section judge-box">
+    <div class="judge-label">研判</div>
+    <div class="analysis-text">
+      <p><span class="highlight">智谱是质量首选但估值最贵；Kimi是技术首选但商业证据最薄；MiniMax是赔率型标的但定价权争议最大。</span>三家公司不能只按模型榜单排序，最终要看高价值任务、留存、推理毛利以及融资稀释后的自由现金流。</p>
+      <div class="confidence"><span class="dot"></span>置信度：中等 — 技术与机构预测可定位，经营高频数字仍待审计</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">① 横向结论</div>
+    <div class="analysis-text">
+      <p><b>智谱：</b>持续模型交付、高价值Coding工作流和定价权构成最完整链条，但2026年企业价值/收入56.1倍，估值高度依赖2030年盈利。<span class="src" tabindex="0">〔摩根大通·中国人工智能行业〕<span class="tip"><span class="tip-hd">研报原文 · Omen · 2026-07-12 · p.7</span><span class="tip-bd">智谱被给予增持评级，依据是<u>持续前沿交付、高价值工作流敞口与定价权</u>；FY26E收入50.38亿元、调整后净亏损36.05亿元、企业价值/收入56.1倍。</span></span></span></p>
+      <p><b>Kimi：</b>K3的最新技术催化最强，但尚未被可审计的企业收入、留存与推理毛利验证。<span class="src" tabindex="0">〔摩根士丹利·月之暗面K3〕<span class="tip"><span class="tip-hd">研报原文 · Omen · 2026-07-17 · p.1</span><span class="tip-bd">K3为2.8万亿参数开放权重模型，<u>第三方综合评测全球第三、Arena Coding全球第一</u>，并采用领先中国模型中较高API价格。</span></span></span></p>
+      <p><b>MiniMax：</b>全球API、开放权重和低价提供弹性，但机构情景极端分化。<span class="src" tabindex="0">〔高盛·MiniMax M3〕<span class="tip"><span class="tip-hd">研报原文 · Goldman Sachs · 2026-06-17 · p.1</span><span class="tip-bd">高盛认为MiniMax可凭借<u>较低价格、足够好的性能和全球覆盖</u>扩大Token份额与ARR，评级买入、目标价860港元。</span></span></span> <span class="src" tabindex="0">〔摩根大通·MiniMax融资与估值〕<span class="tip"><span class="tip-hd">研报原文 · Omen · 2026-07-12 · p.5</span><span class="tip-bd">融资未提升机构对变现路径的信心；考虑配售和可转债稀释，<u>目标价由300港元下调至240港元</u>。</span></span></span></p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">② 买方框架：从能力到现金流</div>
+    <div class="analysis-text">
+      <p>一次榜单领先只能形成催化；连续发布领先才可能进入高价值工作流。调用量只有在形成付费留存、有效价格和推理毛利后，才可能覆盖训练、云成本与融资稀释。</p>
+    </div>
+    <blockquote class="primary-quote">“模型公司的算力需求都在增加；MiniMax更积极自建，Kimi优先保证及时、充足供应，智谱在国产算力适配上相对有优势。”<cite>来源：Acecamp ·《智谱、DeepSeek、MiniMax、Kimi等头部模型公司算力需求变化》· 2026-07-15</cite></blockquote>
+  </div>
+
+  <div class="section">
+    <div class="section-label">③ 智谱：高质量、高预期</div>
+    <div class="analysis-text">
+      <p>正面逻辑是持续交付与Coding/长上下文高价值工作流。风险在于机构模型要求2026—2030年收入高速增长，且盈利和自由现金流转正主要落在远期。</p>
+      <div class="data-callout">
+        <div class="data-card"><div class="val">50.38亿</div><div class="lbl">2026E收入（人民币）</div></div>
+        <div class="data-card"><div class="val">-36.05亿</div><div class="lbl">2026E调整后净利润</div></div>
+        <div class="data-card"><div class="val">56.1×</div><div class="lbl">2026E EV/收入</div></div>
+      </div>
+    </div>
+    <blockquote class="primary-quote">“5月ARR为5亿美元，预计6月收入约7亿元；但算力短缺成为制约增长的核心因素，GLM5.2对ARR拉动有限。”<cite>来源：Acecamp ·《智谱离职专家：2026年上半年ARR与算力瓶颈》· 2026-06-28</cite></blockquote>
+    <div class="analysis-text"><p><b>结论：</b>质量观察优先；先验证ARR定义、现金回款、净留存与客户集中度，再决定是否为远期增长支付溢价。</p></div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">④ Kimi：技术已验证，商业待验证</div>
+    <div class="analysis-text">
+      <p>K3证明了长任务与Coding技术潜力，也开始测试较高API价格；但技术排名不能替代企业收入和单位经济性。Kimi缺少可比公开交易价格，本报告不提供目标价。</p>
+    </div>
+    <blockquote class="primary-quote">“过去几个月营收已超过去年全年，但商业模式偏C端，to B去年收入仅小几千万元级别，投入产出压力巨大。”<cite>来源：Acecamp ·《GLM调研：后续模型迭代与Kimi等对比》· 2026-07-19</cite></blockquote>
+    <blockquote class="primary-quote">“Kimi没有独立可安装的Agent产品或插件；长上下文适合整库重构，但产品指引有限，用户使用门槛较高。”<cite>来源：Acecamp ·《智谱调研：Coding能力及工程化对比》· 2026-07-13</cite></blockquote>
+    <div class="analysis-text"><p><b>结论：</b>技术首选、商业待证。私募尽调需取得企业API收入、30/90天留存、每任务成本、推理毛利与融资条款。</p></div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">⑤ MiniMax：全球化高弹性与低价陷阱</div>
+    <div class="analysis-text">
+      <p>海外API与开放权重提供可扩展分发，Token Plan提高订阅属性；反面是当前差异化可能主要来自低成本，M3后的高维任务能力和客户粘性仍需验证。</p>
+    </div>
+    <blockquote class="primary-quote">“海外业务约占四分之三，API开放平台是主要收入来源，Token Plan约占三分之一，消费者产品收入占比下降。”<cite>来源：Acecamp ·《头部大模型公司调研：收入结构与API场景》· 2026-07-14</cite></blockquote>
+    <blockquote class="primary-quote">“目前海外唯一差异化优势是相对更低的成本；若高维任务不能突破，用户粘性不足可能导致客户流向更强模型。”<cite>来源：Acecamp ·《头部大模型公司调研：收入结构与API场景》· 2026-07-14</cite></blockquote>
+    <div class="analysis-text"><p><b>结论：</b>仅适合受限仓位的事件驱动。下一代模型、API净留存和推理毛利是上调条件；低价只换调用量、继续稀释是证伪条件。</p></div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">⑥ 相对配置与证伪</div>
+    <div class="data-table" style="padding:0">
+      <table>
+        <thead><tr><th>公司</th><th>当前判断</th><th>核心证伪</th></tr></thead>
+        <tbody>
+          <tr><td>智谱</td><td>质量观察优先</td><td>现金流延后、价格/续费下降</td></tr>
+          <tr><td>Kimi</td><td>技术期权</td><td>收入、留存、毛利不跟随K3</td></tr>
+          <tr><td>MiniMax</td><td>小仓位事件驱动</td><td>低价陷阱、模型掉队、再稀释</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="analysis-text" style="margin-top:14px"><p><b>商业化质量：</b>智谱 &gt; MiniMax &gt; Kimi。<b>最新技术催化：</b>Kimi &gt; 智谱 &gt; MiniMax。估值可验证性无法统一排序，不做伪精确比较。</p></div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">⑦ 事实边界</div>
+    <div class="analysis-text">
+      <p>机构目标价和2030年财务均为预测；ARR、收入结构与算力策略中的多项数字来自专家观点，需公司披露或审计材料交叉验证。报告结论是可验证的研究假设，不是无条件买入建议。</p>
+    </div>
+  </div>
+
+  <div class="source-bar">受控研报数据库 · 机构研报返回48条、精读8篇、引用3篇 · 专家资料返回46条、精读10篇、引用5篇 · 截至2026-07-22</div>
+  <div class="bottom-bar"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,101 @@
+[
+  {
+    "claim":"智谱的核心正面逻辑是持续交付前沿模型、高价值工作流敞口与定价权。",
+    "stance":"support","kind":"analysis","corpus":"sell",
+    "chunk_id":"07eabfc277efe668a3313e4f-00007","report_id":"07eabfc277efe668a3313e4f",
+    "quote":"我们给予智谱‘增持’评级，因为公司更符合我们‘持续 SOTA 能见度、高价值工作流敞口及定价权’这一评估框架。",
+    "source_type":"broker_report","title":"摩根大通-行业-科技-AI-半导体-中国科技-中国人工智能行业：资本竞争加速；由于ARR能见度提高，将智谱目标价上调至2,400港元；MiniMax需要更强的模型验证",
+    "source_path":"institutional-research/broker-report/omen/2026-07-12/2026-07-12+摩根大通-行业-科技-AI-半导体-中国科技-中国人工智能行业：资本竞争加速；由于ARR能见度提高，将智谱目标价上调至2,400港元；MiniMax需要更强的模型验证.pdf",
+    "institution":"Omen","published_at":"2026-07-12","page_start":7,"page_end":7
+  },
+  {
+    "claim":"智谱当前估值高度依赖远期高增长和利润转正假设。",
+    "stance":"challenge","kind":"forecast","corpus":"sell",
+    "chunk_id":"07eabfc277efe668a3313e4f-00007","report_id":"07eabfc277efe668a3313e4f",
+    "quote":"FY26E 收入5,038百万元、调整后净利润-3,605百万元，企业价值/收入56.1倍；目标价基于30倍2030年预期市盈率并以15%加权平均资本成本折现。",
+    "source_type":"broker_report","title":"摩根大通-行业-科技-AI-半导体-中国科技-中国人工智能行业：资本竞争加速；由于ARR能见度提高，将智谱目标价上调至2,400港元；MiniMax需要更强的模型验证",
+    "source_path":"institutional-research/broker-report/omen/2026-07-12/2026-07-12+摩根大通-行业-科技-AI-半导体-中国科技-中国人工智能行业：资本竞争加速；由于ARR能见度提高，将智谱目标价上调至2,400港元；MiniMax需要更强的模型验证.pdf",
+    "institution":"Omen","published_at":"2026-07-12","page_start":7,"page_end":7
+  },
+  {
+    "claim":"专家口径显示智谱2026年上半年收入增长较快，但数据未经审计。",
+    "stance":"support","kind":"expert_claim","corpus":"primary",
+    "chunk_id":"07453ef875bd547dd57252ca-00001","report_id":"07453ef875bd547dd57252ca",
+    "quote":"5月ARR为5亿美元，环比4月增长约1亿美元，预计6月收入约为人民币7亿元；海外市场收入占比5月已达21%。",
+    "source_type":"expert_interview","title":"9. 智谱离职专家|智谱2026年上半年ARR达5亿美元环比增长1亿美元，6月预计收入7亿元人民币，海外收入占比21%但算力瓶颈限制增长",
+    "source_path":"primary-source/expert-notes/ace-camp/2026-06-28/2026-06-28+智谱离职专家 智谱2026年上半年ARR达5亿美元环比增长1亿美元，6月预计收入7亿元人民币，海外收入占比21_但算力瓶颈限制增长.md",
+    "institution":"Acecamp","published_at":"2026-06-28","line_start":1,"line_end":71
+  },
+  {
+    "claim":"算力供给仍是三家公司增长与资本效率的共同约束。",
+    "stance":"challenge","kind":"expert_claim","corpus":"primary",
+    "chunk_id":"65ee4bfe38e048e487c0d135-00001","report_id":"65ee4bfe38e048e487c0d135",
+    "quote":"模型公司的算力需求都在增加；Kimi优先保证及时、充足供应，MiniMax更积极自建，智谱在国产算力适配上相对有优势。",
+    "source_type":"expert_interview","title":"7. 智谱、DeepSeek、MiniMax、Kimi等头部模型公司算力需求变化，以及算力部署策略差异，国产算力卡在大模型厂商的实际应用方向及效果",
+    "source_path":"primary-source/expert-notes/ace-camp/2026-06-28/2026-06-28+智谱、DeepSeek、MiniMax、Kimi等头部模型公司算力需求变化，以及算力部署策略差异，国产算力卡在大模型厂商的实际应用方向及效果.md",
+    "institution":"Acecamp","published_at":"2026-07-15","line_start":1,"line_end":81
+  },
+  {
+    "claim":"Kimi K3在最新第三方技术评测中进入全球前列，并体现高定价尝试。",
+    "stance":"support","kind":"fact","corpus":"sell",
+    "chunk_id":"dd78c226880a60b5588bf032-00001","report_id":"dd78c226880a60b5588bf032",
+    "quote":"K3为2.8万亿参数开放权重模型；Artificial Analysis排名全球第三，Arena编程排名全球第一，并采用领先中国模型中最高的API价格。",
+    "source_type":"broker_report","title":"摩根士丹利-行业-科技-AI-全球半导体-中国科技-中国-亚洲-亚洲科技-月之暗面K3模型发布：中国大模型全面追赶美国领导者",
+    "source_path":"institutional-research/broker-report/omen/2026-07-17/2026-07-17+摩根士丹利-行业-科技-AI-全球半导体-中国科技-中国-亚洲-亚洲科技-月之暗面K3模型发布：中国大模型全面追赶美国领导者.pdf",
+    "institution":"Omen","published_at":"2026-07-17","page_start":1,"page_end":1
+  },
+  {
+    "claim":"Kimi的商业模式被专家质疑偏重消费者端、企业收入基础薄弱。",
+    "stance":"challenge","kind":"expert_claim","corpus":"primary",
+    "chunk_id":"07a848a3fd3572d5de99e244-00001","report_id":"07a848a3fd3572d5de99e244",
+    "quote":"过去几个月营收已超过去年全年，但商业模式偏C端，to B去年收入仅小几千万元级别，投入产出压力巨大。",
+    "source_type":"expert_interview","title":"3. GLM调研：后续模型迭代预期，算力补充规划，Coding领域与Kimi、DeepSeek以及Minimax等对比",
+    "source_path":"primary-source/expert-notes/ace-camp/2026-06-01/2026-06-01+GLM调研：后续模型迭代预期，算力补充规划，Coding领域与Kimi、DeepSeek以及Minimax等对比.md",
+    "institution":"Acecamp","published_at":"2026-07-19","line_start":1,"line_end":86
+  },
+  {
+    "claim":"Kimi长上下文对大型代码库有优势，但产品形态与使用门槛可能限制转化。",
+    "stance":"challenge","kind":"expert_claim","corpus":"primary",
+    "chunk_id":"46d236a0f92d3db71bed8cb6-00002","report_id":"46d236a0f92d3db71bed8cb6",
+    "quote":"Kimi目前没有独立可安装的Agent产品或插件，长上下文适合整库重构，但产品指引有限、用户使用门槛较高。",
+    "source_type":"expert_interview","title":"6. 智谱调研：算力与算法对中美模型差距影响，Coding领域竞争变化，头部公司Coding能力及工程化能力对比 – DeepSeek/Kimi/字节/阿里/腾讯",
+    "source_path":"primary-source/expert-notes/ace-camp/2026-06-15/2026-06-15+智谱调研：算力与算法对中美模型差距影响，Coding领域竞争变化，头部公司Coding能力及工程化能力对比 – DeepSeek Kimi 字节 阿里 腾讯.md",
+    "institution":"Acecamp","published_at":"2026-07-13","line_start":79,"line_end":85
+  },
+  {
+    "claim":"高盛认为MiniMax可用低价和全球覆盖换取更高Token份额与ARR规模。",
+    "stance":"support","kind":"analysis","corpus":"sell",
+    "chunk_id":"669bcdb3d984f7f7587aa5a3-00003","report_id":"669bcdb3d984f7f7587aa5a3",
+    "quote":"MiniMax M3可走更低价格、更高Token份额的路径，凭借足够好的性能和全球覆盖切入全球消费者及中小企业市场。",
+    "source_type":"broker_report","title":"MiniMax Group (0100.HK) Key debates post-M3 launch and path to optimal ARR quadrant; Buy",
+    "source_path":"institutional-research/goldman/goldman_08338.pdf",
+    "institution":"Goldman Sachs","published_at":"2026-06-17","page_start":1,"page_end":1
+  },
+  {
+    "claim":"摩根大通认为MiniMax融资虽缓解资源约束，但未提高商业化置信度且造成稀释。",
+    "stance":"challenge","kind":"forecast","corpus":"sell",
+    "chunk_id":"07eabfc277efe668a3313e4f-00005","report_id":"07eabfc277efe668a3313e4f",
+    "quote":"近期融资未提升对未来变现路径的置信度；目标价由300港元降至240港元，2027-2030年每股收益预测因稀释下调20%。",
+    "source_type":"broker_report","title":"摩根大通-行业-科技-AI-半导体-中国科技-中国人工智能行业：资本竞争加速；由于ARR能见度提高，将智谱目标价上调至2,400港元；MiniMax需要更强的模型验证",
+    "source_path":"institutional-research/broker-report/omen/2026-07-12/2026-07-12+摩根大通-行业-科技-AI-半导体-中国科技-中国人工智能行业：资本竞争加速；由于ARR能见度提高，将智谱目标价上调至2,400港元；MiniMax需要更强的模型验证.pdf",
+    "institution":"Omen","published_at":"2026-07-12","page_start":5,"page_end":5
+  },
+  {
+    "claim":"专家口径显示MiniMax海外和API收入占比较高，具备全球商业化基础。",
+    "stance":"support","kind":"expert_claim","corpus":"primary",
+    "chunk_id":"bcdab70aa7f9844d3b7a2511-00001","report_id":"bcdab70aa7f9844d3b7a2511",
+    "quote":"海外业务约占四分之三，API开放平台是主要收入来源，Token Plan约占三分之一，消费者产品收入占比下降。",
+    "source_type":"expert_interview","title":"17. 头部大模型公司调研：收入结构大致变化，API核心应用场景对比，开源模型对B端客户重要性等",
+    "source_path":"primary-source/expert-notes/ace-camp/2026-07-13/2026-07-13+头部大模型公司调研：收入结构大致变化，API核心应用场景对比，开源模型对B端客户重要性等.md",
+    "institution":"Acecamp","published_at":"2026-07-14","line_start":1,"line_end":78
+  },
+  {
+    "claim":"MiniMax当前海外差异化主要仍是低成本，若高维任务能力不突破可能流失客户。",
+    "stance":"challenge","kind":"expert_claim","corpus":"primary",
+    "chunk_id":"bcdab70aa7f9844d3b7a2511-00002","report_id":"bcdab70aa7f9844d3b7a2511",
+    "quote":"目前海外唯一差异化优势是相对更低的成本；若大参数模型失去性价比且高维任务不突破，用户粘性不足可能导致客户流向技术更优的模型。",
+    "source_type":"expert_interview","title":"17. 头部大模型公司调研：收入结构大致变化，API核心应用场景对比，开源模型对B端客户重要性等",
+    "source_path":"primary-source/expert-notes/ace-camp/2026-07-13/2026-07-13+头部大模型公司调研：收入结构大致变化，API核心应用场景对比，开源模型对B端客户重要性等.md",
+    "institution":"Acecamp","published_at":"2026-07-14","line_start":79,"line_end":105
+  }
+]
