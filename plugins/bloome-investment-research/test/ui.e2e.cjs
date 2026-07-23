@@ -117,24 +117,19 @@ function fixtureHtml({ disableAutoPanel = false } = {}) {
   assert.equal(await page.locator("#reportFrame").getAttribute("sandbox"), "allow-scripts");
   const reportFrame = page.frameLocator("#reportFrame");
   await reportFrame.locator(".report").waitFor();
-  await reportFrame.getByRole("tab", { name:/证据/ }).click();
-  await reportFrame.getByText("证据与交叉验证").waitFor();
-  assert.equal(await reportFrame.locator('[data-report-panel="report"]').getAttribute("hidden"), "");
-  await reportFrame.getByRole("tab", { name:"研报" }).click();
   await reportFrame.getByText("AI 推理需求与 NAND 价格周期").waitFor();
+  assert.equal(await reportFrame.locator("[data-report-tab]").count(), 0);
 
   const screenshot = path.resolve(__dirname, "../assets/screenshot.png");
   await page.screenshot({ path:screenshot, fullPage:false });
 
-  await reportFrame.getByRole("tab", { name:/证据/ }).click();
   for (const viewport of [{width:1440,height:900},{width:1024,height:768},{width:720,height:900},{width:390,height:844}]) {
     await page.setViewportSize(viewport);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, `horizontal overflow at ${viewport.width}px`);
-    assert.equal(await reportFrame.locator("html").evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, `evidence overflow at ${viewport.width}px`);
+    assert.equal(await reportFrame.locator("html").evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, `report overflow at ${viewport.width}px`);
     const ledgerDisplay = await page.locator(".ledger").evaluate((node) => getComputedStyle(node).display);
     assert.equal(ledgerDisplay === "none", viewport.width <= 1180, `ledger breakpoint at ${viewport.width}px`);
   }
-  await reportFrame.getByRole("tab", { name:"研报" }).click();
 
   await page.getByRole("button", { name:"Thesis" }).click();
   await page.getByRole("button", { name:"Evidence" }).click();

@@ -17,10 +17,11 @@ The parent, not a worker:
 
 1. Deduplicates evidence by source and locator.
 2. Resolves same-chain date conflicts while preserving independent disagreement.
-3. Merges accepted rows into the single `evidence.json` backbone.
-4. Writes `sell_side_logic.md`, `validation.md`, and a binding outline with stable section IDs and an evidence-backed visual plan.
-5. Writes each chapter in the outline's exact order and keeps its section ID/title unchanged. Every substantive chapter includes citations and an explicit boundary, opposing-evidence, risk, or invalidation section.
-6. Synthesizes `final_report.md` from the chapter drafts and reconciled evidence. Rewrite and compress where useful, resolve contradictions, and retain decisive evidence, citations, boundaries, disagreements, and unresolved points.
-7. Copies `final_report.md` into `report.md`, renders all of it—not a dashboard summary—into static `report.html`, then runs workspace validation.
+3. Accounts for every module candidate in `evidence_disposition.md`, with an acceptance decision or a rejection reason, then merges accepted rows into the single `evidence.json` backbone.
+4. Writes `sell_side_logic.md`, `validation.md`, and `decision.md`. Ranked decisions must use comparable bases, exact evidence links, and a reproducible final order.
+5. Writes a natural-language editorial outline and, where useful, evidence-backed visual notes. Do not add internal section or visual IDs.
+6. Writes each chapter in the outline's editorial order with natural headings. Every substantive chapter includes citations and an explicit boundary, opposing-evidence, risk, or invalidation discussion.
+7. Synthesizes `final_report.md` from the chapter drafts and reconciled evidence. Rewrite and compress where useful, resolve contradictions, and retain decisive accepted evidence, citations, boundaries, disagreements, unresolved points, and the exact ranking from `decision.md`.
+8. Copies `final_report.md` into `report.md`, renders all of it—not a dashboard summary—into the bundled single-page `report.html` template, then runs workspace validation.
 
 Only module memos may be written concurrently. Shared evidence, validation, chapter, and final-report files are parent-owned and written after workers finish.

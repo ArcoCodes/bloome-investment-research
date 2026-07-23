@@ -47,12 +47,13 @@ Run these stages in order:
 1. Search both `sell` and `primary` corpora for the initial landscape.
 2. Save the topic-shaped module plan, dispatch host-native workers or use the sequential fallback, and read every `modules/<id>.md` memo.
 3. Search both corpora iteratively with varied query seeds, relevant time windows, exact chunk reads, and surrounding context. Continue until additional retrieval no longer materially changes the claims, conflicts, or known gaps, or access is exhausted. Record the stopping reason and remaining gaps in `coverage_stats.json`; do not use record counts as a proxy for depth.
-4. Reconcile module evidence in the parent, then save `sell_side_logic.md`, `validation.md`, and the unified `evidence.json`. Every evidence item must link to one or more claim IDs and state whether it supports, challenges, or contextualizes them.
-5. Save `report_outline.md` using the binding section IDs in `references/report-structure.md`. Plan only visuals that materially improve an evidence-backed argument.
-6. Save one `chapter_XX_*.md` for each planned substantive section, in the same order and with the identical `# SXX Title` heading. Every chapter needs source citations and an explicit boundary, opposing-evidence, risk, or invalidation section.
-7. Synthesize `final_report.md` from the chapter drafts and reconciled evidence. Rewrite, compress, reorder within the approved outline, and resolve contradictions as needed; preserve the decisive evidence, citations, boundaries, disagreements, and unresolved points rather than every sentence of the drafts.
-8. Copy `final_report.md` into `report.md`, then render all of `report.md` into the `研报` tab of a static `report.html`. Preserve the outline's exact section order with `data-section-id`, and render every planned visual once with its `data-visual-id`, role, accessible description, and evidence chunk IDs. The same HTML must embed the complete audit trail in a switchable `证据` tab and include `coverage_stats.json`. Charts and diagrams must be static HTML/CSS/SVG.
-9. Call `validate_research_workspace`, repair every error, and only then deliver or open the workspace.
+4. Reconcile every module candidate in `evidence_disposition.md`: accept it into the evidence backbone or reject it with a reason. Then save `sell_side_logic.md`, `validation.md`, and the unified `evidence.json`. Every accepted item must link to one or more claim IDs and state whether it supports, challenges, or contextualizes them.
+5. Save `decision.md` as natural Markdown. For a ranked investment decision, state the priority rule and ranking, compare every alternative on the same basis, explain any normalization, identify the evidence that drives the order, and say what would change it. Use scores or weights only when they improve the reasoning.
+6. Save `report_outline.md` as a natural-language editorial plan using `references/report-structure.md`. Do not add internal section or visual IDs. For comparative or ranked decisions, plan enough sections to show the decision rule, common comparison basis, winner's full demand-to-earnings mechanism, cycle/scenario boundary, security-level valuation, every material alternative, monitoring, and unresolved gaps. When a visual materially improves an evidence-backed argument, use the `investment-visualization` skill to plan it; otherwise use prose or a compact table.
+7. Save one `chapter_XX_*.md` for each planned substantive section in the same editorial order. Use natural headings. Every chapter needs a direct answer, source-backed mechanism, relevant numbers or calculations, investment implication, and an explicit boundary, opposing-evidence, risk, or invalidation discussion. Do not let chapter drafts collapse into executive-summary paragraphs.
+8. Synthesize `final_report.md` from the chapter drafts, reconciled evidence, and `decision.md`. Rewrite and remove repetition, but do not compress away causal bridges, comparison logic, valuation normalization, scenario sensitivity, company-by-company reasoning, or conditions that change the ranking. Preserve decisive accepted evidence, citations, boundaries, disagreements, unresolved points, and the exact final ranking.
+9. Copy `final_report.md` into `report.md`, then render all of `report.md` into a static single-page `report.html` using `assets/template.html`. Preserve the outline's editorial order without exposing internal planning labels. Confirm content parity: every reader-facing heading, paragraph, list, table, primary quote, citation, and planned visual in `report.md` must appear in `report.html`; never render only an executive-summary excerpt. Use the `investment-visualization` skill to render and visually review every planned figure inside that template.
+10. Call `validate_research_workspace`, repair every error, and only then deliver or open the workspace.
 
 Keep all staged files traceable to `evidence.json`. Do not skip from search notes or module memos directly to the final report.
 
@@ -70,10 +71,12 @@ For every material claim, record support, opposing evidence, calibration result,
 
 `final_report.md` is a deliberate synthesis of the chapter drafts and reconciled evidence, not a one-shot answer or a dump of module memos.
 
-- Let the topic determine the number and depth of substantive sections. Go as deep as the available evidence supports; do not target a word, chapter, argument, or source count.
-- Each substantive section should connect its conclusion to source-backed data, causal transmission, comparison or calculation where relevant, boundary/opposing evidence, and research implication.
+- Let the topic and available evidence determine the final length. Do not set word, character, chapter, argument, or source-count targets. Judge completeness by whether the report contains every decision-relevant layer supported by the evidence.
+- Before finalizing a deep comparative or ranked report, reopen the outline and module memos and check for missing mechanism, normalization, scenarios, alternatives, valuation, monitoring, or unresolved conflicts. Give each material alternative enough separate treatment to make the ranking auditable; do not hide distinct investment questions inside one compressed paragraph.
+- Each substantive section should connect its conclusion to source-backed data, causal transmission, comparison or calculation where relevant, primary calibration, boundary/opposing evidence, and research implication. The winning thesis needs a complete demand → qualified supply → pricing → margin/EPS → valuation bridge.
+- Preserve useful detail from chapter drafts: decisive numbers, formula or normalization basis, scenario assumptions, stock-specific catalysts, disconfirming evidence, and ranking-flip conditions. Summarize source descriptions, not the reasoning needed to audit the investment decision.
 - Use extracted sell-side data, primary calibration, disagreements, scenarios, sensitivities, and company-level transmission where they help answer the topic. Do not add generic filler or repeat the same number.
-- Rewrite and compress chapter material when synthesis improves clarity. Preserve decisive evidence, citations, disagreements, boundaries, and unresolved points, and resolve draft contradictions before delivery.
+- Rewrite and compress chapter material only when synthesis improves clarity. Before delivery, compare `final_report.md` against every chapter heading and `decision.md`; any omitted section must be either redundant or explicitly out of scope. Preserve decisive accepted evidence, citations, disagreements, boundaries, unresolved points, and the ranking recorded in `decision.md`; resolve draft contradictions before delivery.
 
 ## Final Report and HTML
 
@@ -83,15 +86,11 @@ Render primary evidence quotations visibly with `<blockquote class="primary-quot
 
 Use `assets/template.html` as the visual source of truth; fill its placeholders and insert report content within its existing structure. Do not replace it with a newly invented card layout or a different page structure. Preserve its header, judgment block, section layout, source bar, hover-tooltip system, and existing visual language. Surface source coverage in the report, including sell-side reports read and primary/industry materials read. Pass `report_month` to `research_synthesize` when a data cutoff is specified, for example `2026年7月`.
 
-Keep both views in the same self-contained `report.html`:
+Keep `report.html` reader-facing and single-page, exactly following the bundled template's structure and visual language. Do not add report/evidence tabs or embed the audit ledger into the page. The audit trail remains in `sell_side_logic.md`, `validation.md`, `evidence_disposition.md`, `decision.md`, and `evidence.json`. Do not leave template placeholders unresolved.
 
-- The `研报` tab contains the complete reader-facing investment report and remains the default view.
-- The `证据` tab renders the structured content of `sell_side_logic.md`, then the claim-by-claim content of `validation.md`, then the complete `evidence.json` ledger. Do not link out to the Markdown files or paste raw Markdown into the page.
-- Preserve every claim ID across sell-side logic and validation. Set each logic entry's `data-logic-claim-id` and each validation entry's `data-validation-claim-id` to the exact claim ID. For each validation claim, visibly include support evidence, opposing evidence, calibration result, unverified point, evidence strength, and what would change the judgment.
-- Render every `evidence.json` item once in the ledger and set its entry's `data-evidence-id` to the exact `chunk_id`, `data-evidence-claim-ids` to its space-separated claim IDs, and `data-relation` to `support`, `challenge`, or `context`. Include those links plus stance, corpus, quote, source title, publication date, and page/line locator.
-- Preserve the template's accessible tab roles, keyboard behavior, mobile layout, and print behavior. Do not remove the tab script or leave any template placeholders unresolved.
+Long HTML should feel like an editorial report, not a tall text dump. Keep the full prose, but break it with natural section labels, compact evidence tables, visible primary quotations, and only the figures that materially advance the decision. On desktop and narrow-phone screenshots, inspect the beginning, middle, and end of the page; verify that wide tables remain readable, no section is clipped, and the renderer has not silently dropped late-report content.
 
-For numeric data, use the available `reson-charts` capability and follow its documented schema; if unavailable, use self-contained inline SVG/CSS. For relationships and mechanisms, use the reusable components in `references/concept-diagrams.md`. Select chart types from the data structure and read `references/chart-rules.md` before rendering. Visuals are optional; if one is planned, ground and render it fully rather than substituting decoration.
+For visual selection, financial chart grammar, annotation, uncertainty, responsive composition, and screenshot-based review, use the separate `investment-visualization` skill. Keep that editorial judgment in the skill rather than encoding it as validator regex or fixed HTML classes.
 
 ## Output References
 
@@ -99,8 +98,4 @@ Read `references/file-specs.md` for staged artifact shapes, evidence fields, and
 
 Read `references/multiagent-workflow.md` and `references/module-contract.md` for host-native delegation, fallback, plan fields, and module memo output.
 
-Read `references/report-structure.md` for binding section IDs, outline order, and planned visual markup.
-
-Read `references/chart-rules.md` for chart selection and rendering requirements.
-
-Read `references/concept-diagrams.md` for causal chains, thresholds, convergence, multiples, process flows, and ranges.
+Read `references/report-structure.md` for the natural-language outline, chapter order, and visual notes.

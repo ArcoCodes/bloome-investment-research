@@ -5,15 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Georgia','Times New Roman',serif;background:#F7F5F0;color:#1A1A1A}
-  .report-shell{min-height:100vh;padding:20px 12px 40px}
-  .report-tabs{position:sticky;top:0;z-index:200;display:flex;max-width:680px;margin:0 auto 12px;border:1px solid #E0DCD4;background:rgba(255,255,255,.96);font-family:'Helvetica Neue',Arial,sans-serif;backdrop-filter:blur(10px)}
-  .report-tab{position:relative;flex:1;padding:13px 18px;border:0;background:transparent;color:#5A5A5A;font-size:12px;font-weight:600;letter-spacing:.08em;cursor:pointer}
-  .report-tab[aria-selected="true"]{color:#003A5C}
-  .report-tab[aria-selected="true"]::after{content:'';position:absolute;right:18px;bottom:-1px;left:18px;height:2px;background:#B59A57}
-  .report-tab:focus-visible{outline:2px solid #B59A57;outline-offset:-3px}
-  .tab-count{display:inline-block;min-width:20px;margin-left:6px;padding:2px 6px;border-radius:9999px;background:#F7F5F0;color:#5A5A5A;font-size:10px;letter-spacing:0}
-  .report-panel[hidden]{display:none}
+  body{font-family:'Georgia','Times New Roman',serif;background:#fff;color:#1A1A1A}
   .report{max-width:680px;margin:0 auto;border:1px solid #E0DCD4}
   .top-bar{height:4px;background:linear-gradient(90deg,#003A5C,#B59A57)}
   .bottom-bar{height:3px;background:#003A5C}
@@ -57,34 +49,12 @@
   .data-card{flex:1;padding:10px 12px;background:#F7F5F0;border-radius:8px;text-align:center}
   .data-card .val{font-size:18px;font-weight:700;color:#003A5C;font-family:'Helvetica Neue',Arial,sans-serif}
   .data-card .lbl{font-size:10px;color:#5A5A5A;margin-top:3px;font-family:'Helvetica Neue',Arial,sans-serif}
-  .evidence-report{max-width:860px;margin:0 auto;border:1px solid #E0DCD4;background:#fff}
-  .evidence-intro{color:#5A5A5A;font-size:13px;line-height:1.7}
-  .logic-item,.validation-item,.evidence-entry{padding:18px 0;border-top:1px solid #E0DCD4}
-  .logic-item:first-of-type,.validation-item:first-of-type,.evidence-entry:first-of-type{margin-top:14px}
-  .claim-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
-  .claim-id{flex:0 0 auto;color:#B59A57;font:700 11px/1.3 'Helvetica Neue',Arial,sans-serif;letter-spacing:.08em}
-  .claim-title{color:#003A5C;font-size:16px;line-height:1.45}
-  .evidence-fields{display:grid;grid-template-columns:150px minmax(0,1fr);font-family:'Helvetica Neue',Arial,sans-serif}
-  .evidence-fields dt,.evidence-fields dd{padding:8px 0;border-top:1px solid #EEEAE2;font-size:12px;line-height:1.65}
-  .evidence-fields dt{padding-right:16px;color:#5A5A5A;font-weight:600}
-  .evidence-fields dd{color:#1A1A1A}
-  .strength{display:inline-block;padding:3px 8px;border:1px solid #B59A57;color:#003A5C;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-  .evidence-meta{color:#5A5A5A;font:600 10px/1.5 'Helvetica Neue',Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase}
-  .evidence-entry blockquote{margin:10px 0 0;padding-left:14px;border-left:2px solid #B59A57;color:#1A1A1A;font-size:13px;line-height:1.75}
-  .evidence-source{margin-top:8px;color:#5A5A5A;font:400 10px/1.6 'Helvetica Neue',Arial,sans-serif}
   svg text{font-family:'Helvetica Neue',Arial,sans-serif}
-  @media(max-width:560px){.report-shell{padding:0 0 24px}.report-tabs{top:0;margin-bottom:0;border-right:0;border-left:0}.report,.evidence-report{border-right:0;border-left:0}.header,.section,.source-bar{padding-left:18px;padding-right:18px}.chart-row,.data-callout{flex-direction:column}.evidence-fields{grid-template-columns:1fr}.evidence-fields dt{padding-bottom:2px}.evidence-fields dd{padding-top:2px;border-top:0}.src .tip{position:fixed;left:20px;bottom:20px}}
-  @media print{body{background:#fff}.report-shell{padding:0}.report-tabs,.evidence-panel{display:none!important}.report-panel[data-report-panel="report"]{display:block!important}.report{max-width:none;border:0}.src .tip{display:none!important}}
+  @media(max-width:560px){.report{border-left:0;border-right:0}.header,.section,.source-bar{padding-left:18px;padding-right:18px}.chart-row,.data-callout{flex-direction:column}.src .tip{position:fixed;left:20px;bottom:20px}}
+  @media print{.report{max-width:none;border:0}.src .tip{display:none!important}}
 </style>
 </head>
 <body>
-<div class="report-shell">
-<nav class="report-tabs" role="tablist" aria-label="研报视图">
-  <button class="report-tab" type="button" role="tab" id="report-tab" aria-controls="report-panel" aria-selected="true" data-report-tab="report">研报</button>
-  <button class="report-tab" type="button" role="tab" id="evidence-tab" aria-controls="evidence-panel" aria-selected="false" data-report-tab="evidence">证据 <span class="tab-count">{{evidence_count}}</span></button>
-</nav>
-
-<section class="report-panel" id="report-panel" role="tabpanel" aria-labelledby="report-tab" data-report-panel="report">
 <div class="report">
   <div class="top-bar"></div>
 
@@ -128,93 +98,5 @@
   <div class="source-bar">机构 · 报告名 · 2026年X月</div>
   <div class="bottom-bar"></div>
 </div>
-</section>
-
-<section class="report-panel evidence-panel" id="evidence-panel" role="tabpanel" aria-labelledby="evidence-tab" data-report-panel="evidence" hidden>
-<div class="evidence-report">
-  <div class="top-bar"></div>
-  <div class="header">
-    <div class="header-label">Research Audit Trail</div>
-    <div class="header-title">证据与交叉验证</div>
-    <div class="header-meta">卖方逻辑、验证结论与完整证据账本 · 共 {{evidence_count}} 条证据 · 数据截至 {{report_month}}</div>
-  </div>
-
-  <!-- 按 sell_side_logic.md 的 claim 顺序重复 logic-item；保留原始 claim ID。 -->
-  <div class="section" data-evidence-section="sell-side-logic">
-    <div class="section-label">Sell-side logic · 卖方逻辑</div>
-    <p class="evidence-intro">这里呈现分析框架、因果链、关键假设、领先指标及失效条件。</p>
-    <article class="logic-item" data-claim-id="C1" data-logic-claim-id="C1">
-      <div class="claim-head"><span class="claim-id">C1</span><h2 class="claim-title">{{logic_claim}}</h2></div>
-      <dl class="evidence-fields">
-        <dt>因果链</dt><dd>{{logic_causal_chain}}</dd>
-        <dt>关键假设</dt><dd>{{logic_assumptions}}</dd>
-        <dt>领先指标</dt><dd>{{logic_indicators}}</dd>
-        <dt>风险与失效条件</dt><dd>{{logic_risks}}</dd>
-      </dl>
-    </article>
-  </div>
-
-  <!-- 按 validation.md 的 claim 顺序重复 validation-item；七个字段不得省略。 -->
-  <div class="section" data-evidence-section="validation">
-    <div class="section-label">Validation · 交叉验证</div>
-    <p class="evidence-intro">每个重要判断同时展示支持、反方、校准结果、未验证点与可证伪条件。</p>
-    <article class="validation-item" data-claim-id="C1" data-validation-claim-id="C1">
-      <div class="claim-head"><span class="claim-id">C1</span><h2 class="claim-title">{{validation_claim}}</h2></div>
-      <dl class="evidence-fields">
-        <dt>支持证据</dt><dd data-validation-field="support">{{support_evidence}}</dd>
-        <dt>反方证据</dt><dd data-validation-field="opposing">{{opposing_evidence}}</dd>
-        <dt>校准结果</dt><dd data-validation-field="calibration">{{calibration_result}}</dd>
-        <dt>未验证点</dt><dd data-validation-field="unverified">{{unverified_point}}</dd>
-        <dt>证据强度</dt><dd data-validation-field="strength"><span class="strength">{{evidence_strength}}</span></dd>
-        <dt>什么会改变判断</dt><dd data-validation-field="falsifier">{{judgment_falsifier}}</dd>
-      </dl>
-    </article>
-  </div>
-
-  <!-- evidence.json 中每一条记录都要渲染为 evidence-entry，并保留 chunk_id、claim_ids 与 relation。 -->
-  <div class="section" data-evidence-section="ledger">
-    <div class="section-label">Evidence ledger · 证据账本</div>
-    <p class="evidence-intro">以下账本覆盖本报告使用的全部证据，保留命题关系、立场、语料层、原文与精确定位。</p>
-    <article class="evidence-entry" data-evidence-id="{{evidence_chunk_id}}" data-evidence-claim-ids="{{evidence_claim_ids}}" data-relation="{{evidence_relation}}" data-stance="{{evidence_stance}}">
-      <div class="evidence-meta">{{evidence_chunk_id}} · {{evidence_claim_ids}} · {{evidence_relation}} · {{evidence_corpus}} · {{evidence_stance}}</div>
-      <h2 class="claim-title">{{evidence_claim}}</h2>
-      <blockquote>{{evidence_quote}}</blockquote>
-      <div class="evidence-source">{{evidence_title}} · {{evidence_published_at}} · {{evidence_locator}}</div>
-    </article>
-  </div>
-
-  <div class="source-bar">证据账本与 <span class="highlight">evidence.json</span> 一一对应；原始定位保留至页码或行号。</div>
-  <div class="bottom-bar"></div>
-</div>
-</section>
-</div>
-
-<script>
-(() => {
-  const tabs = [...document.querySelectorAll('[data-report-tab]')];
-  const panels = [...document.querySelectorAll('[data-report-panel]')];
-  const activate = (name, updateHash = true) => {
-    tabs.forEach((tab) => {
-      const selected = tab.dataset.reportTab === name;
-      tab.setAttribute('aria-selected', String(selected));
-      tab.tabIndex = selected ? 0 : -1;
-    });
-    panels.forEach((panel) => { panel.hidden = panel.dataset.reportPanel !== name; });
-    if (updateHash && history.replaceState) history.replaceState(null, '', name === 'evidence' ? '#evidence' : '#report');
-  };
-  tabs.forEach((tab, index) => {
-    tab.addEventListener('click', () => activate(tab.dataset.reportTab));
-    tab.addEventListener('keydown', (event) => {
-      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-      event.preventDefault();
-      const offset = event.key === 'ArrowRight' ? 1 : -1;
-      const next = tabs[(index + offset + tabs.length) % tabs.length];
-      activate(next.dataset.reportTab);
-      next.focus();
-    });
-  });
-  activate(location.hash === '#evidence' ? 'evidence' : 'report', false);
-})();
-</script>
 </body>
 </html>

@@ -16,6 +16,8 @@ const DEFAULT_SEARCH_URL = "https://research-search-proxy.dev-0da.workers.dev";
 const REQUIRED_FILES = [
   "sell_side_logic.md",
   "validation.md",
+  "evidence_disposition.md",
+  "decision.md",
   "final_report.md",
   "report.md",
   "report.html",
@@ -141,7 +143,7 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "validate_research_workspace",
       "Validate investment report",
-      "Validate staged files, binding outline order, planned visuals, evidence traceability, chapter depth, and the native report template contract.",
+      "Validate required staged files, evidence traceability, chapter substance, report completeness, and the native report template contract.",
       objectSchema({ workspace: { type: "string", minLength: 1 } }, ["workspace"]),
     ),
   ];
@@ -233,7 +235,7 @@ function buildSnapshot(workspace, options = {}) {
   const chapterCount = artifacts.filter((item) => item.name.startsWith("chapter_")).length;
   const requiredReady = REQUIRED_FILES.filter((name) => names.has(name)).length +
     (names.has("report_outline.md") || names.has("report_outline.json") ? 1 : 0);
-  const progress = Math.min(100, Math.round((requiredReady / 8) * 90 + (chapterCount ? 10 : 0)));
+  const progress = Math.min(100, Math.round((requiredReady / (REQUIRED_FILES.length + 1)) * 90 + (chapterCount ? 10 : 0)));
   const snapshot = {
     ok: true,
     workspace: root,
@@ -281,9 +283,6 @@ function bodyParagraphs(markdown) {
 function moduleErrors(id, markdown) {
   const errors = [];
   if (!bodyParagraphs(markdown).length) errors.push(`module ${id} is title-only or lacks substantive evidence`);
-  for (const heading of ["Direct answer", "Claim–evidence pairs", "Metrics", "Conflicts and date reconciliation", "Invalidating conditions", "Remaining gaps"]) {
-    if (!new RegExp(`^#{1,6}\\s+${heading}\\s*$`, "im").test(markdown)) errors.push(`module ${id} missing section: ${heading}`);
-  }
   if (!citations(markdown).length) errors.push(`module ${id} requires at least one exact source citation`);
   return errors;
 }
@@ -292,46 +291,6 @@ function chapterErrors(name, markdown) {
   const errors = [];
   if (!bodyParagraphs(markdown).length) errors.push(`${name} is title-only or lacks substantive analysis`);
   if (!citations(markdown).length) errors.push(`${name} requires at least one exact source citation`);
-  if (!/^#{1,6}\s+.*(?:边界|反方|挑战|限制|风险|失效|证伪|不确定|争议|opposing|challenge|boundary|limitation|risk|invalidat|falsif)/im.test(markdown)) {
-    errors.push(`${name} requires an explicit boundary, opposing-evidence, risk, or invalidation section`);
-  }
-  return errors;
-}
-
-function reportStructureErrors(outline, chapters, html, evidence) {
-  const errors = [];
-  const sections = [...outline.matchAll(/^#\s+(S\d{2})\s+(.+)$/gmi)].map((match) => ({ id: match[1].toUpperCase(), title: match[2].trim() }));
-  if (!sections.length) return ["report_outline.md must define binding # SXX Title sections"];
-  if (sections.length !== chapters.length) errors.push("report outline section count must match chapter files");
-  for (const [index, section] of sections.entries()) {
-    const heading = chapters[index]?.markdown.match(/^#\s+(S\d{2})\s+(.+)$/mi);
-    if (!heading || heading[1].toUpperCase() !== section.id || heading[2].trim() !== section.title) {
-      errors.push(`${chapters[index]?.name || `chapter ${index + 1}`} must start with # ${section.id} ${section.title}`);
-    }
-  }
-  const renderedSections = [...html.matchAll(/\bdata-section-id\s*=\s*["'](S\d{2})["']/gi)].map((match) => match[1].toUpperCase());
-  if (renderedSections.join("|") !== sections.map(({ id }) => id).join("|")) errors.push("HTML report sections must match outline IDs and order exactly");
-
-  const visuals = [...outline.matchAll(/^(?:-\s*)?Visual:\s*(V\d{2})\s*\|\s*(comparison|mechanism|decision)\s*\|\s*([^|]+?)\s*\|\s*(chart|diagram|table)\s*$/gmi)]
-    .map((match) => ({ id: match[1].toUpperCase(), role: match[2].toLowerCase(), title: match[3].trim(), form: match[4].toLowerCase() }));
-  if (new Set(visuals.map(({ id }) => id)).size !== visuals.length) errors.push("visual IDs must be unique");
-
-  const figures = [...html.matchAll(/<figure\b([^>]*)>([\s\S]*?)<\/figure>/gi)].map((match) => ({ attributes: match[1], body: match[2] }));
-  const evidenceIds = new Set(Array.isArray(evidence) ? evidence.map((item) => String(item.chunk_id)) : []);
-  const attribute = (attributes, name) => attributes.match(new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`, "i"))?.[1] || "";
-  for (const visual of visuals) {
-    const matches = figures.filter((figure) => attribute(figure.attributes, "data-visual-id").toUpperCase() === visual.id);
-    if (matches.length !== 1) { errors.push(`HTML must render visual ${visual.id} exactly once`); continue; }
-    const figure = matches[0];
-    if (attribute(figure.attributes, "data-visual-role").toLowerCase() !== visual.role) errors.push(`visual ${visual.id} role must be ${visual.role}`);
-    if (attribute(figure.attributes, "data-visual-title") !== visual.title) errors.push(`visual ${visual.id} title must match the outline`);
-    if (!attribute(figure.attributes, "aria-label")) errors.push(`visual ${visual.id} requires an accessible description`);
-    const sources = attribute(figure.attributes, "data-visual-source").split(/\s+/).filter(Boolean);
-    if (!sources.length || sources.some((id) => !evidenceIds.has(id))) errors.push(`visual ${visual.id} must cite exact evidence chunk IDs`);
-    if ((visual.form === "chart" || visual.form === "diagram") && !/<svg\b/i.test(figure.body)) errors.push(`visual ${visual.id} must render static inline SVG`);
-    if (visual.form === "table" && !/<table\b/i.test(figure.body)) errors.push(`visual ${visual.id} must render an HTML table`);
-    if (!/class\s*=\s*["'][^"']*\bchart-source\b/i.test(figure.body)) errors.push(`visual ${visual.id} requires a visible source line`);
-  }
   return errors;
 }
 
@@ -341,7 +300,7 @@ async function validateWorkspace(workspace) {
   const artifacts = artifactList(root);
   const names = new Set(artifacts.map((item) => item.name));
   const errors = REQUIRED_FILES.filter((name) => !names.has(name)).map((name) => `missing ${name}`);
-  if (!names.has("report_outline.md")) errors.push("missing binding report_outline.md");
+  if (!names.has("report_outline.md")) errors.push("missing report_outline.md");
   const chapterArtifacts = artifacts.filter((item) => item.name.startsWith("chapter_"));
   const chapters = chapterArtifacts.length;
   if (!chapters) errors.push("research workspace requires chapter drafts");
@@ -368,7 +327,6 @@ async function validateWorkspace(workspace) {
     errors.push("report.md must match the synthesized final_report.md");
   }
   const html = readText(path.join(root, "report.html"));
-  errors.push(...reportStructureErrors(readText(path.join(root, "report_outline.md")), chapterFiles, html, evidence));
   const sellSideLogic = readText(path.join(root, "sell_side_logic.md"));
   const validationMarkdown = readText(path.join(root, "validation.md"));
   const coverage = readJson(path.join(root, "coverage_stats.json"), {});

@@ -33,6 +33,32 @@ For each claim, include:
 
 Prefer exact source locators when available.
 
+## `evidence_disposition.md`
+
+Use concise Markdown to account for the evidence surfaced by every module. Group by module or decision question. For each material item, state:
+
+- the exact chunk ID;
+- whether and how it enters the thesis;
+- which claim it informs;
+- whether omitting it could change the conclusion;
+- why it was rejected when it does not enter `evidence.json`.
+
+## `decision.md`
+
+Keep this as natural Markdown, not a JSON result or a fixed schema. Use headings, prose, bullets, and a small table only where they make the decision easier to audit.
+
+For a ranked decision, make the following explicit:
+
+- the priority rule, including whether probability dominates payoff;
+- the final ranking;
+- why each alternative represents the thing being compared;
+- the evidence that drives each material comparison;
+- the common valuation date, forecast period, currency, and accounting basis;
+- any normalization used when raw sources are not directly comparable;
+- what would change the order.
+
+Use scores or weights only when they genuinely improve the reasoning. The narrative must still explain why the order follows from the stated rule. For a report without ranked alternatives, state the calibrated conclusion and why a ranking is not useful.
+
 ## `report_outline.md`
 
 Recommended fields per section:
@@ -143,11 +169,4 @@ Add `origin_id` when known so repeated reporting of the same underlying source i
 
 ## `report.html`
 
-Treat `report.html` as one self-contained deliverable with two accessible views:
-
-1. `研报`: the complete reader-facing report rendered in the native investment report template.
-2. `证据`: an audit trail rendered from `sell_side_logic.md`, `validation.md`, and every entry in `evidence.json`.
-
-The evidence view must preserve claim IDs using `data-logic-claim-id="<claim_id>"` and `data-validation-claim-id="<claim_id>"`, and show the sell-side causal frame, assumptions, indicators, risks and invalidation conditions. For each validation claim, show support evidence, opposing evidence, calibration result, unverified point, evidence strength, and what would change the judgment. Render the complete evidence ledger with one `data-evidence-id="<chunk_id>"` entry per evidence item, `data-evidence-claim-ids` containing its space-separated claim IDs, and `data-relation` containing its relation. Include stance, corpus, quote, title, publication date, and exact page/line locator.
-
-Keep the two views inside the same HTML document. Do not use external pages, external JavaScript, or links to local Markdown files as a substitute for embedded content.
+Treat `report.html` as the complete reader-facing report rendered with `assets/template.html`. Keep it single-page and self-contained. Do not add a second evidence tab or embed the audit artifacts in the HTML; those remain as Markdown and JSON files in the research workspace.
