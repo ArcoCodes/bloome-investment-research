@@ -71,20 +71,26 @@ Default citation policy:
 
 The final report should include a source coverage section that summarizes:
 
-- retrieval rounds used
+- retrieval rounds and query directions used
 - total `sell` reports retrieved, deduplicated, read, and cited
 - total `primary` sources retrieved, deduplicated, read, and cited
-- recency coverage across the main time windows
+- relevant time-window coverage
 - the main source mix used in the report
+- why retrieval stopped and which evidence gaps remain
 
-## Optional Files
+## Supporting Files
 
 ### `coverage_stats.json`
 
-Use when search breadth matters. Suggested fields:
+Record search breadth and the evidence-saturation judgment. Required fields:
 
 - `retrieval_rounds`
 - `query_seeds`
+- `stopping_reason`
+- `remaining_gaps`
+
+Useful descriptive fields, without minimum quotas:
+
 - `sell_reports_retrieved`
 - `sell_reports_deduped`
 - `sell_reports_read`
@@ -94,12 +100,7 @@ Use when search breadth matters. Suggested fields:
 - `primary_sources_read`
 - `primary_sources_cited`
 - `sources_cited`
-- `recent_30d_count`
-- `recent_30d_share`
-- `recent_90d_count`
-- `recent_90d_share`
-- `recent_180d_count`
-- `recent_180d_share`
+- relevant recency counts or shares
 
 ### `evidence_ledger.json`
 
@@ -121,9 +122,11 @@ Treat this as the unified evidence backbone.
 
 Every important claim, quoted passage, tooltip, table source, and chart source should map back to an evidence entry.
 
-Recommended fields include:
+Required fields include:
 
 - `claim`
+- `claim_ids`: one or more exact IDs from `sell_side_logic.md` and `validation.md`
+- `relation`: `support`, `challenge`, or `context`
 - `stance`
 - `kind`
 - `corpus`
@@ -136,6 +139,8 @@ Recommended fields include:
 - `published_at`
 - `page_start` or `line_start`
 
+Add `origin_id` when known so repeated reporting of the same underlying source is not treated as independent corroboration.
+
 ## `report.html`
 
 Treat `report.html` as one self-contained deliverable with two accessible views:
@@ -143,6 +148,6 @@ Treat `report.html` as one self-contained deliverable with two accessible views:
 1. `研报`: the complete reader-facing report rendered in the native investment report template.
 2. `证据`: an audit trail rendered from `sell_side_logic.md`, `validation.md`, and every entry in `evidence.json`.
 
-The evidence view must preserve claim IDs using `data-logic-claim-id="<claim_id>"` and `data-validation-claim-id="<claim_id>"`, and show the sell-side causal frame, assumptions, indicators, risks and invalidation conditions. For each validation claim, show support evidence, opposing evidence, calibration result, unverified point, evidence strength, and what would change the judgment. Render the complete evidence ledger with one `data-evidence-id="<chunk_id>"` entry per evidence item, including stance, corpus, quote, title, publication date, and exact page/line locator.
+The evidence view must preserve claim IDs using `data-logic-claim-id="<claim_id>"` and `data-validation-claim-id="<claim_id>"`, and show the sell-side causal frame, assumptions, indicators, risks and invalidation conditions. For each validation claim, show support evidence, opposing evidence, calibration result, unverified point, evidence strength, and what would change the judgment. Render the complete evidence ledger with one `data-evidence-id="<chunk_id>"` entry per evidence item, `data-evidence-claim-ids` containing its space-separated claim IDs, and `data-relation` containing its relation. Include stance, corpus, quote, title, publication date, and exact page/line locator.
 
 Keep the two views inside the same HTML document. Do not use external pages, external JavaScript, or links to local Markdown files as a substitute for embedded content.

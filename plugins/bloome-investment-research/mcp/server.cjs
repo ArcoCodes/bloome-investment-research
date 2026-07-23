@@ -97,7 +97,7 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "research_search",
       "Search investment research",
-      "Search the controlled sell-side or primary research corpus. Run at least two rounds per corpus, including a recency-filtered round, and retrieve at least 40 records per corpus before synthesis.",
+      "Search the controlled sell-side or primary research corpus. Iterate with varied queries, relevant time windows, exact chunk reads, and surrounding context until new retrieval no longer changes material claims or gaps.",
       objectSchema(SEARCH_PROPERTIES, ["corpus"]),
       { openWorld: true },
     ),
@@ -233,7 +233,7 @@ function buildSnapshot(workspace, options = {}) {
   const chapterCount = artifacts.filter((item) => item.name.startsWith("chapter_")).length;
   const requiredReady = REQUIRED_FILES.filter((name) => names.has(name)).length +
     (names.has("report_outline.md") || names.has("report_outline.json") ? 1 : 0);
-  const progress = Math.min(100, Math.round((requiredReady / 8) * 85 + Math.min(chapterCount, 5) * 3));
+  const progress = Math.min(100, Math.round((requiredReady / 8) * 90 + (chapterCount ? 10 : 0)));
   const snapshot = {
     ok: true,
     workspace: root,
@@ -257,12 +257,10 @@ function coverageErrors(coverage) {
   const errors = [];
   const rounds = Array.isArray(coverage.retrieval_rounds) ? coverage.retrieval_rounds : [];
   for (const corpus of ["sell", "primary"]) {
-    const corpusRounds = rounds.filter((round) => round.corpus === corpus);
-    if (corpusRounds.length < 2) errors.push(`${corpus} requires at least 2 retrieval rounds`);
-    const countKey = corpus === "sell" ? "sell_reports_retrieved" : "primary_sources_retrieved";
-    if (Number(coverage[countKey] || 0) < 40) errors.push(`${corpus} requires at least 40 retrieved records`);
-    if (!corpusRounds.some((round) => round.published_from)) errors.push(`${corpus} requires a recency-filtered retrieval round`);
+    if (!rounds.some((round) => round.corpus === corpus)) errors.push(`${corpus} retrieval must be represented in coverage_stats.json`);
   }
+  if (!String(coverage.stopping_reason || "").trim()) errors.push("coverage_stats.json requires a retrieval stopping_reason");
+  if (!Array.isArray(coverage.remaining_gaps)) errors.push("coverage_stats.json requires a remaining_gaps array");
   return errors;
 }
 
@@ -282,8 +280,7 @@ function bodyParagraphs(markdown) {
 
 function moduleErrors(id, markdown) {
   const errors = [];
-  const bodyLength = bodyParagraphs(markdown).join("").length;
-  if (bodyLength < 120) errors.push(`module ${id} is title-only or lacks substantive evidence`);
+  if (!bodyParagraphs(markdown).length) errors.push(`module ${id} is title-only or lacks substantive evidence`);
   for (const heading of ["Direct answer", "Claim–evidence pairs", "Metrics", "Conflicts and date reconciliation", "Invalidating conditions", "Remaining gaps"]) {
     if (!new RegExp(`^#{1,6}\\s+${heading}\\s*$`, "im").test(markdown)) errors.push(`module ${id} missing section: ${heading}`);
   }
@@ -293,24 +290,10 @@ function moduleErrors(id, markdown) {
 
 function chapterErrors(name, markdown) {
   const errors = [];
-  if (bodyParagraphs(markdown).join("").length < 160) errors.push(`${name} is title-only or lacks substantive analysis`);
+  if (!bodyParagraphs(markdown).length) errors.push(`${name} is title-only or lacks substantive analysis`);
   if (!citations(markdown).length) errors.push(`${name} requires at least one exact source citation`);
   if (!/^#{1,6}\s+.*(?:边界|反方|挑战|限制|风险|失效|证伪|不确定|争议|opposing|challenge|boundary|limitation|risk|invalidat|falsif)/im.test(markdown)) {
     errors.push(`${name} requires an explicit boundary, opposing-evidence, risk, or invalidation section`);
-  }
-  return errors;
-}
-
-function finalAssemblyErrors(finalReport, chapters) {
-  const errors = [];
-  const normalizedFinal = finalReport.replace(/\s+/g, " ").trim();
-  const finalCitations = new Set(citations(finalReport));
-  for (const { name, markdown } of chapters) {
-    if (bodyParagraphs(markdown).some((paragraph) => !normalizedFinal.includes(paragraph))) {
-      errors.push(`final_report.md drops body text from ${name}`);
-    }
-    const missing = citations(markdown).filter((citation) => !finalCitations.has(citation));
-    if (missing.length) errors.push(`final_report.md drops citations from ${name}: ${[...new Set(missing)].join(", ")}`);
   }
   return errors;
 }
@@ -329,11 +312,8 @@ function reportStructureErrors(outline, chapters, html, evidence) {
   const renderedSections = [...html.matchAll(/\bdata-section-id\s*=\s*["'](S\d{2})["']/gi)].map((match) => match[1].toUpperCase());
   if (renderedSections.join("|") !== sections.map(({ id }) => id).join("|")) errors.push("HTML report sections must match outline IDs and order exactly");
 
-  const visuals = [...outline.matchAll(/^-\s*Visual:\s*(V\d{2})\s*\|\s*(comparison|mechanism|decision)\s*\|\s*([^|]+?)\s*\|\s*(chart|diagram|table)\s*$/gmi)]
+  const visuals = [...outline.matchAll(/^(?:-\s*)?Visual:\s*(V\d{2})\s*\|\s*(comparison|mechanism|decision)\s*\|\s*([^|]+?)\s*\|\s*(chart|diagram|table)\s*$/gmi)]
     .map((match) => ({ id: match[1].toUpperCase(), role: match[2].toLowerCase(), title: match[3].trim(), form: match[4].toLowerCase() }));
-  if (!visuals.length) errors.push("report outline must include an evidence-backed visual plan");
-  for (const role of ["comparison", "mechanism", "decision"]) if (!visuals.some((visual) => visual.role === role)) errors.push(`visual plan is missing ${role}`);
-  for (const form of ["chart", "diagram"]) if (!visuals.some((visual) => visual.form === form)) errors.push(`visual plan is missing a ${form}`);
   if (new Set(visuals.map(({ id }) => id)).size !== visuals.length) errors.push("visual IDs must be unique");
 
   const figures = [...html.matchAll(/<figure\b([^>]*)>([\s\S]*?)<\/figure>/gi)].map((match) => ({ attributes: match[1], body: match[2] }));
@@ -364,12 +344,11 @@ async function validateWorkspace(workspace) {
   if (!names.has("report_outline.md")) errors.push("missing binding report_outline.md");
   const chapterArtifacts = artifacts.filter((item) => item.name.startsWith("chapter_"));
   const chapters = chapterArtifacts.length;
-  if (chapters < 5) errors.push("deep report requires at least 5 chapter_XX_*.md files");
+  if (!chapters) errors.push("research workspace requires chapter drafts");
 
   const plan = readJson(path.join(root, "plan.json"), {});
   const modules = Array.isArray(plan.modules) ? plan.modules : [];
   if (!names.has("plan.json")) errors.push("missing plan.json");
-  if (modules.length < 3 || modules.length > 5) errors.push("deep report requires 3-5 research modules");
   try { core.assertPlan(modules); } catch (error) { errors.push(error.message); }
   for (const module of modules) {
     const id = String(module.id || "");
@@ -382,12 +361,11 @@ async function validateWorkspace(workspace) {
   const chapterFiles = chapterArtifacts.map(({ name }) => ({ name, markdown: readText(path.join(root, name)) }));
   for (const chapter of chapterFiles) errors.push(...chapterErrors(chapter.name, chapter.markdown));
   const finalReport = readText(path.join(root, "final_report.md"));
-  errors.push(...finalAssemblyErrors(finalReport, chapterFiles));
 
   const evidence = readJson(path.join(root, "evidence.json"), []);
   const report = readText(path.join(root, "report.md"));
   if (report.replace(/\s+/g, " ").trim() !== finalReport.replace(/\s+/g, " ").trim()) {
-    errors.push("report.md must preserve final_report.md narrative and citations without compression");
+    errors.push("report.md must match the synthesized final_report.md");
   }
   const html = readText(path.join(root, "report.html"));
   errors.push(...reportStructureErrors(readText(path.join(root, "report_outline.md")), chapterFiles, html, evidence));

@@ -5,9 +5,9 @@ import { test } from "node:test";
 
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
-  ["skills/investment-research/assets/template.html", "485aa53489e01ea0aef1d1eb38a37025c83daacd98a8d911567c29bbd0175d9d"],
-  ["skills/investment-research/references/file-specs.md", "57b5e1a94d7ec1f9341cc709f460863658f968eff0a6cb5cccd2114088c97b81"],
-  ["skills/investment-research/references/chart-rules.md", "06227979f4a4374ace20ade380f0cd6d5cdbe6b36f32ad5f4ce2e973ab84e32d"],
+  ["skills/investment-research/assets/template.html", "0c6f43ef2a6b75bb6ce344595b9aee2982f0b64df19522be9df2820d0026f85f"],
+  ["skills/investment-research/references/file-specs.md", "da5cd2dfa9f1fc5736bdc6e0e5e6652647f5f3b25c6f8e1b08202101d9918270"],
+  ["skills/investment-research/references/chart-rules.md", "0f00fd2b12f7dac44b6ee3c718d638fd09fd5e078e03c1c6d2bc72b108282e10"],
 ]);
 
 test("investment report contracts remain byte-for-byte unchanged", async () => {
@@ -31,6 +31,8 @@ test("cross-runtime skill keeps the original report template as source of truth"
   assert.match(template, /data-report-tab="evidence"/);
   assert.match(template, /data-evidence-section="validation"/);
   assert.match(template, /data-evidence-id="\{\{evidence_chunk_id\}\}"/);
+  assert.match(template, /data-evidence-claim-ids="\{\{evidence_claim_ids\}\}"/);
+  assert.match(template, /data-relation="\{\{evidence_relation\}\}"/);
 });
 
 test("shared workflow delegates bounded memos with a sequential fallback", async () => {
@@ -45,6 +47,8 @@ test("shared workflow delegates bounded memos with a sequential fallback", async
   assert.match(skill, /Run no more than three workers concurrently/);
   assert.match(skill, /run only the missing modules sequentially in the parent/);
   assert.match(skill, /render all of `report\.md` into the `研报` tab of a static `report\.html`/);
+  assert.match(skill, /Continue until additional retrieval no longer materially changes/);
+  assert.match(skill, /Synthesize `final_report\.md` from the chapter drafts and reconciled evidence/);
   assert.match(skill, /writes only `modules\/<id>\.md`/);
   assert.match(workflow, /MCP provides research data and deterministic validation; it never starts agents or calls a model/);
   assert.match(moduleContract, /# Conflicts and date reconciliation/);

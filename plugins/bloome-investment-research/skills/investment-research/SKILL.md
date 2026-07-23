@@ -31,7 +31,7 @@ The research proxy URL defaults to the Bloome beta gateway. Read the credential 
 
 The parent owns the landscape pass, module plan, evidence reconciliation, outline, chapter writing, final assembly, HTML rendering, and validation. Workers produce evidence memos only.
 
-After the landscape pass, save `plan.json` with 3–5 non-overlapping modules and the fields defined in `references/module-contract.md`. Prefer host-native delegation:
+After the landscape pass, save `plan.json` with enough non-overlapping modules to cover the topic deeply, using the fields defined in `references/module-contract.md`. Let the question determine module count. Prefer host-native delegation:
 
 - **Claude/Cowork:** delegate module scopes to the bundled `research-module` subagent and optionally use `evidence-auditor` after all memos exist.
 - **Codex:** use native subagents with the same module and auditor contracts. Do not require users to install custom `.codex/agents` files.
@@ -45,13 +45,13 @@ Read `references/multiagent-workflow.md` and `references/module-contract.md` bef
 Run these stages in order:
 
 1. Search both `sell` and `primary` corpora for the initial landscape.
-2. Save the 3–5 module plan, dispatch host-native workers or use the sequential fallback, and read every `modules/<id>.md` memo.
-3. Complete at least two retrieval rounds for each corpus, with multiple query seeds, at least one recency window per corpus, and at least 40 retrieved records per corpus. The `size=20` limit is per call, not the project total.
-4. Reconcile module evidence in the parent, then save `sell_side_logic.md`, `validation.md`, and the unified `evidence.json`.
-5. Save `report_outline.md` using the binding section IDs and visual plan in `references/report-structure.md`. Include comparison, mechanism, and decision visuals grounded in evidence.
+2. Save the topic-shaped module plan, dispatch host-native workers or use the sequential fallback, and read every `modules/<id>.md` memo.
+3. Search both corpora iteratively with varied query seeds, relevant time windows, exact chunk reads, and surrounding context. Continue until additional retrieval no longer materially changes the claims, conflicts, or known gaps, or access is exhausted. Record the stopping reason and remaining gaps in `coverage_stats.json`; do not use record counts as a proxy for depth.
+4. Reconcile module evidence in the parent, then save `sell_side_logic.md`, `validation.md`, and the unified `evidence.json`. Every evidence item must link to one or more claim IDs and state whether it supports, challenges, or contextualizes them.
+5. Save `report_outline.md` using the binding section IDs in `references/report-structure.md`. Plan only visuals that materially improve an evidence-backed argument.
 6. Save one `chapter_XX_*.md` for each planned substantive section, in the same order and with the identical `# SXX Title` heading. Every chapter needs source citations and an explicit boundary, opposing-evidence, risk, or invalidation section.
-7. Assemble `final_report.md` directly from the chapter drafts; do not summarize or rewrite away chapter bodies or citations.
-8. Copy the complete `final_report.md` narrative and citations into `report.md` without compression, then render all of `report.md` into the `研报` tab of a static `report.html`. Preserve the outline's exact section order with `data-section-id`, and render every planned visual once with its `data-visual-id`, role, accessible description, and evidence chunk IDs. The same HTML must embed the complete audit trail in a switchable `证据` tab and include `coverage_stats.json`. Charts and diagrams must be static HTML/CSS/SVG.
+7. Synthesize `final_report.md` from the chapter drafts and reconciled evidence. Rewrite, compress, reorder within the approved outline, and resolve contradictions as needed; preserve the decisive evidence, citations, boundaries, disagreements, and unresolved points rather than every sentence of the drafts.
+8. Copy `final_report.md` into `report.md`, then render all of `report.md` into the `研报` tab of a static `report.html`. Preserve the outline's exact section order with `data-section-id`, and render every planned visual once with its `data-visual-id`, role, accessible description, and evidence chunk IDs. The same HTML must embed the complete audit trail in a switchable `证据` tab and include `coverage_stats.json`. Charts and diagrams must be static HTML/CSS/SVG.
 9. Call `validate_research_workspace`, repair every error, and only then deliver or open the workspace.
 
 Keep all staged files traceable to `evidence.json`. Do not skip from search notes or module memos directly to the final report.
@@ -68,12 +68,12 @@ For every material claim, record support, opposing evidence, calibration result,
 
 ## Long Report
 
-`final_report.md` is assembled from chapter drafts, not generated as a short summary.
+`final_report.md` is a deliberate synthesis of the chapter drafts and reconciled evidence, not a one-shot answer or a dump of module memos.
 
-- Use at least five substantive sections for a deep report, excluding the opening judgment, source coverage, and references.
-- Each substantive section needs at least two argument units. Each unit should connect a conclusion, source-backed data, causal transmission, comparison or calculation, boundary/opposing evidence, and investment implication.
-- Use extracted sell-side data, primary calibration, disagreements, scenarios, sensitivities, and company-level transmission to add depth. Do not add generic filler or repeat the same number.
-- Preserve chapter detail, tables, charts, citations, and unresolved points in the final assembly. Assemble chapter bodies directly; never generate a fresh compressed report after chapter drafting.
+- Let the topic determine the number and depth of substantive sections. Go as deep as the available evidence supports; do not target a word, chapter, argument, or source count.
+- Each substantive section should connect its conclusion to source-backed data, causal transmission, comparison or calculation where relevant, boundary/opposing evidence, and research implication.
+- Use extracted sell-side data, primary calibration, disagreements, scenarios, sensitivities, and company-level transmission where they help answer the topic. Do not add generic filler or repeat the same number.
+- Rewrite and compress chapter material when synthesis improves clarity. Preserve decisive evidence, citations, disagreements, boundaries, and unresolved points, and resolve draft contradictions before delivery.
 
 ## Final Report and HTML
 
@@ -88,10 +88,10 @@ Keep both views in the same self-contained `report.html`:
 - The `研报` tab contains the complete reader-facing investment report and remains the default view.
 - The `证据` tab renders the structured content of `sell_side_logic.md`, then the claim-by-claim content of `validation.md`, then the complete `evidence.json` ledger. Do not link out to the Markdown files or paste raw Markdown into the page.
 - Preserve every claim ID across sell-side logic and validation. Set each logic entry's `data-logic-claim-id` and each validation entry's `data-validation-claim-id` to the exact claim ID. For each validation claim, visibly include support evidence, opposing evidence, calibration result, unverified point, evidence strength, and what would change the judgment.
-- Render every `evidence.json` item once in the ledger and set its entry's `data-evidence-id` to the exact `chunk_id`. Include stance, corpus, quote, source title, publication date, and page/line locator.
+- Render every `evidence.json` item once in the ledger and set its entry's `data-evidence-id` to the exact `chunk_id`, `data-evidence-claim-ids` to its space-separated claim IDs, and `data-relation` to `support`, `challenge`, or `context`. Include those links plus stance, corpus, quote, source title, publication date, and page/line locator.
 - Preserve the template's accessible tab roles, keyboard behavior, mobile layout, and print behavior. Do not remove the tab script or leave any template placeholders unresolved.
 
-For numeric data, use the available `reson-charts` capability and follow its documented schema; if unavailable, use self-contained inline SVG/CSS. For relationships and mechanisms, use the reusable components in `references/concept-diagrams.md`. Select chart types from the data structure and read `references/chart-rules.md` before rendering. The visual plan is required work, not optional decoration: revise an unsupported visual rather than silently omitting it.
+For numeric data, use the available `reson-charts` capability and follow its documented schema; if unavailable, use self-contained inline SVG/CSS. For relationships and mechanisms, use the reusable components in `references/concept-diagrams.md`. Select chart types from the data structure and read `references/chart-rules.md` before rendering. Visuals are optional; if one is planned, ground and render it fully rather than substituting decoration.
 
 ## Output References
 

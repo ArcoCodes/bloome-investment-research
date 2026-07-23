@@ -171,12 +171,12 @@
     </article>
   </div>
 
-  <!-- evidence.json 中每一条记录都要渲染为 evidence-entry；data-evidence-id 必须等于 chunk_id。 -->
+  <!-- evidence.json 中每一条记录都要渲染为 evidence-entry，并保留 chunk_id、claim_ids 与 relation。 -->
   <div class="section" data-evidence-section="ledger">
     <div class="section-label">Evidence ledger · 证据账本</div>
-    <p class="evidence-intro">以下账本覆盖本报告使用的全部证据，保留立场、语料层、原文与精确定位。</p>
-    <article class="evidence-entry" data-evidence-id="{{evidence_chunk_id}}" data-stance="{{evidence_stance}}">
-      <div class="evidence-meta">{{evidence_chunk_id}} · {{evidence_corpus}} · {{evidence_stance}}</div>
+    <p class="evidence-intro">以下账本覆盖本报告使用的全部证据，保留命题关系、立场、语料层、原文与精确定位。</p>
+    <article class="evidence-entry" data-evidence-id="{{evidence_chunk_id}}" data-evidence-claim-ids="{{evidence_claim_ids}}" data-relation="{{evidence_relation}}" data-stance="{{evidence_stance}}">
+      <div class="evidence-meta">{{evidence_chunk_id}} · {{evidence_claim_ids}} · {{evidence_relation}} · {{evidence_corpus}} · {{evidence_stance}}</div>
       <h2 class="claim-title">{{evidence_claim}}</h2>
       <blockquote>{{evidence_quote}}</blockquote>
       <div class="evidence-source">{{evidence_title}} · {{evidence_published_at}} · {{evidence_locator}}</div>

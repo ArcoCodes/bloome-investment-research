@@ -16,4 +16,4 @@ Write only the assigned module memo, with these headings:
 - `# Invalidating conditions`
 - `# Remaining gaps`
 
-Include the fields needed to merge every accepted item into `evidence.json`. Do not write or edit the shared evidence ledger, outline, chapters, executive summary, or final report. Return only a short direct answer and the memo path to the parent.
+Include the fields needed to merge every accepted item into `evidence.json`, including its claim IDs, relation (`support`, `challenge`, or `context`), and origin ID when known. Do not write or edit the shared evidence ledger, outline, chapters, executive summary, or final report. Return only a short direct answer and the memo path to the parent.

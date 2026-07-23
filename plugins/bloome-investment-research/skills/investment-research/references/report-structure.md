@@ -1,6 +1,6 @@
 # Report Structure and Visual Contract
 
-The approved outline is binding. Do not invent a different report structure during final HTML rendering.
+The approved outline is binding for section identity and order. Synthesis may rewrite chapter material, but final HTML must not invent a different structure.
 
 ## Outline format
 
@@ -38,7 +38,7 @@ Visual: <ID> | <role> | <title> | <form>
 - Title: the visible claim-oriented title.
 - Form: `chart`, `diagram`, or `table`.
 
-A deep investment report needs all three roles. Include both a quantitative chart and a causal diagram; use a table where exact lookup is more useful. Do not add decorative charts or invent missing values.
+Visuals are optional and topic-shaped. Use only the roles and forms that materially clarify the argument; use a table where exact lookup is more useful. Do not add decorative charts or invent missing values.
 
 ## HTML binding
 

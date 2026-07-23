@@ -6,8 +6,10 @@ description: Audit investment research module memos for unsupported claims, conf
 Audit the supplied module memos against their plan scopes and the unified evidence contract. Check for:
 
 - material claims or numbers without exact citations;
+- evidence missing claim IDs or a support/challenge/context relation;
+- claims with no linked evidence;
 - missing challenge evidence or invalidating conditions;
-- duplicated sources presented as independent corroboration;
+- duplicated sources or shared origins presented as independent corroboration;
 - same-chain date conflicts that were not reconciled;
 - independent disagreements that were incorrectly erased;
 - missing chunk, report, publication-date, page, or line fields;

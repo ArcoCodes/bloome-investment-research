@@ -2,7 +2,6 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-export const MAX_MODULES = 5;
 export const DEFAULT_RESEARCH_SEARCH_URL = "https://research-search-proxy.dev-0da.workers.dev";
 
 export async function researchProxy(endpoint, body, signal, fetcher = fetch) {
@@ -35,7 +34,7 @@ export async function researchProxy(endpoint, body, signal, fetcher = fetch) {
 }
 
 export function assertPlan(modules) {
-  if (!Array.isArray(modules) || !modules.length || modules.length > MAX_MODULES) throw new Error(`Module count must be 1-${MAX_MODULES}`);
+  if (!Array.isArray(modules) || !modules.length) throw new Error("Research plan requires at least one module");
   const normalized = (value) => String(value).normalize("NFKC").trim().toLowerCase();
   for (const key of ["id", "question", "scope"]) {
     const values = modules.map((module) => normalized(module[key]));
@@ -108,13 +107,31 @@ function preservesNarrative(report, html) {
 export function validateReport(report, html, evidence, staged = {}) {
   const errors = [];
   const warnings = [];
+  const claimIds = (markdown) => new Set([...String(markdown ?? "").matchAll(/\bC\d+\b/gi)].map((match) => match[0].toUpperCase()));
+  const logicClaimIds = claimIds(staged.sellSideLogic);
+  const validationClaimIds = claimIds(staged.validation);
+  const stagedClaimIds = new Set([...logicClaimIds, ...validationClaimIds]);
+  for (const id of logicClaimIds) if (!validationClaimIds.has(id)) errors.push(`Claim ${id} is missing from validation.md`);
+  for (const id of validationClaimIds) if (!logicClaimIds.has(id)) errors.push(`Claim ${id} is missing from sell_side_logic.md`);
   const citations = new Set();
   for (const item of evidence) {
-    for (const key of ["claim", "chunk_id", "report_id", "quote", "source_type", "title", "source_path"]) {
+    for (const key of ["claim", "stance", "kind", "corpus", "chunk_id", "report_id", "quote", "source_type", "title", "source_path", "published_at"]) {
       if (!String(item[key] ?? "").trim()) errors.push(`${item.chunk_id || "unknown"}: missing ${key}`);
     }
+    const linkedClaims = Array.isArray(item.claim_ids) ? item.claim_ids.map((id) => String(id).toUpperCase()) : [];
+    if (!linkedClaims.length) errors.push(`${item.chunk_id || "unknown"}: missing claim_ids`);
+    for (const id of linkedClaims) if (!stagedClaimIds.has(id)) errors.push(`${item.chunk_id || "unknown"}: unknown claim_id ${id}`);
+    if (!["support", "challenge", "context"].includes(item.relation)) errors.push(`${item.chunk_id || "unknown"}: invalid relation`);
     if (item.page_start == null && item.line_start == null) errors.push(`${item.chunk_id}: missing page/line locator`);
     citations.add(`${item.title}, ${locator(item)}`);
+  }
+  for (const id of stagedClaimIds) {
+    const linked = evidence.filter((item) => Array.isArray(item.claim_ids) && item.claim_ids.some((claimId) => String(claimId).toUpperCase() === id));
+    if (!linked.length) errors.push(`Claim ${id} has no linked evidence`);
+    else {
+      if (!linked.some((item) => item.relation === "support")) warnings.push(`Claim ${id} has no linked support evidence`);
+      if (!linked.some((item) => item.relation === "challenge")) warnings.push(`Claim ${id} has no linked challenge evidence`);
+    }
   }
   const found = [...report.matchAll(/(?:\[([^\]\n]+)\]|〔([^〕\n]+)〕|【([^】\n]+)】)/g)]
     .map((match) => ({ citation: match[1] ?? match[2] ?? match[3] }))
@@ -147,10 +164,9 @@ export function validateReport(report, html, evidence, staged = {}) {
   for (const field of ["support", "opposing", "calibration", "unverified", "strength", "falsifier"]) {
     if (!validationFields.has(field)) errors.push(`Validation view is missing ${field}`);
   }
-  const claimIds = (markdown) => new Set([...String(markdown ?? "").matchAll(/\bC\d+\b/gi)].map((match) => match[0].toUpperCase()));
   for (const [label, expectedIds, attribute] of [
-    ["Sell-side logic", claimIds(staged.sellSideLogic), "data-logic-claim-id"],
-    ["Validation", claimIds(staged.validation), "data-validation-claim-id"],
+    ["Sell-side logic", logicClaimIds, "data-logic-claim-id"],
+    ["Validation", validationClaimIds, "data-validation-claim-id"],
   ]) {
     if (!expectedIds.size) continue;
     const renderedIds = attributeValues(attribute).map((id) => id.toUpperCase());
@@ -170,6 +186,18 @@ export function validateReport(report, html, evidence, staged = {}) {
   if ([...renderedEvidenceIds.values()].reduce((sum, count) => sum + count, 0) !== evidence.length) {
     errors.push("Evidence ledger entry count must match evidence.json");
   }
+  const evidenceEntries = [...html.matchAll(/<article\b([^>]*)>/gi)]
+    .map((match) => match[1])
+    .filter((attributes) => /class\s*=\s*["'][^"']*\bevidence-entry\b/i.test(attributes));
+  const entryAttribute = (attributes, name) => attributes.match(new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`, "i"))?.[1] || "";
+  for (const item of evidence) {
+    const entries = evidenceEntries.filter((attributes) => entryAttribute(attributes, "data-evidence-id") === String(item.chunk_id));
+    if (entries.length !== 1) continue;
+    const renderedClaims = entryAttribute(entries[0], "data-evidence-claim-ids").split(/\s+/).filter(Boolean).map((id) => id.toUpperCase()).sort();
+    const expectedClaims = (Array.isArray(item.claim_ids) ? item.claim_ids : []).map((id) => String(id).toUpperCase()).sort();
+    if (renderedClaims.join("|") !== expectedClaims.join("|")) errors.push(`Evidence ${item.chunk_id} claim links must match evidence.json`);
+    if (entryAttribute(entries[0], "data-relation") !== item.relation) errors.push(`Evidence ${item.chunk_id} relation must match evidence.json`);
+  }
   if (/\{\{[^}]+\}\}/.test(html)) errors.push("HTML contains unresolved template placeholders");
   const classes = [...html.matchAll(/class\s*=\s*["']([^"']*)["']/gi)].map((match) => match[1].split(/\s+/));
   const sourceCount = classes.filter((names) => names.includes("src")).length;
@@ -185,9 +213,14 @@ export function validateReport(report, html, evidence, staged = {}) {
   if (primaryQuoteCount && /专家纪要\s*\/\s*产业访谈\s*·\s*日期|evidence\.json\s*回填|来源待填/i.test(html)) {
     errors.push("Primary quote source must be populated from evidence.json, not a generic placeholder");
   }
-  const counts = new Map();
-  for (const item of evidence) counts.set(item.report_id, (counts.get(item.report_id) ?? 0) + 1);
-  if (evidence.length >= 4 && Math.max(0, ...counts.values()) / evidence.length > 0.6) warnings.push("More than 60% of evidence comes from one report; seek independent corroboration");
+  const origins = new Map();
+  for (const item of evidence) {
+    if (!item.origin_id) continue;
+    const reports = origins.get(item.origin_id) ?? new Set();
+    reports.add(item.report_id);
+    origins.set(item.origin_id, reports);
+  }
+  for (const [origin, reports] of origins) if (reports.size > 1) warnings.push(`Evidence from shared origin ${origin} is not independent corroboration`);
   return { errors: [...new Set(errors)], warnings: [...new Set(warnings)] };
 }
 

@@ -11,19 +11,19 @@ const server = require("../mcp/server.cjs");
 async function fixtureWorkspace() {
   const root = await mkdtemp(path.join(os.tmpdir(), "bloome-research-test-"));
   const evidence = [
-    { claim:"需求扩张",stance:"support",kind:"fact",corpus:"sell",chunk_id:"s1",report_id:"sr1",quote:"需求增长",source_type:"sell-side",title:"NAND Market Outlook",source_path:"sell/report.pdf",page_start:1,published_at:"2026-07-01" },
-    { claim:"交付约束",stance:"challenge",kind:"fact",corpus:"primary",chunk_id:"p1",report_id:"pr1",quote:"交付仍受约束",source_type:"interview",title:"Industry Interview",source_path:"primary/interview.txt",line_start:2,line_end:3,published_at:"2026-07-02" },
+    { claim:"需求扩张",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"sell",chunk_id:"s1",report_id:"sr1",quote:"需求增长",source_type:"sell-side",title:"NAND Market Outlook",source_path:"sell/report.pdf",page_start:1,published_at:"2026-07-01" },
+    { claim:"交付约束",claim_ids:["C1"],relation:"challenge",stance:"challenge",kind:"fact",corpus:"primary",chunk_id:"p1",report_id:"pr1",quote:"交付仍受约束",source_type:"interview",title:"Industry Interview",source_path:"primary/interview.txt",line_start:2,line_end:3,published_at:"2026-07-02" },
   ];
   const coverage = {
-    retrieval_rounds: [
-      { corpus:"sell",published_from:null }, { corpus:"sell",published_from:"2026-01-01" },
-      { corpus:"primary",published_from:null }, { corpus:"primary",published_from:"2026-01-01" },
-    ],
-    sell_reports_retrieved:40, primary_sources_retrieved:40,
-    sell_reports_read:8, primary_sources_read:7,
+    retrieval_rounds: [{ corpus:"sell" }, { corpus:"primary" }],
+    query_seeds:["AI NAND demand", "NAND delivery constraints"],
+    stopping_reason:"Additional searches repeated the same claims and did not close the remaining company-level gap.",
+    remaining_gaps:["Company product mix"],
+    sell_reports_retrieved:3, primary_sources_retrieved:2,
+    sell_reports_read:2, primary_sources_read:2,
   };
-  const sectionTitles = ["Executive judgment", "Causal mechanism", "Scenarios and valuation", "Risks", "Monitoring"];
-  const chapters = Array.from({ length:5 }, (_, offset) => {
+  const sectionTitles = ["Executive judgment", "Causal mechanism"];
+  const chapters = Array.from({ length:sectionTitles.length }, (_, offset) => {
     const index = offset + 1;
     return [
       `# S${String(index).padStart(2,"0")} ${sectionTitles[offset]}`,
@@ -40,9 +40,7 @@ async function fixtureWorkspace() {
     ].join("\n");
   });
   const visualPlans = [
-    { id:"V01",role:"comparison",title:"Risk–reward comparison",form:"chart" },
-    { id:"V02",role:"mechanism",title:"Demand-to-earnings transmission",form:"diagram" },
-    { id:"V03",role:"decision",title:"Scenario and valuation range",form:"chart" },
+    { id:"V01",role:"mechanism",title:"Demand-to-earnings transmission",form:"diagram" },
   ];
   const outline = sectionTitles.map((title, index) => {
     const visual = visualPlans[index];
@@ -52,7 +50,7 @@ async function fixtureWorkspace() {
   const visibleCitations = chapters.map(() => `<span class="src">NAND Market Outlook<span class="tip"><u>需求增长</u></span></span><blockquote class="primary-quote">交付仍受约束<cite>Industry Interview · 2026-07-02</cite></blockquote>`).join("");
   const figures = visualPlans.map((visual) => `<figure data-visual-id="${visual.id}" data-visual-role="${visual.role}" data-visual-title="${visual.title}" data-visual-source="s1 p1" aria-label="${visual.title}"><h3>${visual.title}</h3><svg role="img" aria-label="${visual.title}"></svg><div class="chart-source">NAND Market Outlook</div></figure>`);
   const reportSections = chapters.map((chapter, index) => `<section data-section-id="S${String(index + 1).padStart(2,"0")}">${chapter}${figures[index] || ""}</section>`).join("");
-  const html = `<!doctype html><html><body><div class="report-shell"><nav class="report-tabs"><button data-report-tab="report">研报</button><button data-report-tab="evidence">证据</button></nav><section data-report-panel="report"><div class="report"><div class="top-bar"></div><div class="header"><div class="header-title">NAND cycle</div><div class="header-meta">2026年7月</div></div><div class="section judge-box">${reportSections}${visibleCitations}</div><div class="source-bar">Sources</div><div class="bottom-bar"></div></div></section><section data-report-panel="evidence" hidden><div data-evidence-section="sell-side-logic"><article class="logic-item" data-claim-id="C1" data-logic-claim-id="C1">需求扩张</article></div><div data-evidence-section="validation"><article class="validation-item" data-claim-id="C1" data-validation-claim-id="C1"><span data-validation-field="support">需求增长</span><span data-validation-field="opposing">交付约束</span><span data-validation-field="calibration">谨慎校准</span><span data-validation-field="unverified">价格传导</span><span data-validation-field="strength">medium</span><span data-validation-field="falsifier">库存回升</span></article></div><div data-evidence-section="ledger"><article class="evidence-entry" data-evidence-id="s1">需求增长</article><article class="evidence-entry" data-evidence-id="p1">交付约束</article></div></section></div><script>document.querySelectorAll('[data-report-tab]').forEach((tab)=>tab.addEventListener('click',()=>{}));</script></body></html>`;
+  const html = `<!doctype html><html><body><div class="report-shell"><nav class="report-tabs"><button data-report-tab="report">研报</button><button data-report-tab="evidence">证据</button></nav><section data-report-panel="report"><div class="report"><div class="top-bar"></div><div class="header"><div class="header-title">NAND cycle</div><div class="header-meta">2026年7月</div></div><div class="section judge-box">${reportSections}${visibleCitations}</div><div class="source-bar">Sources</div><div class="bottom-bar"></div></div></section><section data-report-panel="evidence" hidden><div data-evidence-section="sell-side-logic"><article class="logic-item" data-claim-id="C1" data-logic-claim-id="C1">需求扩张</article></div><div data-evidence-section="validation"><article class="validation-item" data-claim-id="C1" data-validation-claim-id="C1"><span data-validation-field="support">需求增长</span><span data-validation-field="opposing">交付约束</span><span data-validation-field="calibration">谨慎校准</span><span data-validation-field="unverified">价格传导</span><span data-validation-field="strength">medium</span><span data-validation-field="falsifier">库存回升</span></article></div><div data-evidence-section="ledger"><article class="evidence-entry" data-evidence-id="s1" data-evidence-claim-ids="C1" data-relation="support">需求增长</article><article class="evidence-entry" data-evidence-id="p1" data-evidence-claim-ids="C1" data-relation="challenge">交付约束</article></div></section></div><script>document.querySelectorAll('[data-report-tab]').forEach((tab)=>tab.addEventListener('click',()=>{}));</script></body></html>`;
   const moduleMemo = [
     "# Direct answer", "需求与供给纪律共同决定周期弹性。[NAND Market Outlook, p.1]",
     "# Claim–evidence pairs", "产业访谈对交付节奏构成反方校准。[Industry Interview, lines 2-3]",
@@ -61,7 +59,7 @@ async function fixtureWorkspace() {
     "# Invalidating conditions", "若订单和报价未在验证窗口改善，则需求传导假设失效。",
     "# Remaining gaps", "公司产品组合与客户验证节奏仍需更多独立来源。",
   ].join("\n\n");
-  const modules = ["demand", "supply", "valuation"].map((id, index) => ({
+  const modules = ["demand"].map((id, index) => ({
     id,
     question:`question ${index}`,
     scope:`scope ${index}`,
@@ -192,7 +190,7 @@ test("workspace validator enforces all staged and report contracts", async () =>
   const workspace = await fixtureWorkspace();
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, true, result.errors.join("\n"));
-  assert.equal(result.chapters, 5);
+  assert.equal(result.chapters, 2);
 });
 
 test("workspace validator rejects an incomplete embedded evidence ledger", async () => {
@@ -215,6 +213,17 @@ test("workspace validator requires every staged validation claim in the evidence
   assert.ok(result.errors.includes("Validation claim C1 must be rendered exactly once"));
 });
 
+test("workspace validator requires claim-linked evidence", async () => {
+  const workspace = await fixtureWorkspace();
+  const evidencePath = path.join(workspace, "evidence.json");
+  const evidence = JSON.parse(await readFile(evidencePath, "utf8"));
+  delete evidence[0].claim_ids;
+  await writeFile(evidencePath, JSON.stringify(evidence));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("s1: missing claim_ids"));
+});
+
 test("workspace validator rejects shallow module and chapter artifacts", async () => {
   const workspace = await fixtureWorkspace();
   await writeFile(path.join(workspace, "modules/demand.md"), "# Direct answer\n");
@@ -226,14 +235,15 @@ test("workspace validator rejects shallow module and chapter artifacts", async (
   assert.ok(result.errors.some((error) => /chapter_01_section\.md requires an explicit boundary/.test(error)));
 });
 
-test("workspace validator rejects final reports that compress away chapter bodies or citations", async () => {
+test("workspace validator allows final synthesis to rewrite chapter drafts", async () => {
   const workspace = await fixtureWorkspace();
-  await writeFile(path.join(workspace, "final_report.md"), "# Short summary\n\n需求扩张。[NAND Market Outlook, p.1]\n");
+  const synthesis = await readFile(path.join(workspace, "chapter_01_section.md"), "utf8");
+  await Promise.all([
+    writeFile(path.join(workspace, "final_report.md"), synthesis),
+    writeFile(path.join(workspace, "report.md"), synthesis),
+  ]);
   const result = await server.validateWorkspace(workspace);
-  assert.equal(result.ok, false);
-  assert.ok(result.errors.some((error) => /final_report\.md drops body text/.test(error)));
-  assert.ok(result.errors.some((error) => /drops citations/.test(error)));
-  assert.ok(result.errors.some((error) => /report\.md must preserve final_report\.md/.test(error)));
+  assert.equal(result.ok, true, result.errors.join("\n"));
 });
 
 test("workspace validator rejects summary HTML that omits the Markdown report", async () => {
@@ -249,11 +259,25 @@ test("workspace validator binds HTML sections and visuals to the approved outlin
   const workspace = await fixtureWorkspace();
   const htmlPath = path.join(workspace, "report.html");
   const html = await readFile(htmlPath, "utf8");
-  await writeFile(htmlPath, html.replace('data-section-id="S02"', 'data-section-id="S05"').replace('data-visual-id="V02"', 'data-visual-id="missing"'));
+  await writeFile(htmlPath, html.replace('data-section-id="S02"', 'data-section-id="S05"').replace('data-visual-id="V01"', 'data-visual-id="missing"'));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
   assert.ok(result.errors.includes("HTML report sections must match outline IDs and order exactly"));
-  assert.ok(result.errors.includes("HTML must render visual V02 exactly once"));
+  assert.ok(result.errors.includes("HTML must render visual V01 exactly once"));
+});
+
+test("workspace validator allows a topic with no useful visual", async () => {
+  const workspace = await fixtureWorkspace();
+  const outlinePath = path.join(workspace, "report_outline.md");
+  const htmlPath = path.join(workspace, "report.html");
+  const outline = await readFile(outlinePath, "utf8");
+  const html = await readFile(htmlPath, "utf8");
+  await Promise.all([
+    writeFile(outlinePath, outline.replace(/^- Visual:.*\n?/m, "")),
+    writeFile(htmlPath, html.replace(/<figure\b[\s\S]*?<\/figure>/, "")),
+  ]);
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, true, result.errors.join("\n"));
 });
 
 test("widget resource is a self-contained MCP app with real Bloome assets", async () => {
