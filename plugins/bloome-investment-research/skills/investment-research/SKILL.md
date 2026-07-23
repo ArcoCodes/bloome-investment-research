@@ -48,10 +48,10 @@ Run these stages in order:
 2. Save the 3–5 module plan, dispatch host-native workers or use the sequential fallback, and read every `modules/<id>.md` memo.
 3. Complete at least two retrieval rounds for each corpus, with multiple query seeds, at least one recency window per corpus, and at least 40 retrieved records per corpus. The `size=20` limit is per call, not the project total.
 4. Reconcile module evidence in the parent, then save `sell_side_logic.md`, `validation.md`, and the unified `evidence.json`.
-5. Save `report_outline.md` or `report_outline.json`.
-6. Save one `chapter_XX_*.md` for each substantive report section. Every chapter needs source citations and an explicit boundary, opposing-evidence, risk, or invalidation section.
+5. Save `report_outline.md` using the binding section IDs and visual plan in `references/report-structure.md`. Include comparison, mechanism, and decision visuals grounded in evidence.
+6. Save one `chapter_XX_*.md` for each planned substantive section, in the same order and with the identical `# SXX Title` heading. Every chapter needs source citations and an explicit boundary, opposing-evidence, risk, or invalidation section.
 7. Assemble `final_report.md` directly from the chapter drafts; do not summarize or rewrite away chapter bodies or citations.
-8. Copy the complete `final_report.md` narrative and citations into `report.md` without compression, then render all of `report.md` into the `研报` tab of a static `report.html`. The same HTML must embed the complete audit trail in a switchable `证据` tab and include `coverage_stats.json`. Charts must be static HTML/CSS/SVG.
+8. Copy the complete `final_report.md` narrative and citations into `report.md` without compression, then render all of `report.md` into the `研报` tab of a static `report.html`. Preserve the outline's exact section order with `data-section-id`, and render every planned visual once with its `data-visual-id`, role, accessible description, and evidence chunk IDs. The same HTML must embed the complete audit trail in a switchable `证据` tab and include `coverage_stats.json`. Charts and diagrams must be static HTML/CSS/SVG.
 9. Call `validate_research_workspace`, repair every error, and only then deliver or open the workspace.
 
 Keep all staged files traceable to `evidence.json`. Do not skip from search notes or module memos directly to the final report.
@@ -91,13 +91,15 @@ Keep both views in the same self-contained `report.html`:
 - Render every `evidence.json` item once in the ledger and set its entry's `data-evidence-id` to the exact `chunk_id`. Include stance, corpus, quote, source title, publication date, and page/line locator.
 - Preserve the template's accessible tab roles, keyboard behavior, mobile layout, and print behavior. Do not remove the tab script or leave any template placeholders unresolved.
 
-For numeric data, use the available `reson-charts` capability and follow its documented schema; if unavailable, use self-contained inline SVG/CSS. For relationships and mechanisms, use the reusable components in `references/concept-diagrams.md`. Select chart types from the data structure and read `references/chart-rules.md` before rendering.
+For numeric data, use the available `reson-charts` capability and follow its documented schema; if unavailable, use self-contained inline SVG/CSS. For relationships and mechanisms, use the reusable components in `references/concept-diagrams.md`. Select chart types from the data structure and read `references/chart-rules.md` before rendering. The visual plan is required work, not optional decoration: revise an unsupported visual rather than silently omitting it.
 
 ## Output References
 
 Read `references/file-specs.md` for staged artifact shapes, evidence fields, and coverage statistics.
 
 Read `references/multiagent-workflow.md` and `references/module-contract.md` for host-native delegation, fallback, plan fields, and module memo output.
+
+Read `references/report-structure.md` for binding section IDs, outline order, and planned visual markup.
 
 Read `references/chart-rules.md` for chart selection and rendering requirements.
 

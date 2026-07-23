@@ -34,10 +34,11 @@ test("cross-runtime skill keeps the original report template as source of truth"
 });
 
 test("shared workflow delegates bounded memos with a sequential fallback", async () => {
-  const [skill, moduleContract, workflow, worker, auditor] = await Promise.all([
+  const [skill, moduleContract, workflow, reportStructure, worker, auditor] = await Promise.all([
     "skills/investment-research/SKILL.md",
     "skills/investment-research/references/module-contract.md",
     "skills/investment-research/references/multiagent-workflow.md",
+    "skills/investment-research/references/report-structure.md",
     "agents/research-module.md",
     "agents/evidence-auditor.md",
   ].map((file) => readFile(new URL(file, root), "utf8")));
@@ -48,6 +49,8 @@ test("shared workflow delegates bounded memos with a sequential fallback", async
   assert.match(workflow, /MCP provides research data and deterministic validation; it never starts agents or calls a model/);
   assert.match(moduleContract, /# Conflicts and date reconciliation/);
   assert.match(moduleContract, /must not write an executive summary, chapter, outline, `evidence\.json`, or final report/);
+  assert.match(reportStructure, /The approved outline is binding/);
+  assert.match(reportStructure, /data-visual-source="chunk-id-1 chunk-id-2"/);
   assert.match(worker, /Write only the assigned module memo/);
   assert.match(auditor, /Do not edit files or write report prose/);
 });

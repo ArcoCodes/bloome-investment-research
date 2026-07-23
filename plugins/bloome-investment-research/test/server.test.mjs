@@ -22,10 +22,11 @@ async function fixtureWorkspace() {
     sell_reports_retrieved:40, primary_sources_retrieved:40,
     sell_reports_read:8, primary_sources_read:7,
   };
+  const sectionTitles = ["Executive judgment", "Causal mechanism", "Scenarios and valuation", "Risks", "Monitoring"];
   const chapters = Array.from({ length:5 }, (_, offset) => {
     const index = offset + 1;
     return [
-      `# Chapter ${index}`,
+      `# S${String(index).padStart(2,"0")} ${sectionTitles[offset]}`,
       "",
       "## Evidence and transmission",
       "",
@@ -38,9 +39,20 @@ async function fixtureWorkspace() {
       "边界条件是交付约束可能让需求信号晚于预期兑现，且独立产业访谈仍显示供应链存在不确定性。[Industry Interview, lines 2-3] 如果后续订单、库存或报价没有按时间窗口改善，应下调判断强度而不是删除反方证据。",
     ].join("\n");
   });
+  const visualPlans = [
+    { id:"V01",role:"comparison",title:"Risk–reward comparison",form:"chart" },
+    { id:"V02",role:"mechanism",title:"Demand-to-earnings transmission",form:"diagram" },
+    { id:"V03",role:"decision",title:"Scenario and valuation range",form:"chart" },
+  ];
+  const outline = sectionTitles.map((title, index) => {
+    const visual = visualPlans[index];
+    return [`# S${String(index + 1).padStart(2,"0")} ${title}`, "Purpose: Test purpose", "Claims: C1", visual ? `- Visual: ${visual.id} | ${visual.role} | ${visual.title} | ${visual.form}` : ""].filter(Boolean).join("\n");
+  }).join("\n\n");
   const finalReport = chapters.join("\n\n");
   const visibleCitations = chapters.map(() => `<span class="src">NAND Market Outlook<span class="tip"><u>需求增长</u></span></span><blockquote class="primary-quote">交付仍受约束<cite>Industry Interview · 2026-07-02</cite></blockquote>`).join("");
-  const html = `<!doctype html><html><body><div class="report-shell"><nav class="report-tabs"><button data-report-tab="report">研报</button><button data-report-tab="evidence">证据</button></nav><section data-report-panel="report"><div class="report"><div class="top-bar"></div><div class="header"><div class="header-title">NAND cycle</div><div class="header-meta">2026年7月</div></div><div class="section judge-box">${finalReport}${visibleCitations}</div><div class="source-bar">Sources</div><div class="bottom-bar"></div></div></section><section data-report-panel="evidence" hidden><div data-evidence-section="sell-side-logic"><article class="logic-item" data-claim-id="C1" data-logic-claim-id="C1">需求扩张</article></div><div data-evidence-section="validation"><article class="validation-item" data-claim-id="C1" data-validation-claim-id="C1"><span data-validation-field="support">需求增长</span><span data-validation-field="opposing">交付约束</span><span data-validation-field="calibration">谨慎校准</span><span data-validation-field="unverified">价格传导</span><span data-validation-field="strength">medium</span><span data-validation-field="falsifier">库存回升</span></article></div><div data-evidence-section="ledger"><article class="evidence-entry" data-evidence-id="s1">需求增长</article><article class="evidence-entry" data-evidence-id="p1">交付约束</article></div></section></div><script>document.querySelectorAll('[data-report-tab]').forEach((tab)=>tab.addEventListener('click',()=>{}));</script></body></html>`;
+  const figures = visualPlans.map((visual) => `<figure data-visual-id="${visual.id}" data-visual-role="${visual.role}" data-visual-title="${visual.title}" data-visual-source="s1 p1" aria-label="${visual.title}"><h3>${visual.title}</h3><svg role="img" aria-label="${visual.title}"></svg><div class="chart-source">NAND Market Outlook</div></figure>`);
+  const reportSections = chapters.map((chapter, index) => `<section data-section-id="S${String(index + 1).padStart(2,"0")}">${chapter}${figures[index] || ""}</section>`).join("");
+  const html = `<!doctype html><html><body><div class="report-shell"><nav class="report-tabs"><button data-report-tab="report">研报</button><button data-report-tab="evidence">证据</button></nav><section data-report-panel="report"><div class="report"><div class="top-bar"></div><div class="header"><div class="header-title">NAND cycle</div><div class="header-meta">2026年7月</div></div><div class="section judge-box">${reportSections}${visibleCitations}</div><div class="source-bar">Sources</div><div class="bottom-bar"></div></div></section><section data-report-panel="evidence" hidden><div data-evidence-section="sell-side-logic"><article class="logic-item" data-claim-id="C1" data-logic-claim-id="C1">需求扩张</article></div><div data-evidence-section="validation"><article class="validation-item" data-claim-id="C1" data-validation-claim-id="C1"><span data-validation-field="support">需求增长</span><span data-validation-field="opposing">交付约束</span><span data-validation-field="calibration">谨慎校准</span><span data-validation-field="unverified">价格传导</span><span data-validation-field="strength">medium</span><span data-validation-field="falsifier">库存回升</span></article></div><div data-evidence-section="ledger"><article class="evidence-entry" data-evidence-id="s1">需求增长</article><article class="evidence-entry" data-evidence-id="p1">交付约束</article></div></section></div><script>document.querySelectorAll('[data-report-tab]').forEach((tab)=>tab.addEventListener('click',()=>{}));</script></body></html>`;
   const moduleMemo = [
     "# Direct answer", "需求与供给纪律共同决定周期弹性。[NAND Market Outlook, p.1]",
     "# Claim–evidence pairs", "产业访谈对交付节奏构成反方校准。[Industry Interview, lines 2-3]",
@@ -63,7 +75,7 @@ async function fixtureWorkspace() {
     "plan.json": JSON.stringify({ topic:"AI 与 NAND",modules }),
     "sell_side_logic.md":"# Logic\n\n## C1 需求扩张\n",
     "validation.md":"# Validation\n\n## C1 需求扩张\n",
-    "report_outline.md":"# Outline\n",
+    "report_outline.md":outline,
     "final_report.md":finalReport,
     "report.md":finalReport,
     "report.html":html,
@@ -231,6 +243,17 @@ test("workspace validator rejects summary HTML that omits the Markdown report", 
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
   assert.ok(result.errors.some((error) => /HTML omits report\.md narrative/.test(error)));
+});
+
+test("workspace validator binds HTML sections and visuals to the approved outline", async () => {
+  const workspace = await fixtureWorkspace();
+  const htmlPath = path.join(workspace, "report.html");
+  const html = await readFile(htmlPath, "utf8");
+  await writeFile(htmlPath, html.replace('data-section-id="S02"', 'data-section-id="S05"').replace('data-visual-id="V02"', 'data-visual-id="missing"'));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("HTML report sections must match outline IDs and order exactly"));
+  assert.ok(result.errors.includes("HTML must render visual V02 exactly once"));
 });
 
 test("widget resource is a self-contained MCP app with real Bloome assets", async () => {
