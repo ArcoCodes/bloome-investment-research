@@ -5,9 +5,9 @@ import { test } from "node:test";
 
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
-  ["skills/investment-research/assets/template.html", "485aa53489e01ea0aef1d1eb38a37025c83daacd98a8d911567c29bbd0175d9d"],
-  ["skills/investment-research/references/file-specs.md", "57b5e1a94d7ec1f9341cc709f460863658f968eff0a6cb5cccd2114088c97b81"],
-  ["skills/investment-research/references/chart-rules.md", "06227979f4a4374ace20ade380f0cd6d5cdbe6b36f32ad5f4ce2e973ab84e32d"],
+  ["skills/investment-research/assets/template.html", "5733718e3383408b26ba6b67f96113b442b8a966ffadbc19d6cd96a1d109434c"],
+  ["skills/investment-research/references/file-specs.md", "97d6ed6da0105f90e314eb5febd8c18174482c4538674c8983a4cd1051e761bd"],
+  ["skills/investment-research/references/chart-rules.md", "0f00fd2b12f7dac44b6ee3c718d638fd09fd5e078e03c1c6d2bc72b108282e10"],
 ]);
 
 test("investment report contracts remain byte-for-byte unchanged", async () => {
@@ -23,12 +23,53 @@ test("cross-runtime skill keeps the original report template as source of truth"
   assert.match(skill, /Use `assets\/template\.html` as the visual source of truth/);
   assert.match(skill, /Do not replace it with a newly invented card layout/);
   assert.match(skill, /evidence\.json` as the unified evidence backbone/);
-  assert.match(skill, /Codex or Claude Code/);
+  assert.match(skill, /Codex or Claude\/Cowork/);
   assert.match(skill, /host's existing account supplies the model/);
   assert.match(skill, /returned `reportPath`/);
-  assert.match(skill, /same self-contained `report\.html`/);
-  assert.match(template, /data-report-tab="report"/);
-  assert.match(template, /data-report-tab="evidence"/);
-  assert.match(template, /data-evidence-section="validation"/);
-  assert.match(template, /data-evidence-id="\{\{evidence_chunk_id\}\}"/);
+  assert.match(skill, /reader-facing and single-page/);
+  assert.match(template, /class="report"/);
+  assert.doesNotMatch(template, /data-report-tab|data-evidence-section/);
+});
+
+test("shared workflow delegates bounded memos with a sequential fallback", async () => {
+  const [skill, moduleContract, workflow, reportStructure, worker, auditor] = await Promise.all([
+    "skills/investment-research/SKILL.md",
+    "skills/investment-research/references/module-contract.md",
+    "skills/investment-research/references/multiagent-workflow.md",
+    "skills/investment-research/references/report-structure.md",
+    "agents/research-module.md",
+    "agents/evidence-auditor.md",
+  ].map((file) => readFile(new URL(file, root), "utf8")));
+  assert.match(skill, /Run no more than three workers concurrently/);
+  assert.match(skill, /run only the missing modules sequentially in the parent/);
+  assert.match(skill, /render all of `report\.md` into a static single-page `report\.html`/);
+  assert.match(skill, /evidence_disposition\.md/);
+  assert.match(skill, /Save `decision\.md`/);
+  assert.match(skill, /Continue until additional retrieval no longer materially changes/);
+  assert.match(skill, /Synthesize `final_report\.md` from the chapter drafts, reconciled evidence, and `decision\.md`/);
+  assert.match(skill, /writes only `modules\/<id>\.md`/);
+  assert.match(workflow, /MCP provides research data and deterministic validation; it never starts agents or calls a model/);
+  assert.match(moduleContract, /# Conflicts and date reconciliation/);
+  assert.match(moduleContract, /must not write an executive summary, chapter, outline, `evidence\.json`, or final report/);
+  assert.match(reportStructure, /natural-language editorial plan/);
+  assert.match(reportStructure, /Do not require internal labels such as `S01` or `V01`/);
+  assert.match(worker, /Write only the assigned module memo/);
+  assert.match(auditor, /Do not edit files or write report prose/);
+});
+
+test("editorial investment visualization is owned by a reusable skill, not validator markup", async () => {
+  const [skill, grammar, review, researchSkill] = await Promise.all([
+    "skills/investment-visualization/SKILL.md",
+    "skills/investment-visualization/references/editorial-grammar.md",
+    "skills/investment-visualization/references/review.md",
+    "skills/investment-research/SKILL.md",
+  ].map((file) => readFile(new URL(file, root), "utf8")));
+  assert.match(skill, /This skill owns visual judgment/);
+  assert.match(skill, /quality bar, not a request to reproduce another publisher's brand/);
+  assert.match(skill, /Render the actual report in a browser and inspect it at desktop and narrow-phone widths/);
+  assert.match(grammar, /The visual sentence/);
+  assert.match(grammar, /Show probability evidence separately from payoff/);
+  assert.match(review, /Five-second test/);
+  assert.match(review, /Final decision test/);
+  assert.match(researchSkill, /use the `investment-visualization` skill/);
 });

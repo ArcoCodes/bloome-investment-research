@@ -1,13 +1,13 @@
 ---
 name: investment-research-agent
-description: Runs long-form investment research in Codex or Claude Code through staged intermediate artifacts instead of one-shot output. Use for deep company, industry, theme, or thesis reports that separate sell-side logic extraction from primary validation and produce traceable Markdown, HTML, and evidence deliverables.
+description: Runs long-form multi-agent investment research in Codex or Claude/Cowork through staged intermediate artifacts instead of one-shot output. Use for deep company, industry, theme, or thesis reports that separate sell-side logic extraction from primary validation and produce traceable Markdown, HTML, and evidence deliverables.
 ---
 
 # Investment Research Agent
 
-Use the active host—Codex or Claude Code—as the reasoning runtime and the bundled `research_search`, `research_get_chunk`, and `research_get_report_context` MCP tools as the corpus interface. The host's existing account supplies the model; this beta does not require an additional model key or OAuth flow. Access to the private Bloome research gateway is configured separately with `RESEARCH_API_TOKEN`.
+Use the active host—Codex or Claude/Cowork (including Claude Code plugin runtimes)—as the reasoning runtime and the bundled `research_search`, `research_get_chunk`, and `research_get_report_context` MCP tools as the corpus interface. The host's existing account supplies the model; this beta does not require an additional model key or OAuth flow. Access to the private Bloome research gateway is configured separately with `RESEARCH_API_TOKEN` or `~/.bloome/research-api-token`.
 
-Do not write a long report in one pass. Keep `evidence.json` as the unified evidence backbone.
+Do not write a long report in one pass. Keep `evidence.json` as the unified evidence backbone. MCP is the shared data plane only: it must never spawn an agent, invoke a model CLI, or call a model API.
 
 ## Cross-Runtime Run
 
@@ -25,21 +25,37 @@ Useful starter requests:
 验证当前研报是否满足 investment research 的全部输出要求。
 ```
 
-The research proxy URL defaults to the Bloome beta gateway. `RESEARCH_API_TOKEN` is required and must come from the local environment; `RESEARCH_SEARCH_URL` remains an optional override. If credentials are missing, the proxy is unavailable, or search returns no results, preserve partial artifacts, report the exact retrieval status, and stop evidence-based conclusions.
+The research proxy URL defaults to the Bloome beta gateway. Read the credential from `RESEARCH_API_TOKEN` first, then the user-only `~/.bloome/research-api-token` file; the file is read for each request so Codex Desktop does not need to forward or reload environment variables. `RESEARCH_SEARCH_URL` remains an optional override. If credentials are missing, the proxy is unavailable, or search returns no results, preserve partial artifacts, report the exact retrieval status, and stop evidence-based conclusions.
+
+## Parent and Subagent Roles
+
+The parent owns the landscape pass, module plan, evidence reconciliation, outline, chapter writing, final assembly, HTML rendering, and validation. Workers produce evidence memos only.
+
+After the landscape pass, save `plan.json` with enough non-overlapping modules to cover the topic deeply, using the fields defined in `references/module-contract.md`. Let the question determine module count. Prefer host-native delegation:
+
+- **Claude/Cowork:** delegate module scopes to the bundled `research-module` subagent and optionally use `evidence-auditor` after all memos exist.
+- **Codex:** use native subagents with the same module and auditor contracts. Do not require users to install custom `.codex/agents` files.
+
+Run no more than three workers concurrently. Each worker handles one scope and writes only `modules/<id>.md`; it must not write shared evidence or report files. If native subagents are unavailable, denied, lack research-tool access, or fail, run only the missing modules sequentially in the parent with the identical contract. Never replace host delegation with a spawned Claude, Codex, Pi, or model-API process.
+
+Read `references/multiagent-workflow.md` and `references/module-contract.md` before planning or dispatching workers.
 
 ## Required Workflow
 
 Run these stages in order:
 
-1. Search both `sell` and `primary` corpora.
-2. Run at least two retrieval rounds for each corpus, with multiple query seeds, at least one recency window per corpus, and at least 40 retrieved records per corpus. The `size=20` limit is per call, not the project total.
-3. Save `sell_side_logic.md`.
-4. Save `validation.md`.
-5. Save `report_outline.md` or `report_outline.json`.
-6. Save one `chapter_XX_*.md` for each substantive report section.
-7. Save and synthesize `final_report.md`, `report.md`, `report.html`, `evidence.json`, and `coverage_stats.json`. The single `report.html` must embed the report and its audit trail as switchable tabs.
+1. Search both `sell` and `primary` corpora for the initial landscape.
+2. Save the topic-shaped module plan, dispatch host-native workers or use the sequential fallback, and read every `modules/<id>.md` memo.
+3. Search both corpora iteratively with varied query seeds, relevant time windows, exact chunk reads, and surrounding context. Continue until additional retrieval no longer materially changes the claims, conflicts, or known gaps, or access is exhausted. Record the stopping reason and remaining gaps in `coverage_stats.json`; do not use record counts as a proxy for depth.
+4. Reconcile every module candidate in `evidence_disposition.md`: accept it into the evidence backbone or reject it with a reason. Then save `sell_side_logic.md`, `validation.md`, and the unified `evidence.json`. Every accepted item must link to one or more claim IDs and state whether it supports, challenges, or contextualizes them.
+5. Save `decision.md` as natural Markdown. For a ranked investment decision, state the priority rule and ranking, compare every alternative on the same basis, explain any normalization, identify the evidence that drives the order, and say what would change it. Use scores or weights only when they improve the reasoning.
+6. Save `report_outline.md` as a natural-language editorial plan using `references/report-structure.md`. Do not add internal section or visual IDs. For comparative or ranked decisions, plan enough sections to show the decision rule, common comparison basis, winner's full demand-to-earnings mechanism, cycle/scenario boundary, security-level valuation, every material alternative, monitoring, and unresolved gaps. When a visual materially improves an evidence-backed argument, use the `investment-visualization` skill to plan it; otherwise use prose or a compact table.
+7. Save one `chapter_XX_*.md` for each planned substantive section in the same editorial order. Use natural headings. Every chapter needs a direct answer, source-backed mechanism, relevant numbers or calculations, investment implication, and an explicit boundary, opposing-evidence, risk, or invalidation discussion. Do not let chapter drafts collapse into executive-summary paragraphs.
+8. Synthesize `final_report.md` from the chapter drafts, reconciled evidence, and `decision.md`. Rewrite and remove repetition, but do not compress away causal bridges, comparison logic, valuation normalization, scenario sensitivity, company-by-company reasoning, or conditions that change the ranking. Preserve decisive accepted evidence, citations, boundaries, disagreements, unresolved points, and the exact final ranking.
+9. Copy `final_report.md` into `report.md`, then render all of `report.md` into a static single-page `report.html` using `assets/template.html`. Preserve the outline's editorial order without exposing internal planning labels. Confirm content parity: every reader-facing heading, paragraph, list, table, primary quote, citation, and planned visual in `report.md` must appear in `report.html`; never render only an executive-summary excerpt. Use the `investment-visualization` skill to render and visually review every planned figure inside that template.
+10. Call `validate_research_workspace`, repair every error, and only then deliver or open the workspace.
 
-Keep all staged files traceable to `evidence.json`. Do not skip from search notes directly to the final report.
+Keep all staged files traceable to `evidence.json`. Do not skip from search notes or module memos directly to the final report.
 
 The bundled `research_search` and `research_get_chunk` tools are the research corpus interface. Do not infer that the corpus is unavailable merely because no separate “knowledge base” skill is installed. If search returns no results or the research proxy is unavailable, report that exact retrieval status and stop evidence-based conclusions; do not replace the research with unsupported industry generalizations.
 
@@ -53,12 +69,14 @@ For every material claim, record support, opposing evidence, calibration result,
 
 ## Long Report
 
-`final_report.md` is assembled from chapter drafts, not generated as a short summary.
+`final_report.md` is a deliberate synthesis of the chapter drafts and reconciled evidence, not a one-shot answer or a dump of module memos.
 
-- Use at least five substantive sections for a deep report, excluding the opening judgment, source coverage, and references.
-- Each substantive section needs at least two argument units. Each unit should connect a conclusion, source-backed data, causal transmission, comparison or calculation, boundary/opposing evidence, and investment implication.
-- Use extracted sell-side data, primary calibration, disagreements, scenarios, sensitivities, and company-level transmission to add depth. Do not add generic filler or repeat the same number.
-- Preserve chapter detail, tables, charts, citations, and unresolved points in the final assembly.
+- Let the topic and available evidence determine the final length. Do not set word, character, chapter, argument, or source-count targets. Judge completeness by whether the report contains every decision-relevant layer supported by the evidence.
+- Before finalizing a deep comparative or ranked report, reopen the outline and module memos and check for missing mechanism, normalization, scenarios, alternatives, valuation, monitoring, or unresolved conflicts. Give each material alternative enough separate treatment to make the ranking auditable; do not hide distinct investment questions inside one compressed paragraph.
+- Each substantive section should connect its conclusion to source-backed data, causal transmission, comparison or calculation where relevant, primary calibration, boundary/opposing evidence, and research implication. The winning thesis needs a complete demand → qualified supply → pricing → margin/EPS → valuation bridge.
+- Preserve useful detail from chapter drafts: decisive numbers, formula or normalization basis, scenario assumptions, stock-specific catalysts, disconfirming evidence, and ranking-flip conditions. Summarize source descriptions, not the reasoning needed to audit the investment decision.
+- Use extracted sell-side data, primary calibration, disagreements, scenarios, sensitivities, and company-level transmission where they help answer the topic. Do not add generic filler or repeat the same number.
+- Rewrite and compress chapter material only when synthesis improves clarity. Before delivery, compare `final_report.md` against every chapter heading and `decision.md`; any omitted section must be either redundant or explicitly out of scope. Preserve decisive accepted evidence, citations, disagreements, boundaries, unresolved points, and the ranking recorded in `decision.md`; resolve draft contradictions before delivery.
 
 ## Final Report and HTML
 
@@ -68,20 +86,16 @@ Render primary evidence quotations visibly with `<blockquote class="primary-quot
 
 Use `assets/template.html` as the visual source of truth; fill its placeholders and insert report content within its existing structure. Do not replace it with a newly invented card layout or a different page structure. Preserve its header, judgment block, section layout, source bar, hover-tooltip system, and existing visual language. Surface source coverage in the report, including sell-side reports read and primary/industry materials read. Pass `report_month` to `research_synthesize` when a data cutoff is specified, for example `2026年7月`.
 
-Keep both views in the same self-contained `report.html`:
+Keep `report.html` reader-facing and single-page, exactly following the bundled template's structure and visual language. Do not add report/evidence tabs or embed the audit ledger into the page. The audit trail remains in `sell_side_logic.md`, `validation.md`, `evidence_disposition.md`, `decision.md`, and `evidence.json`. Do not leave template placeholders unresolved.
 
-- The `研报` tab contains the complete reader-facing investment report and remains the default view.
-- The `证据` tab renders the structured content of `sell_side_logic.md`, then the claim-by-claim content of `validation.md`, then the complete `evidence.json` ledger. Do not link out to the Markdown files or paste raw Markdown into the page.
-- Preserve every claim ID across sell-side logic and validation. Set each logic entry's `data-logic-claim-id` and each validation entry's `data-validation-claim-id` to the exact claim ID. For each validation claim, visibly include support evidence, opposing evidence, calibration result, unverified point, evidence strength, and what would change the judgment.
-- Render every `evidence.json` item once in the ledger and set its entry's `data-evidence-id` to the exact `chunk_id`. Include stance, corpus, quote, source title, publication date, and page/line locator.
-- Preserve the template's accessible tab roles, keyboard behavior, mobile layout, and print behavior. Do not remove the tab script or leave any template placeholders unresolved.
+Long HTML should feel like an editorial report, not a tall text dump. Keep the full prose, but break it with natural section labels, compact evidence tables, visible primary quotations, and only the figures that materially advance the decision. On desktop and narrow-phone screenshots, inspect the beginning, middle, and end of the page; verify that wide tables remain readable, no section is clipped, and the renderer has not silently dropped late-report content.
 
-For numeric data, use the available `reson-charts` capability and follow its documented schema; if unavailable, use self-contained inline SVG/CSS. For relationships and mechanisms, use the reusable components in `references/concept-diagrams.md`. Select chart types from the data structure and read `references/chart-rules.md` before rendering.
+For visual selection, financial chart grammar, annotation, uncertainty, responsive composition, and screenshot-based review, use the separate `investment-visualization` skill. Keep that editorial judgment in the skill rather than encoding it as validator regex or fixed HTML classes.
 
 ## Output References
 
 Read `references/file-specs.md` for staged artifact shapes, evidence fields, and coverage statistics.
 
-Read `references/chart-rules.md` for chart selection and rendering requirements.
+Read `references/multiagent-workflow.md` and `references/module-contract.md` for host-native delegation, fallback, plan fields, and module memo output.
 
-Read `references/concept-diagrams.md` for causal chains, thresholds, convergence, multiples, process flows, and ranges.
+Read `references/report-structure.md` for the natural-language outline, chapter order, and visual notes.

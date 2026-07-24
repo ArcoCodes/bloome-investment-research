@@ -1,6 +1,7 @@
 "use strict";
 
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const readline = require("node:readline");
 const { pathToFileURL } = require("node:url");
@@ -15,6 +16,8 @@ const DEFAULT_SEARCH_URL = "https://research-search-proxy.dev-0da.workers.dev";
 const REQUIRED_FILES = [
   "sell_side_logic.md",
   "validation.md",
+  "evidence_disposition.md",
+  "decision.md",
   "final_report.md",
   "report.md",
   "report.html",
@@ -96,7 +99,7 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "research_search",
       "Search investment research",
-      "Search the controlled sell-side or primary research corpus. Run at least two rounds per corpus, including a recency-filtered round, and retrieve at least 40 records per corpus before synthesis.",
+      "Search the controlled sell-side or primary research corpus. Iterate with varied queries, relevant time windows, exact chunk reads, and surrounding context until new retrieval no longer changes material claims or gaps.",
       objectSchema(SEARCH_PROPERTIES, ["corpus"]),
       { openWorld: true },
     ),
@@ -140,16 +143,22 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "validate_research_workspace",
       "Validate investment report",
-      "Validate required staged files, evidence traceability, source coverage, chapter depth, and the native report template contract.",
+      "Validate required staged files, evidence traceability, chapter substance, report completeness, and the native report template contract.",
       objectSchema({ workspace: { type: "string", minLength: 1 } }, ["workspace"]),
     ),
   ];
 }
 
+function researchApiToken(env = process.env) {
+  if (env.RESEARCH_API_TOKEN) return env.RESEARCH_API_TOKEN;
+  const file = env.RESEARCH_API_TOKEN_FILE || path.join(os.homedir(), ".bloome", "research-api-token");
+  return readText(file).trim();
+}
+
 async function researchProxy(endpoint, body, signal, fetcher = fetch) {
   const base = (process.env.RESEARCH_SEARCH_URL || DEFAULT_SEARCH_URL).replace(/\/$/, "");
-  const token = process.env.RESEARCH_API_TOKEN;
-  if (!token) throw new Error("RESEARCH_API_TOKEN is required; set it in the host environment and restart the active runtime");
+  const token = researchApiToken();
+  if (!token) throw new Error("Bloome research credential is required; set RESEARCH_API_TOKEN or ~/.bloome/research-api-token");
   let response;
   try {
     response = await fetcher(`${base}${endpoint}`, {
@@ -226,7 +235,7 @@ function buildSnapshot(workspace, options = {}) {
   const chapterCount = artifacts.filter((item) => item.name.startsWith("chapter_")).length;
   const requiredReady = REQUIRED_FILES.filter((name) => names.has(name)).length +
     (names.has("report_outline.md") || names.has("report_outline.json") ? 1 : 0);
-  const progress = Math.min(100, Math.round((requiredReady / 8) * 85 + Math.min(chapterCount, 5) * 3));
+  const progress = Math.min(100, Math.round((requiredReady / (REQUIRED_FILES.length + 1)) * 90 + (chapterCount ? 10 : 0)));
   const snapshot = {
     ok: true,
     workspace: root,
@@ -250,33 +259,79 @@ function coverageErrors(coverage) {
   const errors = [];
   const rounds = Array.isArray(coverage.retrieval_rounds) ? coverage.retrieval_rounds : [];
   for (const corpus of ["sell", "primary"]) {
-    const corpusRounds = rounds.filter((round) => round.corpus === corpus);
-    if (corpusRounds.length < 2) errors.push(`${corpus} requires at least 2 retrieval rounds`);
-    const countKey = corpus === "sell" ? "sell_reports_retrieved" : "primary_sources_retrieved";
-    if (Number(coverage[countKey] || 0) < 40) errors.push(`${corpus} requires at least 40 retrieved records`);
-    if (!corpusRounds.some((round) => round.published_from)) errors.push(`${corpus} requires a recency-filtered retrieval round`);
+    if (!rounds.some((round) => round.corpus === corpus)) errors.push(`${corpus} retrieval must be represented in coverage_stats.json`);
   }
+  if (!String(coverage.stopping_reason || "").trim()) errors.push("coverage_stats.json requires a retrieval stopping_reason");
+  if (!Array.isArray(coverage.remaining_gaps)) errors.push("coverage_stats.json requires a remaining_gaps array");
+  return errors;
+}
+
+function citations(markdown) {
+  return [...markdown.matchAll(/(?:\[([^\]\n]+)\]|〔([^〕\n]+)〕|【([^】\n]+)】)/g)]
+    .map((match) => match[1] ?? match[2] ?? match[3])
+    .filter((value) => /,\s*(?:p{1,2}\.\d+(?:-\d+)?|lines? \d+(?:-\d+)?)/.test(value));
+}
+
+function bodyParagraphs(markdown) {
+  return markdown
+    .replace(/^#{1,6}\s+.*$/gm, "")
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
+function moduleErrors(id, markdown) {
+  const errors = [];
+  if (!bodyParagraphs(markdown).length) errors.push(`module ${id} is title-only or lacks substantive evidence`);
+  if (!citations(markdown).length) errors.push(`module ${id} requires at least one exact source citation`);
+  return errors;
+}
+
+function chapterErrors(name, markdown) {
+  const errors = [];
+  if (!bodyParagraphs(markdown).length) errors.push(`${name} is title-only or lacks substantive analysis`);
+  if (!citations(markdown).length) errors.push(`${name} requires at least one exact source citation`);
   return errors;
 }
 
 async function validateWorkspace(workspace) {
   const root = workspacePath(workspace);
+  const core = await import(pathToFileURL(path.join(ROOT, "scripts", "core.mjs")).href);
   const artifacts = artifactList(root);
   const names = new Set(artifacts.map((item) => item.name));
   const errors = REQUIRED_FILES.filter((name) => !names.has(name)).map((name) => `missing ${name}`);
-  if (!names.has("report_outline.md") && !names.has("report_outline.json")) errors.push("missing report_outline.md or report_outline.json");
-  const chapters = artifacts.filter((item) => item.name.startsWith("chapter_")).length;
-  if (chapters < 5) errors.push("deep report requires at least 5 chapter_XX_*.md files");
+  if (!names.has("report_outline.md")) errors.push("missing report_outline.md");
+  const chapterArtifacts = artifacts.filter((item) => item.name.startsWith("chapter_"));
+  const chapters = chapterArtifacts.length;
+  if (!chapters) errors.push("research workspace requires chapter drafts");
+
+  const plan = readJson(path.join(root, "plan.json"), {});
+  const modules = Array.isArray(plan.modules) ? plan.modules : [];
+  if (!names.has("plan.json")) errors.push("missing plan.json");
+  try { core.assertPlan(modules); } catch (error) { errors.push(error.message); }
+  for (const module of modules) {
+    const id = String(module.id || "");
+    if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) { errors.push(`invalid module id: ${id || "missing"}`); continue; }
+    const memo = readText(path.join(root, "modules", `${id}.md`));
+    if (!memo) errors.push(`missing modules/${id}.md`);
+    else errors.push(...moduleErrors(id, memo));
+  }
+
+  const chapterFiles = chapterArtifacts.map(({ name }) => ({ name, markdown: readText(path.join(root, name)) }));
+  for (const chapter of chapterFiles) errors.push(...chapterErrors(chapter.name, chapter.markdown));
+  const finalReport = readText(path.join(root, "final_report.md"));
 
   const evidence = readJson(path.join(root, "evidence.json"), []);
   const report = readText(path.join(root, "report.md"));
+  if (report.replace(/\s+/g, " ").trim() !== finalReport.replace(/\s+/g, " ").trim()) {
+    errors.push("report.md must match the synthesized final_report.md");
+  }
   const html = readText(path.join(root, "report.html"));
   const sellSideLogic = readText(path.join(root, "sell_side_logic.md"));
   const validationMarkdown = readText(path.join(root, "validation.md"));
   const coverage = readJson(path.join(root, "coverage_stats.json"), {});
   errors.push(...coverageErrors(coverage));
   if (Array.isArray(evidence) && report && html) {
-    const core = await import(pathToFileURL(path.join(ROOT, "scripts", "core.mjs")).href);
     const validation = core.validateReport(report, html, evidence, { sellSideLogic, validation: validationMarkdown });
     errors.push(...validation.errors);
     return { ok: errors.length === 0, workspace: root, errors: [...new Set(errors)], warnings: validation.warnings, artifacts, chapters };

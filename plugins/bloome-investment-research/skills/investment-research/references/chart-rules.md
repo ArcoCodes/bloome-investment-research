@@ -30,7 +30,6 @@ Relationship rather than numeric data goes through `concept-diagrams.md`.
 - The sentence before a chart must state the claim it supports; never write “the chart below shows”.
 - Arrows are SVG paths/symbols, never text glyphs such as `->` or `▶`.
 - Do not invent interpolation, missing periods, or proportions. If reliable scaling is awkward, use a table.
-- Use at least two chart forms when a report contains three or more charts, unless the data genuinely has one structure.
 
 ## Widget Contract
 

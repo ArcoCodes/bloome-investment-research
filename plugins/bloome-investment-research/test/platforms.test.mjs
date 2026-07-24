@@ -52,6 +52,7 @@ test("portable MCP launcher selects plugin root in either host", async () => {
   assert.match(launcher.args[1], /CLAUDE_PLUGIN_ROOT/);
   assert.match(launcher.args[1], /process\.cwd/);
   assert.match(launcher.args[1], /runStdio/);
+  assert.deepEqual(launcher.env_vars, ["RESEARCH_API_TOKEN", "RESEARCH_SEARCH_URL"]);
 });
 
 test("portable MCP declaration boots and initializes in both host environments", async () => {

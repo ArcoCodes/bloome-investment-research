@@ -3,11 +3,12 @@
 Cross-runtime, evidence-first investment research for Codex and Claude Code.
 
 - Codex or Claude Code is the reasoning runtime; no separate model key is required.
-- `RESEARCH_API_TOKEN` authenticates access to the private Bloome research gateway during beta.
+- `RESEARCH_API_TOKEN` or the user-only `~/.bloome/research-api-token` file authenticates access to the private Bloome research gateway during beta.
 - The shared MCP server provides the same research and validation tools in both hosts.
 - Codex renders the native PiP/fullscreen workbench. Claude Code returns progress, evidence, artifacts, and `reportPath` without injecting the complete HTML report into model context.
 - Bloome styling applies to the optional workbench only.
-- `skills/investment-research/assets/template.html` remains the final report's visual source of truth and keeps the reader report plus its evidence audit trail in one tabbed HTML deliverable.
+- `skills/investment-research/assets/template.html` remains the final report's single-page visual source of truth. Evidence disposition, decision logic, and the evidence ledger remain separate Markdown/JSON workspace artifacts.
+- `skills/investment-visualization/` owns editorial chart selection, annotation, uncertainty, responsive composition, and screenshot-based visual review; those judgments are not encoded as validator regex.
 
 Runtime manifests are generated from `plugin.config.json`; do not edit `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`, or either marketplace by hand.
 
