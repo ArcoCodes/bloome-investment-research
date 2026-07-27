@@ -102,6 +102,7 @@ test("MCP initializes and exposes the five focused tools", async () => {
   assert.deepEqual(listed.result.tools.map((tool) => tool.name), [
     "research_search", "research_get_chunk", "research_get_report_context", "open_research_workspace", "validate_research_workspace",
   ]);
+  for (const definition of listed.result.tools.slice(0, 3)) assert.ok(definition.inputSchema.required.includes("workspace"));
 });
 
 test("runtime profiles keep host-specific presentation out of the shared research core", async () => {
@@ -118,60 +119,28 @@ test("runtime profiles keep host-specific presentation out of the shared researc
   assert.match(claudeInit.result.instructions, /Claude Code/);
 });
 
-test("research proxy uses the beta endpoint with an environment credential", async () => {
-  let request;
-  const previous = process.env.RESEARCH_API_TOKEN;
-  process.env.RESEARCH_API_TOKEN = "test-token";
-  try {
-    const payload = await server.researchProxy("/search", { corpus:"sell",size:2 }, undefined, async (url, options) => {
-      request = { url, options };
-      return { ok:true, text:async()=>JSON.stringify({ reports:[{ report_id:"1" }] }) };
-    });
-    assert.equal(request.url, "https://research-search-proxy.dev-0da.workers.dev/search");
-    assert.equal(request.options.headers.authorization, "Bearer test-token");
-    assert.equal(payload.reports[0].report_id, "1");
-  } finally {
-    if (previous === undefined) delete process.env.RESEARCH_API_TOKEN;
-    else process.env.RESEARCH_API_TOKEN = previous;
-  }
-});
-
-test("research proxy reads the user credential file when the host filters environment variables", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "bloome-credential-test-"));
-  const file = path.join(root, "token");
-  const previousToken = process.env.RESEARCH_API_TOKEN;
-  const previousFile = process.env.RESEARCH_API_TOKEN_FILE;
-  delete process.env.RESEARCH_API_TOKEN;
-  process.env.RESEARCH_API_TOKEN_FILE = file;
-  await writeFile(file, "file-token\n");
-  try {
-    let authorization;
-    await server.researchProxy("/search", { corpus:"sell" }, undefined, async (_url, options) => {
-      authorization = options.headers.authorization;
-      return { ok:true, text:async()=>"{}" };
-    });
-    assert.equal(authorization, "Bearer file-token");
-  } finally {
-    if (previousToken === undefined) delete process.env.RESEARCH_API_TOKEN;
-    else process.env.RESEARCH_API_TOKEN = previousToken;
-    if (previousFile === undefined) delete process.env.RESEARCH_API_TOKEN_FILE;
-    else process.env.RESEARCH_API_TOKEN_FILE = previousFile;
-  }
-});
-
-test("research proxy fails clearly when the beta credential is missing", async () => {
-  const previousToken = process.env.RESEARCH_API_TOKEN;
-  const previousFile = process.env.RESEARCH_API_TOKEN_FILE;
-  delete process.env.RESEARCH_API_TOKEN;
-  process.env.RESEARCH_API_TOKEN_FILE = path.join(os.tmpdir(), `missing-bloome-token-${process.pid}`);
-  try {
-    await assert.rejects(() => server.researchProxy("/search", { corpus:"sell" }), /set RESEARCH_API_TOKEN or ~\/\.bloome\/research-api-token/);
-  } finally {
-    if (previousToken !== undefined) process.env.RESEARCH_API_TOKEN = previousToken;
-    else delete process.env.RESEARCH_API_TOKEN;
-    if (previousFile !== undefined) process.env.RESEARCH_API_TOKEN_FILE = previousFile;
-    else delete process.env.RESEARCH_API_TOKEN_FILE;
-  }
+test("research proxy starts a billed workspace run through Bloome Finance", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "bloome-finance-proxy-test-"));
+  const credentialFile = path.join(root, "credential.json");
+  const workspace = path.join(root, "workspace");
+  await mkdir(workspace);
+  await writeFile(credentialFile, JSON.stringify({ accessToken:"device-token" }));
+  await writeFile(path.join(workspace, "plan.json"), JSON.stringify({ topic:"AI NAND" }));
+  const paths = [];
+  const payload = await server.researchProxy("/search", { workspace,corpus:"sell",size:2 }, undefined, {
+    baseUrl:"https://finance.example",
+    credentialFile,
+    fetcher:async (url, options) => {
+      const pathname = new URL(url).pathname;
+      paths.push(pathname);
+      assert.equal(options.headers.authorization, "Bearer device-token");
+      return new Response(JSON.stringify(pathname.endsWith("/start")
+        ? { run:{ id:"run-1",expiresAt:"2026-08-01T00:00:00.000Z" },charged:true }
+        : { reports:[{ report_id:"1" }] }), { status:200 });
+    },
+  });
+  assert.deepEqual(paths, ["/api/public/mcp/runs/start", "/api/public/mcp/research/search"]);
+  assert.equal(payload.reports[0].report_id, "1");
 });
 
 test("workspace snapshot drives progress, evidence, and native report preview", async () => {
@@ -199,6 +168,35 @@ test("workspace validator enforces all staged and report contracts", async () =>
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, true, result.errors.join("\n"));
   assert.equal(result.chapters, 2);
+});
+
+test("successful workspace validation closes its billed Bloome Finance run", async () => {
+  const workspace = await fixtureWorkspace();
+  const credentialFile = path.join(workspace, "credential.json");
+  await writeFile(credentialFile, JSON.stringify({ accessToken:"device-token" }));
+  await writeFile(path.join(workspace, ".bloome-finance-run.json"), JSON.stringify({ runId:"run-1",status:"active" }));
+  const previousFetch = globalThis.fetch;
+  const previousCredential = process.env.BLOOME_FINANCE_CREDENTIAL_FILE;
+  const previousUrl = process.env.BLOOME_FINANCE_URL;
+  process.env.BLOOME_FINANCE_CREDENTIAL_FILE = credentialFile;
+  process.env.BLOOME_FINANCE_URL = "https://finance.example";
+  globalThis.fetch = async (url, options) => {
+    assert.equal(new URL(url).pathname, "/api/public/mcp/runs/run-1/complete");
+    assert.equal(options.headers.authorization, "Bearer device-token");
+    return new Response(JSON.stringify({ ok:true }), { status:200 });
+  };
+  try {
+    const result = await server.validateWorkspace(workspace);
+    assert.equal(result.ok, true, result.errors.join("\n"));
+    assert.equal(result.financeRunCompleted, true);
+    assert.equal(JSON.parse(await readFile(path.join(workspace, ".bloome-finance-run.json"), "utf8")).status, "completed");
+  } finally {
+    globalThis.fetch = previousFetch;
+    if (previousCredential === undefined) delete process.env.BLOOME_FINANCE_CREDENTIAL_FILE;
+    else process.env.BLOOME_FINANCE_CREDENTIAL_FILE = previousCredential;
+    if (previousUrl === undefined) delete process.env.BLOOME_FINANCE_URL;
+    else process.env.BLOOME_FINANCE_URL = previousUrl;
+  }
 });
 
 test("workspace validator accepts the zip template's single-page HTML without an embedded evidence ledger", async () => {

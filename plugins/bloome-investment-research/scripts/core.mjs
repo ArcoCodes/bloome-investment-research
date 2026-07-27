@@ -1,37 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
-
-export const DEFAULT_RESEARCH_SEARCH_URL = "https://research-search-proxy.dev-0da.workers.dev";
-
-export async function researchProxy(endpoint, body, signal, fetcher = fetch) {
-  const url = (process.env.RESEARCH_SEARCH_URL || DEFAULT_RESEARCH_SEARCH_URL).replace(/\/$/, "");
-  let token = process.env.RESEARCH_API_TOKEN;
-  if (!token) {
-    try { token = (await readFile(process.env.RESEARCH_API_TOKEN_FILE || path.join(os.homedir(), ".bloome", "research-api-token"), "utf8")).trim(); }
-    catch (error) { if (error.code !== "ENOENT") throw error; }
-  }
-  if (!token) throw new Error("Bloome research credential is required; set RESEARCH_API_TOKEN or ~/.bloome/research-api-token");
-  let response;
-  try {
-    response = await fetcher(`${url}${endpoint}`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify(body),
-      signal,
-    });
-  } catch (error) {
-    if (signal?.aborted) throw error;
-    throw new Error("Research proxy unavailable");
-  }
-  const text = await response.text();
-  if (!response.ok) {
-    let message = "request failed";
-    try { message = String(JSON.parse(text).error || message); } catch {}
-    throw new Error(`Research proxy ${response.status}: ${message.slice(0, 300)}`);
-  }
-  try { return JSON.parse(text); } catch { throw new Error("Research proxy returned invalid JSON"); }
-}
 
 export function assertPlan(modules) {
   if (!Array.isArray(modules) || !modules.length) throw new Error("Research plan requires at least one module");
