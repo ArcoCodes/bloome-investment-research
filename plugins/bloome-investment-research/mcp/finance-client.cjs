@@ -9,6 +9,7 @@ const { spawn } = require("node:child_process");
 const DEFAULT_FINANCE_URL = "https://fit-tadpole-7001.edgespark.app";
 const DEFAULT_CREDENTIAL_FILE = path.join(os.homedir(), ".bloome", "finance-credential.json");
 const RUN_FILE = ".bloome-finance-run.json";
+const opaqueTokenPattern = /^[A-Za-z0-9_-]{43}$/;
 
 function readJson(file, fallback = null) {
   try { return JSON.parse(fs.readFileSync(file, "utf8")); }
@@ -79,6 +80,11 @@ async function authorizeDevice(options = {}) {
 
   const approvalUrl = start.verificationUriComplete || start.verificationUri;
   const verificationUri = new URL(approvalUrl, baseUrl(options)).toString();
+  await options.onStatus?.({
+    type: "authorization_required",
+    message: "Bloome Finance sign-in will open in your browser. Sign in and approve this device; research will continue automatically.",
+    verificationUri,
+  });
   try { await (options.openBrowser || launchBrowser)(verificationUri); }
   catch { throw new Error(`Open ${verificationUri} to authorize Bloome Investment Research`); }
 
@@ -141,41 +147,86 @@ function workspaceKey(workspace) {
   return crypto.createHash("sha256").update(resolvedWorkspace(workspace)).digest("hex");
 }
 
+async function startResearchRun(root, confirmationId, signal, options) {
+  const response = await authorizedRequest("/api/public/mcp/runs/start", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      workspaceKey: workspaceKey(root),
+      topic: workspaceTopic(root),
+      ...(confirmationId ? { confirmationId } : {}),
+    }),
+    signal,
+  }, options);
+  return responseJson(response, options);
+}
+
 async function researchRequest(operation, payload, workspace, signal, options = {}) {
   if (!["search", "chunk", "context"].includes(operation)) throw new Error(`unknown research operation: ${operation}`);
   const root = resolvedWorkspace(workspace);
-  const request = (endpoint, body) => authorizedRequest(endpoint, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-    signal,
-  }, options);
-  const run = await responseJson(await request("/api/public/mcp/runs/start", {
-    workspaceKey: workspaceKey(root),
-    topic: workspaceTopic(root),
-  }), options);
+  const run = await startResearchRun(root, null, signal, options);
+  if (run.confirmationRequired) {
+    return {
+      ...run,
+      message: `Using Bloome professional research for “${run.topic}” costs ${run.cost} credit. Current balance: ${run.balance}. Ask the user to confirm before calling confirm_research_run.`,
+    };
+  }
   const runId = run.runId || run.run?.id;
   const expiresAt = run.expiresAt || run.run?.expiresAt;
   if (!runId) throw new Error("Bloome Finance did not return a research run");
   writePrivateJson(path.join(root, RUN_FILE), { runId, status: "active", expiresAt });
-  return responseJson(await request(`/api/public/mcp/research/${operation}`, { runId, payload }), options);
+  return responseJson(await authorizedRequest(`/api/public/mcp/research/${operation}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ runId, payload }),
+    signal,
+  }, options), options);
+}
+
+async function confirmResearchRun(workspace, confirmationId, signal, options = {}) {
+  if (!opaqueTokenPattern.test(confirmationId || "")) throw new Error("confirmationId is invalid");
+  const root = resolvedWorkspace(workspace);
+  const run = await startResearchRun(root, confirmationId, signal, options);
+  const runId = run.runId || run.run?.id;
+  const expiresAt = run.expiresAt || run.run?.expiresAt;
+  if (!runId) throw new Error("Bloome Finance did not confirm the research run");
+  writePrivateJson(path.join(root, RUN_FILE), { runId, status: "active", expiresAt });
+  return { confirmed: true, charged: Boolean(run.charged), run: run.run || { id: runId, expiresAt } };
 }
 
 async function completeResearchRun(workspace, options = {}) {
   const root = resolvedWorkspace(workspace);
   const file = path.join(root, RUN_FILE);
   const run = readJson(file);
-  if (!run?.runId || run.status !== "active") return false;
-  const response = await authorizedRequest(`/api/public/mcp/runs/${encodeURIComponent(run.runId)}/complete`, {
-    method: "POST",
-  }, options);
+  if (!run?.runId || !["active", "completed"].includes(run.status)) return false;
+  const endpoint = `/api/public/mcp/runs/${encodeURIComponent(run.runId)}`;
+  const preparedResponse = await authorizedRequest(`${endpoint}/report`, { method: "POST" }, options);
+  if (preparedResponse.status === 404) {
+    writePrivateJson(file, { ...run, status: "stale", closedAt: new Date().toISOString() });
+    return false;
+  }
+  const prepared = await responseJson(preparedResponse, options);
+  if (typeof prepared.uploadUrl !== "string" || !prepared.requiredHeaders || typeof prepared.requiredHeaders !== "object") {
+    throw new Error("Bloome Finance did not return a report upload URL");
+  }
+  const reportPath = path.join(root, "report.html");
+  if (!fs.existsSync(reportPath)) throw new Error("Validated workspace is missing report.html");
+  const upload = await (options.fetcher || fetch)(prepared.uploadUrl, {
+    method: "PUT",
+    headers: prepared.requiredHeaders,
+    body: fs.readFileSync(reportPath),
+  });
+  if (!upload.ok) throw new Error(`Bloome Finance report upload failed (${upload.status})`);
+
+  const response = await authorizedRequest(`${endpoint}/complete`, { method: "POST" }, options);
   if (response.status === 404) {
     writePrivateJson(file, { ...run, status: "stale", closedAt: new Date().toISOString() });
     return false;
   }
-  await responseJson(response, options);
-  writePrivateJson(file, { ...run, status: "completed", completedAt: new Date().toISOString() });
-  return true;
+  const completed = await responseJson(response, options);
+  const reportUrl = completed.reportUrl || prepared.reportUrl;
+  writePrivateJson(file, { ...run, status: "completed", completedAt: new Date().toISOString(), reportUrl });
+  return reportUrl || true;
 }
 
 module.exports = {
@@ -184,6 +235,7 @@ module.exports = {
   authorizeDevice,
   authorizedRequest,
   completeResearchRun,
+  confirmResearchRun,
   researchRequest,
   workspaceKey,
 };

@@ -22,7 +22,7 @@ assets/workbench.html             optional Codex MCP App presentation
 - `plugin.config.json` is the only editable source for identity, version, component paths, marketplace identity, and Codex presentation metadata. Run `npm run generate:manifests` after changing it. CI runs `npm run check:manifests` to reject drift.
 - `skills/`, `scripts/core.mjs`, and the research/validation tools are host-neutral. Host names may appear only where behavior genuinely differs.
 - `mcp/server.cjs` selects a small runtime profile. Codex receives MCP App resource metadata and inline report HTML. Claude Code receives the same research state plus `reportPath`, without injecting a large HTML document into model context.
-- `mcp/finance-client.cjs` keeps MCP local while delegating identity, credits, run lifecycle, and research-data access to Bloome Finance. The first corpus request authorizes the device and consumes one credit for that workspace; successful validation closes the run.
+- `mcp/finance-client.cjs` keeps MCP local while delegating identity, credits, run lifecycle, research-data access, and private report publishing to Bloome Finance. Successful validation uploads `report.html` through a presigned Storage URL and closes the run.
 - `.mcp.json` uses `CLAUDE_PLUGIN_ROOT` when Claude Code provides it and the plugin process working directory otherwise. This keeps one MCP server declaration and avoids duplicated tool configuration.
 - The report template and evidence contracts remain byte-for-byte protected by tests.
 

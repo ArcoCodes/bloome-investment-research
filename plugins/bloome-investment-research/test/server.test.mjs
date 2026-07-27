@@ -95,17 +95,18 @@ async function fixtureWorkspace() {
   return root;
 }
 
-test("MCP initializes and exposes the five focused tools", async () => {
+test("MCP initializes and exposes the six focused tools", async () => {
   const initialized = await server.handleRpc({ jsonrpc:"2.0",id:1,method:"initialize",params:{} }, "codex");
   const listed = await server.handleRpc({ jsonrpc:"2.0",id:2,method:"tools/list",params:{} }, "codex");
   assert.equal(initialized.result.serverInfo.name, "bloome-investment-research");
   assert.deepEqual(listed.result.tools.map((tool) => tool.name), [
-    "research_search", "research_get_chunk", "research_get_report_context", "open_research_workspace", "validate_research_workspace",
+    "research_search", "research_get_chunk", "research_get_report_context", "confirm_research_run", "open_research_workspace", "validate_research_workspace",
   ]);
   for (const definition of listed.result.tools.slice(0, 3)) {
     assert.ok(definition.inputSchema.required.includes("workspace"));
     assert.equal(definition.annotations.idempotentHint, false);
   }
+  assert.equal(listed.result.tools.find((tool) => tool.name === "confirm_research_run").annotations.destructiveHint, true);
   assert.equal(listed.result.tools.at(-1).annotations.destructiveHint, true);
 });
 
@@ -185,14 +186,29 @@ test("successful workspace validation closes its billed Bloome Finance run", asy
   process.env.BLOOME_FINANCE_CREDENTIAL_FILE = credentialFile;
   process.env.BLOOME_FINANCE_URL = "https://finance.example";
   globalThis.fetch = async (url, options) => {
-    assert.equal(new URL(url).pathname, "/api/public/mcp/runs/run-1/complete");
+    const parsed = new URL(url);
+    if (parsed.pathname === "/api/public/mcp/runs/run-1/report") {
+      assert.equal(options.headers.authorization, "Bearer device-token");
+      return new Response(JSON.stringify({
+        uploadUrl:"https://storage.example/run-1.html",
+        requiredHeaders:{ "content-type":"text/html; charset=utf-8" },
+        reportUrl:"https://finance.example/reports/run-1",
+      }), { status:200 });
+    }
+    if (parsed.hostname === "storage.example") {
+      assert.equal(options.headers.authorization, undefined);
+      assert.match(options.body.toString(), /class="report"/);
+      return new Response(null, { status:200 });
+    }
+    assert.equal(parsed.pathname, "/api/public/mcp/runs/run-1/complete");
     assert.equal(options.headers.authorization, "Bearer device-token");
-    return new Response(JSON.stringify({ ok:true }), { status:200 });
+    return new Response(JSON.stringify({ completed:true,reportUrl:"https://finance.example/reports/run-1" }), { status:200 });
   };
   try {
     const result = await server.validateWorkspace(workspace);
     assert.equal(result.ok, true, result.errors.join("\n"));
     assert.equal(result.financeRunCompleted, true);
+    assert.equal(result.reportUrl, "https://finance.example/reports/run-1");
     assert.equal(JSON.parse(await readFile(path.join(workspace, ".bloome-finance-run.json"), "utf8")).status, "completed");
   } finally {
     globalThis.fetch = previousFetch;

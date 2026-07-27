@@ -25,7 +25,7 @@ Useful starter requests:
 验证当前研报是否满足 investment research 的全部输出要求。
 ```
 
-Pass the absolute research workspace path in every corpus tool call. The local MCP stores the authorized device credential under `~/.bloome/` and a non-secret run marker inside the workspace. `validate_research_workspace` closes the active Bloome Finance run after validation succeeds. If authorization is revoked, credits are exhausted, the gateway is unavailable, or search returns no results, preserve partial artifacts, report the exact retrieval status, and stop evidence-based conclusions. `BLOOME_FINANCE_URL` may override the Finance service URL for local development.
+Before the first corpus tool call in each task, tell the user in their language: Bloome Finance may open in the browser for sign-in and device approval on first use, and research will continue automatically after approval. Never open an unexplained login window. If a retrieval tool returns `confirmationRequired`, stop, show the topic, 1-credit cost, and current balance from that response, and ask the user to confirm in conversation. Do not call `confirm_research_run` until the user explicitly agrees; after confirmation succeeds, retry the original retrieval call. Pass the absolute research workspace path in every corpus tool call. The local MCP stores the authorized device credential under `~/.bloome/` and a non-secret run marker inside the workspace. `validate_research_workspace` uploads `report.html` to the user's private Bloome Finance account, returns its `/reports/<id>` URL, and closes the active run after validation succeeds. If authorization is revoked, credits are exhausted, the gateway is unavailable, or search returns no results, preserve partial artifacts, report the exact retrieval status, and stop evidence-based conclusions. `BLOOME_FINANCE_URL` may override the Finance service URL for local development.
 
 ## Parent and Subagent Roles
 
@@ -44,7 +44,7 @@ Read `references/multiagent-workflow.md` and `references/module-contract.md` bef
 
 Run these stages in order:
 
-1. Search both `sell` and `primary` corpora for the initial landscape, passing the same absolute `workspace` path to every research tool call.
+1. Search both `sell` and `primary` corpora for the initial landscape, passing the same absolute `workspace` path to every research tool call. Handle the one-time conversational credit confirmation above before continuing retrieval.
 2. Save the topic-shaped module plan, dispatch host-native workers or use the sequential fallback, and read every `modules/<id>.md` memo.
 3. Search both corpora iteratively with varied query seeds, relevant time windows, exact chunk reads, and surrounding context. Continue until additional retrieval no longer materially changes the claims, conflicts, or known gaps, or access is exhausted. Record the stopping reason and remaining gaps in `coverage_stats.json`; do not use record counts as a proxy for depth.
 4. Reconcile every module candidate in `evidence_disposition.md`: accept it into the evidence backbone or reject it with a reason. Then save `sell_side_logic.md`, `validation.md`, and the unified `evidence.json`. Every accepted item must link to one or more claim IDs and state whether it supports, challenges, or contextualizes them.

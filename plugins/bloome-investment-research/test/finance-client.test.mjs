@@ -19,6 +19,7 @@ test("first protected request completes device authorization and stores only the
   const root = await mkdtemp(path.join(os.tmpdir(), "bloome-finance-auth-"));
   const credentialFile = path.join(root, "credential.json");
   const opened = [];
+  const statuses = [];
   let polls = 0;
   const fetcher = async (url, options = {}) => {
     const pathname = new URL(url).pathname;
@@ -45,11 +46,13 @@ test("first protected request completes device authorization and stores only the
     credentialFile,
     fetcher,
     openBrowser: (url) => opened.push(url),
+    onStatus: (status) => statuses.push(status),
     sleep: async () => {},
   });
 
   assert.equal(response.ok, true);
   assert.deepEqual(opened, ["https://finance.example/activate?code=device-secret"]);
+  assert.match(statuses[0].message, /sign-in will open/i);
   assert.deepEqual(JSON.parse(await readFile(credentialFile, "utf8")), { accessToken: "access-secret" });
 });
 
@@ -130,6 +133,22 @@ test("research request starts one workspace run and forwards only the research p
   assert.equal(JSON.parse(await readFile(path.join(workspace, ".bloome-finance-run.json"), "utf8")).runId, "run-1");
 });
 
+test("new workspaces require conversational confirmation before research", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "bloome-finance-confirm-"));
+  const credentialFile = path.join(root, "credential.json");
+  await writeFile(credentialFile, JSON.stringify({ accessToken: "access-secret" }));
+  const fetcher = async (url, options = {}) => {
+    const body = JSON.parse(options.body);
+    if (!body.confirmationId) return json({ confirmationRequired: true, confirmationId: "c".repeat(43), topic: "NAND", cost: 1, balance: 2 });
+    return json({ run: { id: "run-1", expiresAt: "2026-08-01T00:00:00.000Z" }, charged: true }, 201);
+  };
+  const quote = await finance.researchRequest("search", { corpus: "sell" }, root, undefined, { baseUrl: "https://finance.example", credentialFile, fetcher });
+  assert.equal(quote.confirmationRequired, true);
+  assert.match(quote.message, /costs 1 credit/);
+  assert.equal(await finance.confirmResearchRun(root, "c".repeat(43), undefined, { baseUrl: "https://finance.example", credentialFile, fetcher }).then((result) => result.charged), true);
+  assert.equal(JSON.parse(await readFile(path.join(root, ".bloome-finance-run.json"), "utf8")).runId, "run-1");
+});
+
 test("workspace billing keys canonicalize aliases and reject missing directories", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "bloome-finance-workspace-key-"));
   const workspace = path.join(root, "workspace");
@@ -150,20 +169,37 @@ test("a missing remote run closes a stale marker without failing validation", as
   assert.equal(JSON.parse(await readFile(path.join(root, ".bloome-finance-run.json"), "utf8")).status, "stale");
 });
 
-test("completing a workspace closes its saved run once", async () => {
+test("revalidating a workspace updates its published report without another run", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "bloome-finance-complete-"));
   const credentialFile = path.join(root, "credential.json");
   await writeFile(credentialFile, JSON.stringify({ accessToken: "access-secret" }));
+  await writeFile(path.join(root, "report.html"), "<!doctype html><html><body>Report</body></html>");
   await writeFile(path.join(root, ".bloome-finance-run.json"), JSON.stringify({ runId: "run-1", status: "active" }));
-  let completions = 0;
-  const fetcher = async (url) => {
-    assert.equal(new URL(url).pathname, "/api/public/mcp/runs/run-1/complete");
-    completions += 1;
-    return json({ ok: true });
+  const requests = [];
+  const fetcher = async (url, options = {}) => {
+    const parsed = new URL(url);
+    requests.push({ url: parsed.toString(), method: options.method, authorization: options.headers?.authorization });
+    if (parsed.pathname === "/api/public/mcp/runs/run-1/report") {
+      return json({
+        uploadUrl: "https://storage.example/run-1.html?signature=secret",
+        requiredHeaders: { "content-type": "text/html; charset=utf-8" },
+        reportUrl: "https://finance.example/reports/run-1",
+      });
+    }
+    if (parsed.hostname === "storage.example") {
+      assert.equal(options.headers["content-type"], "text/html; charset=utf-8");
+      assert.match(options.body.toString(), /<body>Report<\/body>/);
+      return new Response(null, { status: 200 });
+    }
+    assert.equal(parsed.pathname, "/api/public/mcp/runs/run-1/complete");
+    return json({ completed: true, reportUrl: "https://finance.example/reports/run-1" });
   };
 
-  assert.equal(await finance.completeResearchRun(root, { baseUrl: "https://finance.example", credentialFile, fetcher }), true);
-  assert.equal(await finance.completeResearchRun(root, { baseUrl: "https://finance.example", credentialFile, fetcher }), false);
-  assert.equal(completions, 1);
-  assert.equal(JSON.parse(await readFile(path.join(root, ".bloome-finance-run.json"), "utf8")).status, "completed");
+  assert.equal(await finance.completeResearchRun(root, { baseUrl: "https://finance.example", credentialFile, fetcher }), "https://finance.example/reports/run-1");
+  assert.equal(await finance.completeResearchRun(root, { baseUrl: "https://finance.example", credentialFile, fetcher }), "https://finance.example/reports/run-1");
+  assert.deepEqual(requests.map(({ method }) => method), ["POST", "PUT", "POST", "POST", "PUT", "POST"]);
+  assert.equal(requests[1].authorization, undefined);
+  const saved = JSON.parse(await readFile(path.join(root, ".bloome-finance-run.json"), "utf8"));
+  assert.equal(saved.status, "completed");
+  assert.equal(saved.reportUrl, "https://finance.example/reports/run-1");
 });
