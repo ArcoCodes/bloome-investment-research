@@ -47,6 +47,20 @@ chmod 600 ~/.bloome/research-api-token
 
 正式公开版本计划改为 Bloome 账号和远程 MCP OAuth，不会要求用户手动维护长期 token。
 
+## 恒生聚源数据地图（可选）
+
+插件可选接入恒生聚源数据地图 MCP，用于股票与基金筛选、结构化金融数据、宏观行业时序数据，以及研报、公告、资讯和企业工商信息检索。聚源服务使用 URL query token 认证；插件通过本地 stdio 转接器在运行时注入凭证，真实 token 不会写入仓库或 MCP 声明。
+
+Codex Desktop 用户建议把凭证写入仅当前用户可读的文件：
+
+```bash
+mkdir -p ~/.bloome
+printf '%s\n' 'your-gildata-token' > ~/.bloome/gildata-mcp-token
+chmod 600 ~/.bloome/gildata-mcp-token
+```
+
+`GILDATA_MCP_TOKEN` 环境变量具有更高优先级，适合 Codex CLI、Claude Code 和 CI。也可以用 `GILDATA_MCP_TOKEN_FILE` 指向其他凭证文件，或用 `GILDATA_MCP_URL` 覆盖企业部署地址。未配置聚源凭证时，该可选 MCP 会正常初始化但不暴露聚源工具，Bloome 自带的研究 MCP 仍可独立使用。
+
 ## 使用
 
 ```text

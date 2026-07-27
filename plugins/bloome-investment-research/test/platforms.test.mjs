@@ -55,6 +55,20 @@ test("portable MCP launcher selects plugin root in either host", async () => {
   assert.deepEqual(launcher.env_vars, ["RESEARCH_API_TOKEN", "RESEARCH_SEARCH_URL"]);
 });
 
+test("Gildata launcher forwards credentials without storing them in the MCP URL", async () => {
+  const mcp = await json(pluginRoot, ".mcp.json");
+  const launcher = mcp.mcpServers.gildataDataMap;
+  assert.equal(launcher.command, "node");
+  assert.match(launcher.args[1], /gildata-proxy\.cjs/);
+  assert.match(launcher.args[1], /CLAUDE_PLUGIN_ROOT/);
+  assert.deepEqual(launcher.env_vars, [
+    "GILDATA_MCP_TOKEN",
+    "GILDATA_MCP_TOKEN_FILE",
+    "GILDATA_MCP_URL",
+  ]);
+  assert.doesNotMatch(JSON.stringify(mcp), /[?&]token=/);
+});
+
 test("portable MCP declaration boots and initializes in both host environments", async () => {
   const [config, mcp] = await Promise.all([
     json(pluginRoot, "plugin.config.json"),

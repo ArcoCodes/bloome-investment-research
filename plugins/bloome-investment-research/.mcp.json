@@ -11,6 +11,19 @@
         "RESEARCH_API_TOKEN",
         "RESEARCH_SEARCH_URL"
       ]
+    },
+    "gildataDataMap": {
+      "cwd": ".",
+      "command": "node",
+      "args": [
+        "-e",
+        "const path=require('node:path');const root=process.env.CLAUDE_PLUGIN_ROOT||process.cwd();require(path.resolve(root,'mcp/gildata-proxy.cjs')).runStdio()"
+      ],
+      "env_vars": [
+        "GILDATA_MCP_TOKEN",
+        "GILDATA_MCP_TOKEN_FILE",
+        "GILDATA_MCP_URL"
+      ]
     }
   }
 }
