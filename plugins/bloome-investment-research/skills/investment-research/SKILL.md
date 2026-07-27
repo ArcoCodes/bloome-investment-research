@@ -5,7 +5,7 @@ description: Runs long-form multi-agent investment research in Codex or Claude/C
 
 # Investment Research Agent
 
-Use the active host—Codex or Claude/Cowork (including Claude Code plugin runtimes)—as the reasoning runtime and the bundled `research_search`, `research_get_chunk`, and `research_get_report_context` MCP tools as the corpus interface. The host's existing account supplies the model; this beta does not require an additional model key or OAuth flow. Access to the private Bloome research gateway is configured separately with `RESEARCH_API_TOKEN` or `~/.bloome/research-api-token`.
+Use the active host—Codex or Claude/Cowork (including Claude Code plugin runtimes)—as the reasoning runtime and the bundled `research_search`, `research_get_chunk`, and `research_get_report_context` MCP tools as the corpus interface. The host's existing account supplies the model. On the first research call, Bloome Finance opens a browser for account sign-in and device authorization when needed. The first data request for a new workspace consumes one research credit; all later retrieval in that active workspace run is included.
 
 Do not write a long report in one pass. Keep `evidence.json` as the unified evidence backbone. MCP is the shared data plane only: it must never spawn an agent, invoke a model CLI, or call a model API.
 
@@ -25,7 +25,7 @@ Useful starter requests:
 验证当前研报是否满足 investment research 的全部输出要求。
 ```
 
-The research proxy URL defaults to the Bloome beta gateway. Read the credential from `RESEARCH_API_TOKEN` first, then the user-only `~/.bloome/research-api-token` file; the file is read for each request so Codex Desktop does not need to forward or reload environment variables. `RESEARCH_SEARCH_URL` remains an optional override. If credentials are missing, the proxy is unavailable, or search returns no results, preserve partial artifacts, report the exact retrieval status, and stop evidence-based conclusions.
+Pass the absolute research workspace path in every corpus tool call. The local MCP stores the authorized device credential under `~/.bloome/` and a non-secret run marker inside the workspace. `validate_research_workspace` closes the active Bloome Finance run after validation succeeds. If authorization is revoked, credits are exhausted, the gateway is unavailable, or search returns no results, preserve partial artifacts, report the exact retrieval status, and stop evidence-based conclusions. `BLOOME_FINANCE_URL` may override the Finance service URL for local development.
 
 ## Parent and Subagent Roles
 
@@ -44,7 +44,7 @@ Read `references/multiagent-workflow.md` and `references/module-contract.md` bef
 
 Run these stages in order:
 
-1. Search both `sell` and `primary` corpora for the initial landscape.
+1. Search both `sell` and `primary` corpora for the initial landscape, passing the same absolute `workspace` path to every research tool call.
 2. Save the topic-shaped module plan, dispatch host-native workers or use the sequential fallback, and read every `modules/<id>.md` memo.
 3. Search both corpora iteratively with varied query seeds, relevant time windows, exact chunk reads, and surrounding context. Continue until additional retrieval no longer materially changes the claims, conflicts, or known gaps, or access is exhausted. Record the stopping reason and remaining gaps in `coverage_stats.json`; do not use record counts as a proxy for depth.
 4. Reconcile every module candidate in `evidence_disposition.md`: accept it into the evidence backbone or reject it with a reason. Then save `sell_side_logic.md`, `validation.md`, and the unified `evidence.json`. Every accepted item must link to one or more claim IDs and state whether it supports, challenges, or contextualizes them.
@@ -53,7 +53,7 @@ Run these stages in order:
 7. Save one `chapter_XX_*.md` for each planned substantive section in the same editorial order. Use natural headings. Every chapter needs a direct answer, source-backed mechanism, relevant numbers or calculations, investment implication, and an explicit boundary, opposing-evidence, risk, or invalidation discussion. Do not let chapter drafts collapse into executive-summary paragraphs.
 8. Synthesize `final_report.md` from the chapter drafts, reconciled evidence, and `decision.md`. Rewrite and remove repetition, but do not compress away causal bridges, comparison logic, valuation normalization, scenario sensitivity, company-by-company reasoning, or conditions that change the ranking. Preserve decisive accepted evidence, citations, boundaries, disagreements, unresolved points, and the exact final ranking.
 9. Copy `final_report.md` into `report.md`, then render all of `report.md` into a static single-page `report.html` using `assets/template.html`. Preserve the outline's editorial order without exposing internal planning labels. Confirm content parity: every reader-facing heading, paragraph, list, table, primary quote, citation, and planned visual in `report.md` must appear in `report.html`; never render only an executive-summary excerpt. Use the `investment-visualization` skill to render and visually review every planned figure inside that template.
-10. Call `validate_research_workspace`, repair every error, and only then deliver or open the workspace.
+10. Call `validate_research_workspace`, repair every error, and only then deliver or open the workspace. Successful validation also closes the billed research run.
 
 Keep all staged files traceable to `evidence.json`. Do not skip from search notes or module memos directly to the final report.
 

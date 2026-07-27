@@ -1,10 +1,10 @@
 "use strict";
 
 const fs = require("node:fs");
-const os = require("node:os");
 const path = require("node:path");
 const readline = require("node:readline");
 const { pathToFileURL } = require("node:url");
+const finance = require("./finance-client.cjs");
 
 const ROOT = path.resolve(__dirname, "..");
 const PLUGIN_CONFIG = JSON.parse(fs.readFileSync(path.join(ROOT, "plugin.config.json"), "utf8"));
@@ -12,7 +12,6 @@ const SERVER_NAME = "bloome-investment-research";
 const SERVER_VERSION = PLUGIN_CONFIG.version;
 const WIDGET_URI = `ui://widget/bloome-research-${encodeURIComponent(SERVER_VERSION)}.html`;
 const WIDGET_MIME = "text/html;profile=mcp-app";
-const DEFAULT_SEARCH_URL = "https://research-search-proxy.dev-0da.workers.dev";
 const REQUIRED_FILES = [
   "sell_side_logic.md",
   "validation.md",
@@ -25,7 +24,9 @@ const REQUIRED_FILES = [
   "coverage_stats.json",
 ];
 
+const WORKSPACE_PROPERTY = { type: "string", minLength: 1, description: "Absolute path to this report's .bloome/research workspace." };
 const SEARCH_PROPERTIES = {
+  workspace: WORKSPACE_PROPERTY,
   corpus: { type: "string", enum: ["sell", "primary"] },
   concepts: {
     type: "array",
@@ -83,9 +84,9 @@ function tool(name, title, description, inputSchema, options = {}) {
     description,
     inputSchema,
     annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
+      readOnlyHint: options.readOnly !== false,
+      destructiveHint: Boolean(options.destructive),
+      idempotentHint: options.idempotent !== false,
       openWorldHint: Boolean(options.openWorld),
     },
   };
@@ -99,9 +100,9 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "research_search",
       "Search investment research",
-      "Search the controlled sell-side or primary research corpus. Iterate with varied queries, relevant time windows, exact chunk reads, and surrounding context until new retrieval no longer changes material claims or gaps.",
-      objectSchema(SEARCH_PROPERTIES, ["corpus"]),
-      { openWorld: true },
+      "Search the controlled sell-side or primary research corpus for one billed research workspace. The first data request for a new workspace consumes one Bloome Finance credit; later requests in the same active run do not.",
+      objectSchema(SEARCH_PROPERTIES, ["workspace", "corpus"]),
+      { openWorld: true, readOnly: false, destructive: true, idempotent: false },
     ),
     tool(
       "research_get_chunk",
@@ -109,12 +110,13 @@ function toolDefinitions(runtime = runtimeName()) {
       "Fetch one source chunk with its exact locator for evidence traceability.",
       objectSchema(
         {
+          workspace: WORKSPACE_PROPERTY,
           corpus: { type: "string", enum: ["sell", "primary"] },
           chunk_id: { type: "string", minLength: 1, maxLength: 80 },
         },
-        ["corpus", "chunk_id"],
+        ["workspace", "corpus", "chunk_id"],
       ),
-      { openWorld: true },
+      { openWorld: true, readOnly: false, destructive: true, idempotent: false },
     ),
     tool(
       "research_get_report_context",
@@ -122,14 +124,15 @@ function toolDefinitions(runtime = runtimeName()) {
       "Fetch ordered chunks around a known location in one report.",
       objectSchema(
         {
+          workspace: WORKSPACE_PROPERTY,
           corpus: { type: "string", enum: ["sell", "primary"] },
           report_id: { type: "string", minLength: 1 },
           chunk_no: { type: "integer", minimum: 1 },
           radius: { type: "integer", minimum: 0, maximum: 4 },
         },
-        ["corpus", "report_id"],
+        ["workspace", "corpus", "report_id"],
       ),
-      { openWorld: true },
+      { openWorld: true, readOnly: false, destructive: true, idempotent: false },
     ),
     tool(
       "open_research_workspace",
@@ -143,42 +146,18 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "validate_research_workspace",
       "Validate investment report",
-      "Validate required staged files, evidence traceability, chapter substance, report completeness, and the native report template contract.",
+      "Validate required staged files, evidence traceability, chapter substance, report completeness, and the native report template contract. Successful validation closes the active Bloome Finance run.",
       objectSchema({ workspace: { type: "string", minLength: 1 } }, ["workspace"]),
+      { readOnly: false, destructive: true },
     ),
   ];
 }
 
-function researchApiToken(env = process.env) {
-  if (env.RESEARCH_API_TOKEN) return env.RESEARCH_API_TOKEN;
-  const file = env.RESEARCH_API_TOKEN_FILE || path.join(os.homedir(), ".bloome", "research-api-token");
-  return readText(file).trim();
-}
-
-async function researchProxy(endpoint, body, signal, fetcher = fetch) {
-  const base = (process.env.RESEARCH_SEARCH_URL || DEFAULT_SEARCH_URL).replace(/\/$/, "");
-  const token = researchApiToken();
-  if (!token) throw new Error("Bloome research credential is required; set RESEARCH_API_TOKEN or ~/.bloome/research-api-token");
-  let response;
-  try {
-    response = await fetcher(`${base}${endpoint}`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify(body),
-      signal,
-    });
-  } catch (error) {
-    if (signal?.aborted) throw error;
-    throw new Error("Research proxy unavailable");
-  }
-  const text = await response.text();
-  if (!response.ok) {
-    let message = "request failed";
-    try { message = String(JSON.parse(text).error || message); } catch {}
-    throw new Error(`Research proxy ${response.status}: ${message.slice(0, 300)}`);
-  }
-  try { return JSON.parse(text); }
-  catch { throw new Error("Research proxy returned invalid JSON"); }
+async function researchProxy(endpoint, body, signal, options) {
+  const operation = { "/search": "search", "/chunk": "chunk", "/context": "context" }[endpoint];
+  if (!operation) throw new Error(`unknown research endpoint: ${endpoint}`);
+  const { workspace, ...payload } = body;
+  return finance.researchRequest(operation, payload, workspace, signal, options);
 }
 
 function readText(file, fallback = "") {
@@ -331,13 +310,17 @@ async function validateWorkspace(workspace) {
   const validationMarkdown = readText(path.join(root, "validation.md"));
   const coverage = readJson(path.join(root, "coverage_stats.json"), {});
   errors.push(...coverageErrors(coverage));
+  let result;
   if (Array.isArray(evidence) && report && html) {
     const validation = core.validateReport(report, html, evidence, { sellSideLogic, validation: validationMarkdown });
     errors.push(...validation.errors);
-    return { ok: errors.length === 0, workspace: root, errors: [...new Set(errors)], warnings: validation.warnings, artifacts, chapters };
+    result = { ok: errors.length === 0, workspace: root, errors: [...new Set(errors)], warnings: validation.warnings, artifacts, chapters };
+  } else {
+    if (!Array.isArray(evidence)) errors.push("evidence.json must be an array");
+    result = { ok: errors.length === 0, workspace: root, errors: [...new Set(errors)], warnings: [], artifacts, chapters };
   }
-  if (!Array.isArray(evidence)) errors.push("evidence.json must be an array");
-  return { ok: errors.length === 0, workspace: root, errors: [...new Set(errors)], warnings: [], artifacts, chapters };
+  if (result.ok) result.financeRunCompleted = await finance.completeResearchRun(root);
+  return result;
 }
 
 function resourceMeta() {
