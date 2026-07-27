@@ -102,7 +102,11 @@ test("MCP initializes and exposes the five focused tools", async () => {
   assert.deepEqual(listed.result.tools.map((tool) => tool.name), [
     "research_search", "research_get_chunk", "research_get_report_context", "open_research_workspace", "validate_research_workspace",
   ]);
-  for (const definition of listed.result.tools.slice(0, 3)) assert.ok(definition.inputSchema.required.includes("workspace"));
+  for (const definition of listed.result.tools.slice(0, 3)) {
+    assert.ok(definition.inputSchema.required.includes("workspace"));
+    assert.equal(definition.annotations.idempotentHint, false);
+  }
+  assert.equal(listed.result.tools.at(-1).annotations.destructiveHint, true);
 });
 
 test("runtime profiles keep host-specific presentation out of the shared research core", async () => {

@@ -50,8 +50,21 @@ function launchBrowser(url) {
     : process.platform === "win32"
       ? ["cmd", ["/c", "start", "", url]]
       : ["xdg-open", [url]];
-  const child = spawn(command, args, { detached: true, stdio: "ignore" });
-  child.unref();
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: "ignore" });
+    child.once("error", reject);
+    child.once("exit", (code) => code === 0 ? resolve() : reject(new Error(`${command} exited with ${code}`)));
+  });
+}
+
+function abortError() {
+  return new DOMException("The operation was aborted", "AbortError");
+}
+
+async function wait(milliseconds, signal, sleep = (value) => new Promise((resolve) => setTimeout(resolve, value))) {
+  if (signal?.aborted) throw abortError();
+  await sleep(milliseconds);
+  if (signal?.aborted) throw abortError();
 }
 
 async function authorizeDevice(options = {}) {
@@ -59,7 +72,8 @@ async function authorizeDevice(options = {}) {
   const start = await responseJson(await fetcher(`${baseUrl(options)}/api/public/device/start`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ deviceName: `${os.hostname()} · Bloome Investment Research` }),
+    body: JSON.stringify({ deviceName: String(options.deviceName || `${os.hostname()} · Bloome Investment Research`).slice(0, 80) }),
+    signal: options.signal,
   }), options);
   if (!start.deviceCode || !start.verificationUri) throw new Error("Bloome Finance returned an invalid device authorization");
 
@@ -68,15 +82,16 @@ async function authorizeDevice(options = {}) {
   try { await (options.openBrowser || launchBrowser)(verificationUri); }
   catch { throw new Error(`Open ${verificationUri} to authorize Bloome Investment Research`); }
 
-  const sleep = options.sleep || ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
   const deadline = Date.now() + Math.min(Number(start.expiresIn) || 600, 900) * 1000;
   const interval = Math.max(0, Number(start.interval) || 5) * 1000;
   while (Date.now() < deadline) {
-    if (interval) await sleep(interval);
+    if (interval) await wait(interval, options.signal, options.sleep);
+    else if (options.signal?.aborted) throw abortError();
     const response = await fetcher(`${baseUrl(options)}/api/public/device/token`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ deviceCode: start.deviceCode }),
+      signal: options.signal,
     });
     if (response.status === 202) continue;
     const payload = await responseJson(response, options);
@@ -90,13 +105,18 @@ async function authorizeDevice(options = {}) {
 
 async function authorizedRequest(endpoint, init = {}, options = {}) {
   const file = credentialFile(options);
-  const credential = readJson(file) || await authorizeDevice(options);
-  const headers = { ...(init.headers || {}), authorization: `Bearer ${credential.accessToken}` };
-  const response = await (options.fetcher || fetch)(`${baseUrl(options)}${endpoint}`, { ...init, headers });
-  if (response.status === 401) {
-    try { fs.unlinkSync(file); } catch (error) { if (error.code !== "ENOENT") throw error; }
-    throw new Error("Bloome Finance authorization was revoked. Retry the tool to sign in again");
-  }
+  const fetcher = options.fetcher || fetch;
+  const request = (credential) => fetcher(`${baseUrl(options)}${endpoint}`, {
+    ...init,
+    headers: { ...(init.headers || {}), authorization: `Bearer ${credential.accessToken}` },
+  });
+  let credential = readJson(file) || await authorizeDevice({ ...options, signal: init.signal });
+  let response = await request(credential);
+  if (response.status !== 401) return response;
+  try { fs.unlinkSync(file); } catch (error) { if (error.code !== "ENOENT") throw error; }
+  credential = await authorizeDevice({ ...options, signal: init.signal });
+  response = await request(credential);
+  if (response.status === 401) throw new Error("Bloome Finance authorization failed after sign-in");
   return response;
 }
 
@@ -146,9 +166,14 @@ async function completeResearchRun(workspace, options = {}) {
   const file = path.join(root, RUN_FILE);
   const run = readJson(file);
   if (!run?.runId || run.status !== "active") return false;
-  await responseJson(await authorizedRequest(`/api/public/mcp/runs/${encodeURIComponent(run.runId)}/complete`, {
+  const response = await authorizedRequest(`/api/public/mcp/runs/${encodeURIComponent(run.runId)}/complete`, {
     method: "POST",
-  }, options), options);
+  }, options);
+  if (response.status === 404) {
+    writePrivateJson(file, { ...run, status: "stale", closedAt: new Date().toISOString() });
+    return false;
+  }
+  await responseJson(response, options);
   writePrivateJson(file, { ...run, status: "completed", completedAt: new Date().toISOString() });
   return true;
 }

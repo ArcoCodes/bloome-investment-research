@@ -53,6 +53,51 @@ test("first protected request completes device authorization and stores only the
   assert.deepEqual(JSON.parse(await readFile(credentialFile, "utf8")), { accessToken: "access-secret" });
 });
 
+test("authorization truncates device names and honors cancellation", async () => {
+  const controller = new AbortController();
+  let deviceName = "";
+  const fetcher = async (url, options = {}) => {
+    if (new URL(url).pathname === "/api/public/device/start") {
+      deviceName = JSON.parse(options.body).deviceName;
+      controller.abort();
+      return json({ deviceCode: "device-secret", verificationUri: "/activate", expiresIn: 600, interval: 0 });
+    }
+    throw new Error("poll should not run after cancellation");
+  };
+  await assert.rejects(finance.authorizeDevice({
+    baseUrl: "https://finance.example",
+    credentialFile: path.join(await mkdtemp(path.join(os.tmpdir(), "bloome-finance-cancel-")), "credential.json"),
+    deviceName: "x".repeat(200),
+    fetcher,
+    openBrowser: async () => {},
+    signal: controller.signal,
+  }), { name: "AbortError" });
+  assert.equal(deviceName.length, 80);
+});
+
+test("a revoked credential reauthorizes and retries once", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "bloome-finance-reauth-"));
+  const credentialFile = path.join(root, "credential.json");
+  await writeFile(credentialFile, JSON.stringify({ accessToken: "old-token" }));
+  const authorizations = [];
+  const fetcher = async (url, options = {}) => {
+    const pathname = new URL(url).pathname;
+    if (pathname === "/api/public/device/start") return json({ deviceCode: "device-secret", verificationUri: "/activate", expiresIn: 600, interval: 0 });
+    if (pathname === "/api/public/device/token") return json({ accessToken: "new-token" });
+    authorizations.push(options.headers.authorization);
+    return options.headers.authorization === "Bearer old-token" ? json({ error: "revoked" }, 401) : json({ ok: true });
+  };
+  const response = await finance.authorizedRequest("/api/public/mcp/test", {}, {
+    baseUrl: "https://finance.example",
+    credentialFile,
+    fetcher,
+    openBrowser: async () => {},
+    sleep: async () => {},
+  });
+  assert.equal(response.ok, true);
+  assert.deepEqual(authorizations, ["Bearer old-token", "Bearer new-token"]);
+});
+
 test("research request starts one workspace run and forwards only the research payload", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "bloome-finance-run-"));
   const credentialFile = path.join(root, "credential.json");
@@ -93,6 +138,16 @@ test("workspace billing keys canonicalize aliases and reject missing directories
   await symlink(workspace, alias);
   assert.equal(finance.workspaceKey(workspace), finance.workspaceKey(alias));
   assert.throws(() => finance.workspaceKey(path.join(root, "missing")), /existing directory/);
+});
+
+test("a missing remote run closes a stale marker without failing validation", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "bloome-finance-stale-"));
+  const credentialFile = path.join(root, "credential.json");
+  await writeFile(credentialFile, JSON.stringify({ accessToken: "access-secret" }));
+  await writeFile(path.join(root, ".bloome-finance-run.json"), JSON.stringify({ runId: "run-1", status: "active" }));
+  const fetcher = async () => json({ error: "Active run not found" }, 404);
+  assert.equal(await finance.completeResearchRun(root, { baseUrl: "https://finance.example", credentialFile, fetcher }), false);
+  assert.equal(JSON.parse(await readFile(path.join(root, ".bloome-finance-run.json"), "utf8")).status, "stale");
 });
 
 test("completing a workspace closes its saved run once", async () => {

@@ -102,7 +102,7 @@ function toolDefinitions(runtime = runtimeName()) {
       "Search investment research",
       "Search the controlled sell-side or primary research corpus for one billed research workspace. The first data request for a new workspace consumes one Bloome Finance credit; later requests in the same active run do not.",
       objectSchema(SEARCH_PROPERTIES, ["workspace", "corpus"]),
-      { openWorld: true, readOnly: false, destructive: true },
+      { openWorld: true, readOnly: false, destructive: true, idempotent: false },
     ),
     tool(
       "research_get_chunk",
@@ -116,7 +116,7 @@ function toolDefinitions(runtime = runtimeName()) {
         },
         ["workspace", "corpus", "chunk_id"],
       ),
-      { openWorld: true, readOnly: false, destructive: true },
+      { openWorld: true, readOnly: false, destructive: true, idempotent: false },
     ),
     tool(
       "research_get_report_context",
@@ -132,7 +132,7 @@ function toolDefinitions(runtime = runtimeName()) {
         },
         ["workspace", "corpus", "report_id"],
       ),
-      { openWorld: true, readOnly: false, destructive: true },
+      { openWorld: true, readOnly: false, destructive: true, idempotent: false },
     ),
     tool(
       "open_research_workspace",
@@ -148,7 +148,7 @@ function toolDefinitions(runtime = runtimeName()) {
       "Validate investment report",
       "Validate required staged files, evidence traceability, chapter substance, report completeness, and the native report template contract. Successful validation closes the active Bloome Finance run.",
       objectSchema({ workspace: { type: "string", minLength: 1 } }, ["workspace"]),
-      { readOnly: false },
+      { readOnly: false, destructive: true },
     ),
   ];
 }
