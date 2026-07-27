@@ -100,14 +100,14 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "research_search",
       "Search investment research",
-      "Search the controlled sell-side or primary research corpus for one billed research workspace. The first data request for a new workspace consumes one Bloome Finance credit; later requests in the same active run do not.",
+      "Search the controlled sell-side or primary research corpus. Before the first retrieval call, tell the user that Bloome Finance may open in their browser for sign-in and device approval. A new workspace returns a quote without charging; stop, show its topic, 1-credit cost, and balance, then call confirm_research_run only after explicit user approval. Later requests in the same active run do not charge again.",
       objectSchema(SEARCH_PROPERTIES, ["workspace", "corpus"]),
       { openWorld: true, readOnly: false, destructive: true, idempotent: false },
     ),
     tool(
       "research_get_chunk",
       "Read an exact source chunk",
-      "Fetch one source chunk with its exact locator for evidence traceability.",
+      "Fetch one source chunk with its exact locator for evidence traceability. Before the first retrieval call, explain possible browser sign-in. If a quote is returned, stop and obtain explicit user approval before calling confirm_research_run.",
       objectSchema(
         {
           workspace: WORKSPACE_PROPERTY,
@@ -121,7 +121,7 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "research_get_report_context",
       "Read surrounding report context",
-      "Fetch ordered chunks around a known location in one report.",
+      "Fetch ordered chunks around a known location in one report. Before the first retrieval call, explain possible browser sign-in. If a quote is returned, stop and obtain explicit user approval before calling confirm_research_run.",
       objectSchema(
         {
           workspace: WORKSPACE_PROPERTY,
@@ -133,6 +133,19 @@ function toolDefinitions(runtime = runtimeName()) {
         ["workspace", "corpus", "report_id"],
       ),
       { openWorld: true, readOnly: false, destructive: true, idempotent: false },
+    ),
+    tool(
+      "confirm_research_run",
+      "Confirm paid research",
+      "Consume 1 Bloome Finance credit and start the quoted workspace run. Call only after the user explicitly confirms the confirmation_required message in conversation, then retry the original research tool call.",
+      objectSchema(
+        {
+          workspace: WORKSPACE_PROPERTY,
+          confirmationId: { type: "string", minLength: 43, maxLength: 43 },
+        },
+        ["workspace", "confirmationId"],
+      ),
+      { openWorld: true, readOnly: false, destructive: true },
     ),
     tool(
       "open_research_workspace",
@@ -319,7 +332,11 @@ async function validateWorkspace(workspace) {
     if (!Array.isArray(evidence)) errors.push("evidence.json must be an array");
     result = { ok: errors.length === 0, workspace: root, errors: [...new Set(errors)], warnings: [], artifacts, chapters };
   }
-  if (result.ok) result.financeRunCompleted = await finance.completeResearchRun(root);
+  if (result.ok) {
+    const completion = await finance.completeResearchRun(root);
+    result.financeRunCompleted = Boolean(completion);
+    if (typeof completion === "string") result.reportUrl = completion;
+  }
   return result;
 }
 
@@ -360,10 +377,11 @@ function resources() {
   }];
 }
 
-async function callTool(name, args = {}, runtime = runtimeName()) {
-  if (name === "research_search") return researchProxy("/search", args);
-  if (name === "research_get_chunk") return researchProxy("/chunk", args);
-  if (name === "research_get_report_context") return researchProxy("/context", args);
+async function callTool(name, args = {}, runtime = runtimeName(), options = {}) {
+  if (name === "research_search") return researchProxy("/search", args, options.signal, options);
+  if (name === "research_get_chunk") return researchProxy("/chunk", args, options.signal, options);
+  if (name === "research_get_report_context") return researchProxy("/context", args, options.signal, options);
+  if (name === "confirm_research_run") return finance.confirmResearchRun(args.workspace, args.confirmationId, options.signal, options);
   if (name === "open_research_workspace") {
     const profile = runtimeProfile(runtime);
     return {
@@ -394,7 +412,7 @@ function toolError(error) {
 function rpcResponse(id, result) { return { jsonrpc: "2.0", id, result }; }
 function rpcError(id, code, message) { return { jsonrpc: "2.0", id, error: { code, message } }; }
 
-async function handleRpc(message, runtime = runtimeName()) {
+async function handleRpc(message, runtime = runtimeName(), options = {}) {
   if (!message || typeof message !== "object" || Array.isArray(message)) return rpcError(null, -32600, "Invalid Request");
   const { id, method } = message;
   const params = message.params && typeof message.params === "object" ? message.params : {};
@@ -405,15 +423,15 @@ async function handleRpc(message, runtime = runtimeName()) {
     if (method === "initialize") return rpcResponse(id, {
       protocolVersion: params.protocolVersion || "2024-11-05",
       capabilities: profile.supportsWorkbench
-        ? { tools: { listChanged: false }, resources: { subscribe: false, listChanged: false } }
-        : { tools: { listChanged: false } },
+        ? { tools: { listChanged: false }, resources: { subscribe: false, listChanged: false }, logging: {} }
+        : { tools: { listChanged: false }, logging: {} },
       serverInfo: { name: SERVER_NAME, title: "Bloome Investment Research", version: SERVER_VERSION },
       instructions: profile.instructions,
     });
     if (method === "ping") return rpcResponse(id, {});
     if (method === "tools/list") return rpcResponse(id, { tools: toolDefinitions(runtime) });
     if (method === "tools/call") {
-      try { return rpcResponse(id, toolResult(await callTool(params.name, params.arguments || {}, runtime), params.name, runtime)); }
+      try { return rpcResponse(id, toolResult(await callTool(params.name, params.arguments || {}, runtime, options), params.name, runtime)); }
       catch (error) { return rpcResponse(id, toolError(error)); }
     }
     if (method === "resources/list") return rpcResponse(id, { resources: profile.supportsWorkbench ? resources() : [] });
@@ -432,13 +450,34 @@ async function handleRpc(message, runtime = runtimeName()) {
 
 function runStdio() {
   const input = readline.createInterface({ input: process.stdin });
+  const requests = new Map();
+  const send = (message) => process.stdout.write(`${JSON.stringify(message)}\n`);
   input.on("line", async (line) => {
     if (!line.trim()) return;
     let message;
     try { message = JSON.parse(line); }
-    catch (error) { process.stdout.write(`${JSON.stringify(rpcError(null, -32700, `Parse error: ${error.message}`))}\n`); return; }
-    const response = await handleRpc(message);
-    if (response) process.stdout.write(`${JSON.stringify(response)}\n`);
+    catch (error) { send(rpcError(null, -32700, `Parse error: ${error.message}`)); return; }
+    if (message.method === "$/cancelRequest") {
+      requests.get(message.params?.id)?.abort();
+      return;
+    }
+    const controller = message.method === "tools/call" ? new AbortController() : null;
+    if (controller) requests.set(message.id, controller);
+    const progressToken = message.params?._meta?.progressToken;
+    try {
+      const response = await handleRpc(message, runtimeName(), {
+        signal: controller?.signal,
+        onStatus(status) {
+          send({ jsonrpc: "2.0", method: "notifications/message", params: { level: "info", logger: "bloome-finance", data: status.message } });
+          if (progressToken !== undefined) {
+            send({ jsonrpc: "2.0", method: "notifications/progress", params: { progressToken, progress: 0, total: 1, message: status.message } });
+          }
+        },
+      });
+      if (response) send(response);
+    } finally {
+      if (controller) requests.delete(message.id);
+    }
   });
 }
 
