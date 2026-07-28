@@ -36,7 +36,7 @@ After the landscape pass, save `plan.json` with enough non-overlapping modules t
 - **Claude/Cowork:** delegate module scopes to the bundled `research-module` subagent and optionally use `evidence-auditor` after all memos exist.
 - **Codex:** use native subagents with the same module and auditor contracts. Do not require users to install custom `.codex/agents` files.
 
-Run no more than three workers concurrently. Each worker handles one scope and writes only `modules/<id>.md`; it must not write shared evidence or report files. If native subagents are unavailable, denied, lack research-tool access, or fail, run only the missing modules sequentially in the parent with the identical contract. Never replace host delegation with a spawned Claude, Codex, Pi, or model-API process.
+Let the host manage worker scheduling and concurrency. Each worker handles one scope and writes only `modules/<id>.md`; it must not write shared evidence or report files. If native subagents are unavailable, denied, lack research-tool access, or fail, run only the missing modules sequentially in the parent with the identical contract. Never replace host delegation with a spawned Claude, Codex, Pi, or model-API process.
 
 Read `references/multiagent-workflow.md` and `references/module-contract.md` before planning or dispatching workers.
 
