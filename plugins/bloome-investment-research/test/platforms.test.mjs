@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = path.resolve(pluginRoot, "../..");
@@ -53,6 +53,35 @@ test("portable MCP launcher selects plugin root in either host", async () => {
   assert.match(launcher.args[1], /process\.cwd/);
   assert.match(launcher.args[1], /runStdio/);
   assert.deepEqual(launcher.env_vars, ["BLOOME_FINANCE_URL"]);
+});
+
+test("GildData market data bridge uses the same portable launcher pattern", async () => {
+  const mcp = await json(pluginRoot, ".mcp.json");
+  const launcher = mcp.mcpServers.gilddataMarketData;
+  assert.equal(launcher.command, "node");
+  assert.deepEqual(launcher.args.slice(0, 1), ["-e"]);
+  assert.match(launcher.args[1], /CLAUDE_PLUGIN_ROOT/);
+  assert.match(launcher.args[1], /process\.cwd/);
+  assert.match(launcher.args[1], /gilddata-bridge/);
+  assert.match(launcher.args[1], /runStdio/);
+  assert.deepEqual(launcher.env_vars, ["GILDDATA_API_TOKEN", "GILDDATA_MCP_URL"]);
+
+  const bridge = await import(pathToFileURL(path.join(pluginRoot, "mcp", "gilddata-bridge.cjs")).href);
+  const env = { GILDDATA_API_TOKEN: "test-token" };
+  assert.match(bridge.default.endpointUrl(env), /^https:\/\/api\.gildata\.com\/.*\?token=test-token$/);
+  assert.throws(() => bridge.default.endpointUrl({ GILDDATA_API_TOKEN_FILE: "/nonexistent" }), /credential is required/);
+});
+
+test("market-data skill scopes GildData to follow-up lookups outside the research workflow", async () => {
+  const [skill, researchSkill] = await Promise.all([
+    readFile(path.join(pluginRoot, "skills/market-data/SKILL.md"), "utf8"),
+    readFile(path.join(pluginRoot, "skills/investment-research/SKILL.md"), "utf8"),
+  ]);
+  assert.match(skill, /^---\nname: market-data\ndescription: /);
+  assert.match(skill, /gilddataMarketData/);
+  assert.match(skill, /never write them into `evidence\.json`/);
+  assert.match(skill, /consume no Bloome research credit/);
+  assert.match(researchSkill, /`market-data` skill via the `gilddataMarketData` tools/);
 });
 
 test("portable MCP declaration boots and initializes in both host environments", async () => {

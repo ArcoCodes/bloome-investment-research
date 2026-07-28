@@ -39,6 +39,18 @@ claude --plugin-dir ./plugins/bloome-investment-research
 
 本地开发可用 `BLOOME_FINANCE_URL` 指向另一套 Finance 服务。生产切换时必须撤销旧共享 beta token，并让上游研究数据服务只接受 Finance 后端持有的内部密钥。
 
+### 恒生聚源行情数据（GildData）
+
+插件内置第二个 MCP server `gilddataMarketData`，桥接恒生聚源托管的行情与投研数据服务（实时/延时行情、智能选股选基、宏观行业时序、研报/公告/资讯检索、工商数据）。同样需要独立的测试 token，写入本地凭证文件：
+
+```bash
+mkdir -p ~/.bloome
+printf '%s\n' 'your-gilddata-token' > ~/.bloome/gilddata-api-token
+chmod 600 ~/.bloome/gilddata-api-token
+```
+
+`GILDDATA_API_TOKEN` 环境变量优先级更高；如需切换服务地址，设置 `GILDDATA_MCP_URL`（可含完整 `?token=` 查询串）。token 不要写进 `.mcp.json` 或仓库内任何文件。
+
 ## 使用
 
 ```text

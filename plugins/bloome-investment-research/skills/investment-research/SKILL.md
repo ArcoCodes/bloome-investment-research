@@ -92,6 +92,8 @@ Long HTML should feel like an editorial report, not a tall text dump. Keep the f
 
 For visual selection, financial chart grammar, annotation, uncertainty, responsive composition, and screenshot-based review, use the separate `investment-visualization` skill. Keep that editorial judgment in the skill rather than encoding it as validator regex or fixed HTML classes.
 
+After delivery, answer market data follow-up questions (quotes, valuation, macro or industry series, announcements) with the separate `market-data` skill via the `gilddataMarketData` tools. Do not reopen the research workspace for a follow-up, and never write follow-up lookup data into `evidence.json` or the delivered report.
+
 ## Output References
 
 Read `references/file-specs.md` for staged artifact shapes, evidence fields, and coverage statistics.
