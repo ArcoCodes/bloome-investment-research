@@ -168,7 +168,7 @@ async function researchRequest(operation, payload, workspace, signal, options = 
   if (run.confirmationRequired) {
     return {
       ...run,
-      message: `Using Bloome professional research for “${run.topic}” costs ${run.cost} credit. Current balance: ${run.balance}. Ask the user to confirm before calling confirm_research_run.`,
+      message: `Using Bloome professional research for “${run.topic}” ${run.cost === 0 ? "is included in your annual unlimited plan" : `costs ${run.cost} credit${run.cost === 1 ? "" : "s"}`}. Current balance: ${run.balance}. Ask the user to confirm before calling confirm_research_run.`,
     };
   }
   const runId = run.runId || run.run?.id;
