@@ -124,7 +124,7 @@ test("runtime profiles keep host-specific presentation out of the shared researc
   assert.match(claudeInit.result.instructions, /Claude Code/);
 });
 
-test("research proxy starts a billed workspace run through Bloome Finance", async () => {
+test("research proxy starts a confirmed workspace run through Bloome Finance", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "bloome-finance-proxy-test-"));
   const credentialFile = path.join(root, "credential.json");
   const workspace = path.join(root, "workspace");
@@ -175,7 +175,7 @@ test("workspace validator enforces all staged and report contracts", async () =>
   assert.equal(result.chapters, 2);
 });
 
-test("successful workspace validation closes its billed Bloome Finance run", async () => {
+test("successful workspace validation closes its Bloome Finance run", async () => {
   const workspace = await fixtureWorkspace();
   const credentialFile = path.join(workspace, "credential.json");
   await writeFile(credentialFile, JSON.stringify({ accessToken:"device-token" }));

@@ -100,7 +100,7 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "research_search",
       "Search investment research",
-      "Search the controlled sell-side or primary research corpus. Before the first retrieval call, tell the user that Bloome Finance may open in their browser for sign-in and device approval. A new workspace returns a quote without charging; stop, show its topic, 1-credit cost, and balance, then call confirm_research_run only after explicit user approval. Later requests in the same active run do not charge again.",
+      "Search the controlled sell-side or primary research corpus. Before the first retrieval call, tell the user that Bloome Finance may open in their browser for sign-in and device approval. A new workspace returns a quote without charging; stop, show its topic, returned cost, and balance, then call confirm_research_run only after explicit user approval. Later requests in the same active run do not charge again.",
       objectSchema(SEARCH_PROPERTIES, ["workspace", "corpus"]),
       { openWorld: true, readOnly: false, destructive: true, idempotent: false },
     ),
@@ -137,7 +137,7 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "confirm_research_run",
       "Confirm paid research",
-      "Consume 1 Bloome Finance credit and start the quoted workspace run. Call only after the user explicitly confirms the confirmation_required message in conversation, then retry the original research tool call.",
+      "Start the quoted workspace run using its returned cost (zero with active annual unlimited access, otherwise one credit). Call only after the user explicitly confirms the confirmation_required message in conversation, then retry the original research tool call.",
       objectSchema(
         {
           workspace: WORKSPACE_PROPERTY,
