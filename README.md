@@ -31,21 +31,13 @@ claude --plugin-dir ./plugins/bloome-investment-research
 
 修改插件组件后，在 Claude Code 中执行 `/reload-plugins`。
 
-## 内测数据访问
+## 账号与研究额度
 
-模型推理不需要额外密钥，但 Bloome 的受控研究数据服务需要独立的 beta token。不要把 token 写入仓库或插件源码。
+模型推理继续使用 Codex 或 Claude 的现有账号，不需要额外模型 Key。首次调用研究工具时，本地 MCP 会打开 Bloome Finance：用户通过 Google 或邮箱登录并授权当前设备，完成后工具自动继续，不需要复制长期 token，也不会把 MCP 改成远程服务。
 
-Codex Desktop 会过滤插件 MCP 子进程的普通环境变量。内测期间，把 token 写入仅当前用户可读的凭证文件；MCP 每次请求都会重新读取，不需要重启 Codex：
+每个完成验证的账号终身赠送 1 次研报额度。新 research workspace 的首次数据请求会先在对话中显示研究主题、1-credit 费用和当前余额；用户明确确认后才扣费并开始检索。普通聊天、拒绝确认、创建或打开本地 workspace 都不扣费。同一 run 内后续搜索和精确读取不重复扣费，成功执行 `validate_research_workspace` 后关闭 run。额度不足时前往 Bloome Finance 购买单次包或十次包。
 
-```bash
-mkdir -p ~/.bloome
-printf '%s\n' 'your-beta-token' > ~/.bloome/research-api-token
-chmod 600 ~/.bloome/research-api-token
-```
-
-`RESEARCH_API_TOKEN` 环境变量仍具有更高优先级，适合 Codex CLI、Claude Code 和 CI。插件通过 `.mcp.json` 的 `env_vars` allowlist 请求 Codex 转发该变量；如需切换测试服务，也可以设置 `RESEARCH_SEARCH_URL`。不要把 token 写进 `.mcp.json`、仓库内 `.env` 或项目设置。
-
-正式公开版本计划改为 Bloome 账号和远程 MCP OAuth，不会要求用户手动维护长期 token。
+本地开发可用 `BLOOME_FINANCE_URL` 指向另一套 Finance 服务。生产切换时必须撤销旧共享 beta token，并让上游研究数据服务只接受 Finance 后端持有的内部密钥。
 
 ## 恒生聚源数据地图（可选）
 
@@ -69,7 +61,7 @@ chmod 600 ~/.bloome/gildata-mcp-token
 验证当前研报是否满足全部输出要求。
 ```
 
-研究产物保存在当前项目的 `.bloome/research/` 下，不应提交到业务仓库。
+研究产物保存在当前项目的 `.bloome/research/` 下，不应提交到业务仓库。验证成功后，`report.html` 也会发布到用户私有的 Bloome Finance 账户，并返回 `/reports/<id>` 网页地址。
 
 ## 仓库结构
 
@@ -103,4 +95,4 @@ Codex 清单还应使用 `plugin-creator` 的 `validate_plugin.py` 检查。架�
 
 - 当前阶段：同一私有 GitHub 仓库同时作为 Codex 与 Claude Code marketplace，适用于小规模邀请制内测。
 - 正式阶段：托管公网 MCP 服务、接入 Bloome 账号体系，并提交 Codex Plugins Directory 审核。
-- 插件只访问用户主动指定的研究工作区；报告文件默认留在本地项目中。
+- 插件只访问用户主动指定的研究工作区；报告文件保留在本地，并在验证成功后上传到用户私有的 Bloome Finance Storage。

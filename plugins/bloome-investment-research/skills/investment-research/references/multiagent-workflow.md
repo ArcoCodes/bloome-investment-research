@@ -6,7 +6,7 @@ The parent host owns the research run. MCP provides research data and determinis
 
 1. Run a broad sell-side and primary-source landscape search.
 2. Save `plan.json` with enough non-overlapping modules to cover the topic deeply, using `module-contract.md`.
-3. Prefer the host's native subagents. Run at most three module workers concurrently; queue any remainder.
+3. Prefer the host's native subagents and let the host manage scheduling and concurrency.
 4. Give each worker the topic, one complete module object, the absolute workspace, its unique `modules/<id>.md` output path, and the module contract.
 5. If native delegation is unavailable, denied, lacks the research tools, or a worker fails, complete only the missing modules sequentially in the parent with the same contract. Do not invoke a model CLI, process, or API as a substitute.
 6. Read every completed memo. Optionally use one native evidence-auditor subagent to identify unsupported claims, source conflicts, duplicate evidence, and missing locators. The auditor does not write shared artifacts.

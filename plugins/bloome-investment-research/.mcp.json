@@ -8,8 +8,7 @@
         "const path=require('node:path');const root=process.env.CLAUDE_PLUGIN_ROOT||process.cwd();require(path.resolve(root,'mcp/server.cjs')).runStdio()"
       ],
       "env_vars": [
-        "RESEARCH_API_TOKEN",
-        "RESEARCH_SEARCH_URL"
+        "BLOOME_FINANCE_URL"
       ]
     },
     "gildataDataMap": {

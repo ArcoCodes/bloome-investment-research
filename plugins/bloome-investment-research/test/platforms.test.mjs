@@ -52,7 +52,7 @@ test("portable MCP launcher selects plugin root in either host", async () => {
   assert.match(launcher.args[1], /CLAUDE_PLUGIN_ROOT/);
   assert.match(launcher.args[1], /process\.cwd/);
   assert.match(launcher.args[1], /runStdio/);
-  assert.deepEqual(launcher.env_vars, ["RESEARCH_API_TOKEN", "RESEARCH_SEARCH_URL"]);
+  assert.deepEqual(launcher.env_vars, ["BLOOME_FINANCE_URL"]);
 });
 
 test("Gildata launcher forwards credentials without storing them in the MCP URL", async () => {

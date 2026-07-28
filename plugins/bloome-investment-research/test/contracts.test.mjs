@@ -31,7 +31,7 @@ test("cross-runtime skill keeps the original report template as source of truth"
   assert.doesNotMatch(template, /data-report-tab|data-evidence-section/);
 });
 
-test("shared workflow delegates bounded memos with a sequential fallback", async () => {
+test("shared workflow delegates memos with host-managed concurrency and a sequential fallback", async () => {
   const [skill, moduleContract, workflow, reportStructure, worker, auditor] = await Promise.all([
     "skills/investment-research/SKILL.md",
     "skills/investment-research/references/module-contract.md",
@@ -40,7 +40,7 @@ test("shared workflow delegates bounded memos with a sequential fallback", async
     "agents/research-module.md",
     "agents/evidence-auditor.md",
   ].map((file) => readFile(new URL(file, root), "utf8")));
-  assert.match(skill, /Run no more than three workers concurrently/);
+  assert.match(skill, /Let the host manage worker scheduling and concurrency/);
   assert.match(skill, /run only the missing modules sequentially in the parent/);
   assert.match(skill, /render all of `report\.md` into a static single-page `report\.html`/);
   assert.match(skill, /evidence_disposition\.md/);
