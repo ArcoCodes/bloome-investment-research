@@ -4,7 +4,7 @@ The parent host owns the research run. MCP provides research data and determinis
 
 ## Dispatch
 
-1. Run a broad sell-side and primary-source landscape search.
+1. Run a broad sell-side and primary-source landscape search. If it returns a quote, the parent must obtain the user's explicit confirmation and activate the workspace run before dispatching workers.
 2. Save `plan.json` with enough non-overlapping modules to cover the topic deeply, using `module-contract.md`.
 3. Prefer the host's native subagents and let the host manage scheduling and concurrency.
 4. Give each worker the topic, one complete module object, the absolute workspace, its unique `modules/<id>.md` output path, and the module contract.

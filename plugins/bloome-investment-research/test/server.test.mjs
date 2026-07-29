@@ -110,6 +110,7 @@ test("MCP initializes and exposes the six focused tools", async () => {
   for (const definition of listed.result.tools.slice(0, 3)) {
     assert.ok(definition.inputSchema.required.includes("workspace"));
     assert.equal(definition.annotations.idempotentHint, false);
+    assert.equal(definition.annotations.destructiveHint, false);
   }
   assert.equal(listed.result.tools.find((tool) => tool.name === "confirm_research_run").annotations.destructiveHint, true);
   assert.equal(listed.result.tools.at(-1).annotations.destructiveHint, false);
@@ -127,6 +128,7 @@ test("runtime profiles keep host-specific presentation out of the shared researc
   const claudeInit = await server.handleRpc({ jsonrpc:"2.0",id:3,method:"initialize",params:{} }, "claude-code");
   assert.equal(claudeInit.result.capabilities.resources, undefined);
   assert.match(claudeInit.result.instructions, /Claude Code/);
+  assert.match(claudeInit.result.instructions, /confirmationRequired as a quote, not an error or quota block/);
 });
 
 test("research proxy starts a confirmed workspace run through Bloome Finance", async () => {
