@@ -91,7 +91,8 @@ Default citation policy:
 - Use `sell` for framework and structured data.
 - Use `primary` for reader-facing quoted passages and qualitative proof.
 - Render primary quotations as visible `<blockquote class="primary-quote">` blocks. Replace `{{primary_quote_source}}` with a source label built from the matched evidence entry's source party/title and `published_at`; keep page/line locators in `evidence.json` for traceability, not in the visible source line. Do not use generic or invented source labels. Keep sell-side citations in the template's `.src` hover tooltip. Every cited primary item must show its verbatim passage in a visible quote block. Expert evidence is the highest-priority reader-facing layer: show multiple independent expert passages, and for every core industry claim with accepted expert support or challenge evidence, show at least one matched passage. One isolated quotation, one extracted sentence, or a source-bar entry is invalid; copy the complete original paragraph or paragraphs.
-- Fill each `.src` tooltip body with the full original passage from the matched evidence entry's `quote` — the complete paragraph(s) containing the cited statement, verbatim, as plain text without underlines or `<u>` markup. A one-sentence summary is not acceptable; the tooltip exists so readers can read the original text, and it scrolls when long.
+- Fill each `.src` tooltip body with the full original passage from the matched evidence entry's `quote` — the complete paragraph(s) containing the cited statement, verbatim, as plain text without underlines or `<u>` markup. A one-sentence summary is not acceptable; the tooltip exists so readers can read the original text, and it scrolls when long. The visible tooltip body must contain the entire `quote` string verbatim — validation matches the two — so never abridge it, drop clauses, or replace interior text with an ellipsis (`……`/`...`). Longer is better than shorter: keep every sentence, figure, date, and qualifier from the source paragraph.
+- The same rule governs the visible `primary-quote` blocks: reproduce the matched evidence entry's whole `quote` verbatim, as long as it is. Do not trim it to one representative sentence or stitch fragments together with ellipses. If the original passage is long, show it in full; the block is allowed to be long.
 - Allow charts, tables, and quantitative analysis to use `sell` data extensively.
 - Calibrate key `sell` figures with `primary` where possible.
 - Do not let uncalibrated `sell` data silently function as validated fact.
@@ -161,7 +162,7 @@ Required fields include:
 - `corpus`
 - `chunk_id`
 - `report_id`
-- `quote`: the full original paragraph(s) containing the claim, copied verbatim from the source chunk — not a trimmed sentence. This field feeds the reader-facing `.src` tooltips, so it must be long enough to read as original text on its own.
+- `quote`: the full original paragraph(s) containing the claim, copied verbatim from the source chunk — not a trimmed sentence and not an ellipsis-shortened summary. This field is rendered verbatim in the reader-facing `.src` tooltips (sell) and `primary-quote` blocks (primary), and validation checks that the visible text contains it in full, so store the complete passage: every sentence, number, date, and qualifier around the cited statement. Err long, never short.
 - `title`
 - `source_path`
 - `published_at`
