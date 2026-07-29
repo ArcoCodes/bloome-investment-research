@@ -90,8 +90,8 @@ Default citation policy:
 
 - Use `sell` for framework and structured data.
 - Use `primary` for reader-facing quoted passages and qualitative proof.
-- Render primary quotations as visible `<blockquote class="primary-quote">` blocks. Replace `{{primary_quote_source}}` with a source label built from the matched evidence entry's source party/title and `published_at`; keep page/line locators in `evidence.json` for traceability, not in the visible source line. Do not use generic or invented source labels. Keep sell-side citations in the template's `.src` hover tooltip.
-- Fill each `.src` tooltip body with the full original passage from the matched evidence entry's `quote` — the complete paragraph(s) containing the cited statement, verbatim, with key sentences underlined. A one-sentence summary is not acceptable; the tooltip exists so readers can read the original text, and it scrolls when long.
+- Render primary quotations as visible `<blockquote class="primary-quote">` blocks. Replace `{{primary_quote_source}}` with a source label built from the matched evidence entry's source party/title and `published_at`; keep page/line locators in `evidence.json` for traceability, not in the visible source line. Do not use generic or invented source labels. Keep sell-side citations in the template's `.src` hover tooltip. Every cited primary item must show its verbatim passage in a visible quote block. If accepted expert/interview/channel-check evidence exists, at least one expert passage must be visible in the report body; a source-bar entry alone is invalid.
+- Fill each `.src` tooltip body with the full original passage from the matched evidence entry's `quote` — the complete paragraph(s) containing the cited statement, verbatim, as plain text without underlines or `<u>` markup. A one-sentence summary is not acceptable; the tooltip exists so readers can read the original text, and it scrolls when long.
 - Allow charts, tables, and quantitative analysis to use `sell` data extensively.
 - Calibrate key `sell` figures with `primary` where possible.
 - Do not let uncalibrated `sell` data silently function as validated fact.

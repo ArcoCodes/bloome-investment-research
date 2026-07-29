@@ -120,6 +120,8 @@ function fixtureHtml({ disableAutoPanel = false } = {}) {
   await reportFrame.locator(".report").waitFor();
   await reportFrame.getByText("AI 推理需求与 NAND 价格周期").waitFor();
   assert.equal(await reportFrame.locator("[data-report-tab]").count(), 0);
+  await reportFrame.locator(".src").first().hover();
+  assert.equal(await reportFrame.locator(".tip-bd u").count(), 0, "tooltip body underline");
 
   const screenshot = path.resolve(__dirname, "../assets/screenshot.png");
   await page.screenshot({ path:screenshot, fullPage:false });
