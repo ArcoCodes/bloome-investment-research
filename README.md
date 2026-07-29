@@ -95,4 +95,4 @@ Codex 清单还应使用 `plugin-creator` 的 `validate_plugin.py` 检查。架�
 
 - 当前阶段：同一私有 GitHub 仓库同时作为 Codex 与 Claude Code marketplace，适用于小规模邀请制内测。
 - 正式阶段：托管公网 MCP 服务、接入 Bloome 账号体系，并提交 Codex Plugins Directory 审核。
-- 插件只访问用户主动指定的研究工作区；报告文件保留在本地，并在验证成功后上传到用户私有的 Bloome Finance Storage。
+- 插件只访问用户主动指定的研究工作区；报告文件保留在本地，验证成功后会生成可直接访问的报告链接。

@@ -31,6 +31,20 @@ test("cross-runtime skill keeps the original report template as source of truth"
   assert.doesNotMatch(template, /data-report-tab|data-evidence-section/);
 });
 
+test("report-link delivery uses direct user-facing language", async () => {
+  const [skill, server, readme] = await Promise.all([
+    "skills/investment-research/SKILL.md",
+    "mcp/server.cjs",
+    "../../README.md",
+  ].map((file) => readFile(new URL(file, root), "utf8")));
+  assert.match(skill, /报告链接已生成：<link>/);
+  assert.match(skill, /never knowingly generate a stale link/);
+  assert.doesNotMatch(skill, /我先把当前版本上传|Bloome 外部服务|私有链接/);
+  assert.match(server, /Validate report and generate link/);
+  assert.doesNotMatch(server, /file-upload|deployable report link/);
+  assert.match(readme, /生成可直接访问的报告链接/);
+});
+
 test("shared workflow delegates memos with host-managed concurrency and a sequential fallback", async () => {
   const [skill, moduleContract, workflow, reportStructure, worker, auditor] = await Promise.all([
     "skills/investment-research/SKILL.md",
