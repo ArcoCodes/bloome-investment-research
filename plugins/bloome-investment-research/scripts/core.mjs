@@ -83,7 +83,7 @@ export function validateReport(report, html, evidence, staged = {}) {
   for (const id of validationClaimIds) if (!logicClaimIds.has(id)) errors.push(`Claim ${id} is missing from sell_side_logic.md`);
   const citations = new Set();
   for (const item of evidence) {
-    for (const key of ["claim", "stance", "kind", "corpus", "chunk_id", "report_id", "quote", "source_type", "title", "source_path", "published_at"]) {
+    for (const key of ["claim", "stance", "kind", "corpus", "chunk_id", "report_id", "quote", "title", "source_path", "published_at"]) {
       if (!String(item[key] ?? "").trim()) errors.push(`${item.chunk_id || "unknown"}: missing ${key}`);
     }
     const linkedClaims = Array.isArray(item.claim_ids) ? item.claim_ids.map((id) => String(id).toUpperCase()) : [];
@@ -118,13 +118,47 @@ export function validateReport(report, html, evidence, staged = {}) {
   const classes = [...html.matchAll(/class\s*=\s*["']([^"']*)["']/gi)].map((match) => match[1].split(/\s+/));
   const sourceCount = classes.filter((names) => names.includes("src")).length;
   const tooltipCount = classes.filter((names) => names.includes("tip")).length;
-  const underlineCount = (html.match(/<u\b/gi) ?? []).length;
   const primaryQuoteCount = classes.filter((names) => names.includes("primary-quote")).length;
   const sellCitationCount = matchedEvidence.filter((item) => item?.corpus === "sell").length;
-  const primaryCitationCount = matchedEvidence.filter((item) => item?.corpus === "primary").length;
-  const primaryTooltipCount = Math.max(0, sourceCount - sellCitationCount);
-  if (sourceCount < sellCitationCount || tooltipCount < sellCitationCount || underlineCount < sellCitationCount || primaryQuoteCount + primaryTooltipCount < primaryCitationCount) {
-    errors.push("Every Markdown citation must have a matching visible citation: sell citations require src tooltips; primary citations require a visible primary-quote or a tooltip");
+  if (sourceCount < sellCitationCount || tooltipCount < sellCitationCount) {
+    errors.push("Every sell-side Markdown citation must have a matching src tooltip");
+  }
+  const tooltipBodies = [...html.matchAll(/<span\s+class=["'][^"']*\btip-bd\b[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi)].map((match) => match[1]);
+  if (tooltipBodies.some((body) => /<u\b/i.test(body))) {
+    errors.push("Sell-side tooltip bodies must preserve the original passage as plain text without underlines or <u> markup");
+  }
+  const primaryQuoteBodies = [...html.matchAll(/<blockquote\s+class=["'][^"']*\bprimary-quote\b[^"']*["'][^>]*>([\s\S]*?)<\/blockquote>/gi)]
+    .map((match) => htmlNarrative(match[1]));
+  const quoteIsVisible = (item) => {
+    const quote = normalizedNarrative(String(item?.quote ?? ""));
+    return quote && primaryQuoteBodies.some((body) => body.includes(quote));
+  };
+  const primaryEvidence = evidence.filter((item) => item.corpus === "primary");
+  if (primaryEvidence.length && !primaryEvidence.some(quoteIsVisible)) {
+    errors.push("Report must show at least one verbatim primary-source quotation in a visible primary-quote block");
+  }
+  const citedPrimaryEvidence = matchedEvidence.filter((item) => item?.corpus === "primary");
+  for (const item of citedPrimaryEvidence) {
+    if (!quoteIsVisible(item)) errors.push(`Primary citation must show its verbatim quote in a visible primary-quote block: ${item.title}`);
+  }
+  if (primaryEvidence.length) {
+    const primaryOrigin = (item) => String(item.origin_id || item.report_id || item.chunk_id);
+    const independentPrimaryOrigins = new Set(primaryEvidence.map(primaryOrigin));
+    const visiblePrimaryEvidence = primaryEvidence.filter(quoteIsVisible);
+    const visiblePrimaryOrigins = new Set(visiblePrimaryEvidence.map(primaryOrigin));
+    if (independentPrimaryOrigins.size < 2) {
+      errors.push("One primary source is insufficient. Continue primary retrieval until multiple independent sources are accepted");
+    }
+    if (visiblePrimaryOrigins.size < 2) {
+      errors.push("Report body must show multiple independent primary passages; one isolated quote or source-bar listing is insufficient");
+    }
+    const primaryClaimIds = new Set(primaryEvidence.flatMap((item) =>
+      Array.isArray(item.claim_ids) ? item.claim_ids.map((id) => String(id).toUpperCase()) : []));
+    for (const id of primaryClaimIds) {
+      const claimHasVisiblePrimary = visiblePrimaryEvidence.some((item) =>
+        Array.isArray(item.claim_ids) && item.claim_ids.some((claimId) => String(claimId).toUpperCase() === id));
+      if (!claimHasVisiblePrimary) errors.push(`Core claim ${id} has accepted primary evidence but no matched primary passage visible in report.html`);
+    }
   }
   if (primaryQuoteCount && /专家纪要\s*\/\s*产业访谈\s*·\s*日期|evidence\.json\s*回填|来源待填/i.test(html)) {
     errors.push("Primary quote source must be populated from evidence.json, not a generic placeholder");

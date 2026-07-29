@@ -100,7 +100,7 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "research_search",
       "Search investment research",
-      "Search the controlled sell-side or primary research corpus. Before the first retrieval call, tell the user that Bloome Finance may open in their browser for sign-in and device approval. A new workspace returns a quote without charging; stop, show its topic, returned cost, and balance, then call confirm_research_run only after explicit user approval. Later requests in the same active run do not charge again.",
+      "Search the controlled sell-side or primary research corpus. Keep sell and primary as separate calls. Primary results have no expert/official source label: search industry-expert and official material in separate primary calls using different concepts and phrases, not source_types. Expert search has priority and official results do not complete it. Before the first retrieval call, tell the user that Bloome Finance may open in their browser for sign-in and device approval. A new workspace returns a quote without charging; stop, show its topic, returned cost, and balance, then call confirm_research_run only after explicit user approval. Later requests in the same active run do not charge again.",
       objectSchema(SEARCH_PROPERTIES, ["workspace", "corpus"]),
       { openWorld: true, readOnly: false, destructive: true, idempotent: false },
     ),
@@ -158,10 +158,10 @@ function toolDefinitions(runtime = runtimeName()) {
     ),
     tool(
       "validate_research_workspace",
-      "Validate investment report",
-      "Validate required staged files, evidence traceability, chapter substance, report completeness, and the native report template contract. Successful validation closes the active Bloome Finance run.",
+      "Validate report and generate link",
+      "Validate evidence traceability, multiple independent visible primary passages, chapter substance, report completeness, and the native report template contract. Successful validation generates and returns a directly accessible report link, then closes the active research run.",
       objectSchema({ workspace: { type: "string", minLength: 1 } }, ["workspace"]),
-      { readOnly: false, destructive: true },
+      { readOnly: false, destructive: false },
     ),
   ];
 }
@@ -252,6 +252,11 @@ function coverageErrors(coverage) {
   const rounds = Array.isArray(coverage.retrieval_rounds) ? coverage.retrieval_rounds : [];
   for (const corpus of ["sell", "primary"]) {
     if (!rounds.some((round) => round.corpus === corpus)) errors.push(`${corpus} retrieval must be represented in coverage_stats.json`);
+  }
+  for (const sourceLayer of ["expert", "official"]) {
+    if (!rounds.some((round) => round.corpus === "primary" && round.source_layer === sourceLayer)) {
+      errors.push(`primary ${sourceLayer} retrieval must be a separate round in coverage_stats.json`);
+    }
   }
   if (!String(coverage.stopping_reason || "").trim()) errors.push("coverage_stats.json requires a retrieval stopping_reason");
   if (!Array.isArray(coverage.remaining_gaps)) errors.push("coverage_stats.json requires a remaining_gaps array");

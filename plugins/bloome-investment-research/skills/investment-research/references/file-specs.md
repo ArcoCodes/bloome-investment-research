@@ -90,8 +90,8 @@ Default citation policy:
 
 - Use `sell` for framework and structured data.
 - Use `primary` for reader-facing quoted passages and qualitative proof.
-- Render primary quotations as visible `<blockquote class="primary-quote">` blocks. Replace `{{primary_quote_source}}` with a source label built from the matched evidence entry's source party/title and `published_at`; keep page/line locators in `evidence.json` for traceability, not in the visible source line. Do not use generic or invented source labels. Keep sell-side citations in the template's `.src` hover tooltip.
-- Fill each `.src` tooltip body with the full original passage from the matched evidence entry's `quote` — the complete paragraph(s) containing the cited statement, verbatim, with key sentences underlined. A one-sentence summary is not acceptable; the tooltip exists so readers can read the original text, and it scrolls when long.
+- Render primary quotations as visible `<blockquote class="primary-quote">` blocks. Replace `{{primary_quote_source}}` with a source label built from the matched evidence entry's source party/title and `published_at`; keep page/line locators in `evidence.json` for traceability, not in the visible source line. Do not use generic or invented source labels. Keep sell-side citations in the template's `.src` hover tooltip. Every cited primary item must show its verbatim passage in a visible quote block. Expert evidence is the highest-priority reader-facing layer: show multiple independent expert passages, and for every core industry claim with accepted expert support or challenge evidence, show at least one matched passage. One isolated quotation, one extracted sentence, or a source-bar entry is invalid; copy the complete original paragraph or paragraphs.
+- Fill each `.src` tooltip body with the full original passage from the matched evidence entry's `quote` — the complete paragraph(s) containing the cited statement, verbatim, as plain text without underlines or `<u>` markup. A one-sentence summary is not acceptable; the tooltip exists so readers can read the original text, and it scrolls when long.
 - Allow charts, tables, and quantitative analysis to use `sell` data extensively.
 - Calibrate key `sell` figures with `primary` where possible.
 - Do not let uncalibrated `sell` data silently function as validated fact.
@@ -115,6 +115,8 @@ Record search breadth and the evidence-saturation judgment. Required fields:
 - `query_seeds`
 - `stopping_reason`
 - `remaining_gaps`
+
+Each `retrieval_rounds` entry records `corpus`. Primary retrieval must contain separate entries with `source_layer: "expert"` and `source_layer: "official"`; this field records the query intent because primary search results do not carry that source label. One primary call cannot represent both.
 
 Useful descriptive fields, without minimum quotas:
 
@@ -160,11 +162,12 @@ Required fields include:
 - `chunk_id`
 - `report_id`
 - `quote`: the full original paragraph(s) containing the claim, copied verbatim from the source chunk — not a trimmed sentence. This field feeds the reader-facing `.src` tooltips, so it must be long enough to read as original text on its own.
-- `source_type`
 - `title`
 - `source_path`
 - `published_at`
 - `page_start` or `line_start`
+
+Preserve `source_type` only when the source actually returns one; never invent a source classification.
 
 Add `origin_id` when known so repeated reporting of the same underlying source is not treated as independent corroboration.
 

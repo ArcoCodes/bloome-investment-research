@@ -207,7 +207,7 @@ async function completeResearchRun(workspace, options = {}) {
   }
   const prepared = await responseJson(preparedResponse, options);
   if (typeof prepared.uploadUrl !== "string" || !prepared.requiredHeaders || typeof prepared.requiredHeaders !== "object") {
-    throw new Error("Bloome Finance did not return a report upload URL");
+    throw new Error("Bloome Finance did not return a report link target");
   }
   const reportPath = path.join(root, "report.html");
   if (!fs.existsSync(reportPath)) throw new Error("Validated workspace is missing report.html");
@@ -216,7 +216,7 @@ async function completeResearchRun(workspace, options = {}) {
     headers: prepared.requiredHeaders,
     body: fs.readFileSync(reportPath),
   });
-  if (!upload.ok) throw new Error(`Bloome Finance report upload failed (${upload.status})`);
+  if (!upload.ok) throw new Error(`Report link generation failed (${upload.status})`);
 
   const response = await authorizedRequest(`${endpoint}/complete`, { method: "POST" }, options);
   if (response.status === 404) {
