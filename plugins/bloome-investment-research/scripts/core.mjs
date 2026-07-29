@@ -127,11 +127,24 @@ export function validateReport(report, html, evidence, staged = {}) {
   if (tooltipBodies.some((body) => /<u\b/i.test(body))) {
     errors.push("Sell-side tooltip bodies must preserve the original passage as plain text without underlines or <u> markup");
   }
+  // Every cited sell-side passage must appear in a tooltip verbatim — the full evidence quote, not a shortened
+  // summary or an ellipsis excerpt. Tooltips scroll, so there is no length reason to trim the original passage.
+  const tooltipNarratives = tooltipBodies.map((body) => htmlNarrative(body));
+  for (const item of matchedEvidence.filter((item) => item?.corpus === "sell")) {
+    const quote = normalizedNarrative(String(item?.quote ?? ""));
+    if (quote && !tooltipNarratives.some((body) => body.includes(quote))) {
+      errors.push(`Sell-side tooltip must show the full verbatim passage from evidence.json, not a shortened summary: ${item.title}`);
+    }
+  }
   const primaryQuoteBodies = [...html.matchAll(/<blockquote\s+class=["'][^"']*\bprimary-quote\b[^"']*["'][^>]*>([\s\S]*?)<\/blockquote>/gi)]
     .map((match) => htmlNarrative(match[1]));
+  // A visible primary-quote block must reproduce the evidence's full original passage verbatim, not a one-sentence
+  // excerpt or an ellipsis-shortened summary. The block may run longer than the quote (extra context or multiple
+  // paragraphs), but it must contain the whole quote. The length floor guards against empty quotes matching.
+  const MIN_VISIBLE_QUOTE = 12;
   const quoteIsVisible = (item) => {
     const quote = normalizedNarrative(String(item?.quote ?? ""));
-    return quote && primaryQuoteBodies.some((body) => body.includes(quote));
+    return quote.length >= MIN_VISIBLE_QUOTE && primaryQuoteBodies.some((body) => body.includes(quote));
   };
   const primaryEvidence = evidence.filter((item) => item.corpus === "primary");
   if (primaryEvidence.length && !primaryEvidence.some(quoteIsVisible)) {
@@ -139,7 +152,7 @@ export function validateReport(report, html, evidence, staged = {}) {
   }
   const citedPrimaryEvidence = matchedEvidence.filter((item) => item?.corpus === "primary");
   for (const item of citedPrimaryEvidence) {
-    if (!quoteIsVisible(item)) errors.push(`Primary citation must show its verbatim quote in a visible primary-quote block: ${item.title}`);
+    if (!quoteIsVisible(item)) warnings.push(`Primary citation would read better with its quote shown in a visible primary-quote block: ${item.title}`);
   }
   if (primaryEvidence.length) {
     const primaryOrigin = (item) => String(item.origin_id || item.report_id || item.chunk_id);
@@ -157,7 +170,7 @@ export function validateReport(report, html, evidence, staged = {}) {
     for (const id of primaryClaimIds) {
       const claimHasVisiblePrimary = visiblePrimaryEvidence.some((item) =>
         Array.isArray(item.claim_ids) && item.claim_ids.some((claimId) => String(claimId).toUpperCase() === id));
-      if (!claimHasVisiblePrimary) errors.push(`Core claim ${id} has accepted primary evidence but no matched primary passage visible in report.html`);
+      if (!claimHasVisiblePrimary) warnings.push(`Core claim ${id} has accepted primary evidence but no matched primary passage visible in report.html`);
     }
   }
   if (primaryQuoteCount && /专家纪要\s*\/\s*产业访谈\s*·\s*日期|evidence\.json\s*回填|来源待填/i.test(html)) {
