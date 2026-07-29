@@ -116,6 +116,8 @@ Record search breadth and the evidence-saturation judgment. Required fields:
 - `stopping_reason`
 - `remaining_gaps`
 
+Each `retrieval_rounds` entry records `corpus`. Primary retrieval must contain separate entries with `source_layer: "expert"` and `source_layer: "official"`; one primary call cannot represent both.
+
 Useful descriptive fields, without minimum quotas:
 
 - `sell_reports_retrieved`

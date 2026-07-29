@@ -6,7 +6,7 @@ import { test } from "node:test";
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
   ["skills/investment-research/assets/template.html", "852b77895aff9685e8387562583c612eac8dab48452a438d8cff35dfaea4ae18"],
-  ["skills/investment-research/references/file-specs.md", "6777539b28961417b91a9a25efc7779fd07a849b8960ab6ed9e6db606451e57b"],
+  ["skills/investment-research/references/file-specs.md", "9e716f22f4aed2d3209c4bee944f8db283e593fb5b27ef89cdc42114add598ce"],
   ["skills/investment-research/references/chart-rules.md", "0f00fd2b12f7dac44b6ee3c718d638fd09fd5e078e03c1c6d2bc72b108282e10"],
 ]);
 
@@ -47,10 +47,11 @@ test("report-link delivery uses direct user-facing language", async () => {
 
 test("research skill makes industry-expert search a mandatory first gate", async () => {
   const skill = await readFile(new URL("skills/investment-research/SKILL.md", root), "utf8");
-  assert.match(skill, /Industry-expert evidence is the highest-priority source layer/);
+  assert.match(skill, /Keep `sell` and `primary` as separate corpus searches/);
+  assert.match(skill, /run expert and official material as separate `research_search` calls/);
   assert.match(skill, /customer, supplier, competitor, channel, and former-employee roles/);
   assert.match(skill, /Official material never substitutes for the expert-first gate/);
-  assert.match(skill, /Do not synthesize or validate an official-only report/);
+  assert.match(skill, /instead of writing an official-only report/);
 });
 
 test("shared workflow delegates memos with host-managed concurrency and a sequential fallback", async () => {

@@ -15,7 +15,11 @@ async function fixtureWorkspace() {
     { claim:"交付约束",claim_ids:["C1"],relation:"challenge",stance:"challenge",kind:"fact",corpus:"primary",chunk_id:"p1",report_id:"pr1",quote:"交付仍受约束",source_type:"interview",title:"Industry Interview",source_path:"primary/interview.txt",line_start:2,line_end:3,published_at:"2026-07-02" },
   ];
   const coverage = {
-    retrieval_rounds: [{ corpus:"sell" }, { corpus:"primary" }],
+    retrieval_rounds: [
+      { corpus:"sell" },
+      { corpus:"primary",source_layer:"expert" },
+      { corpus:"primary",source_layer:"official" },
+    ],
     query_seeds:["AI NAND demand", "NAND delivery constraints"],
     stopping_reason:"Additional searches repeated the same claims and did not close the remaining company-level gap.",
     remaining_gaps:["Company product mix"],
@@ -206,6 +210,17 @@ test("workspace validator rejects official-only primary evidence and requires ex
   assert.equal(result.ok, false);
   assert.ok(result.errors.some((error) => /Repeat expert-targeted primary searches/.test(error)));
   assert.ok(result.errors.some((error) => /official materials do not satisfy this gate/.test(error)));
+});
+
+test("workspace validator requires separate expert and official primary searches", async () => {
+  const workspace = await fixtureWorkspace();
+  const coveragePath = path.join(workspace, "coverage_stats.json");
+  const coverage = JSON.parse(await readFile(coveragePath, "utf8"));
+  coverage.retrieval_rounds = coverage.retrieval_rounds.filter((round) => round.source_layer !== "expert");
+  await writeFile(coveragePath, JSON.stringify(coverage));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("primary expert retrieval must be a separate round in coverage_stats.json"));
 });
 
 test("successful workspace validation closes its Bloome Finance run", async () => {

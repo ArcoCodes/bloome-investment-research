@@ -42,13 +42,13 @@ Read `references/multiagent-workflow.md` and `references/module-contract.md` bef
 
 ## Expert-First Gate
 
-Industry-expert evidence is the highest-priority source layer and is distinct from official primary material. Search for expert interviews, former-employee interviews, channel checks, and fieldwork first, using the company or product plus customer, supplier, competitor, channel, and former-employee roles; vary demand, orders, inventory, capacity, pricing, delivery, product progress, share, and time-window terms. If a core industry claim still lacks expert evidence, repeat the search with different roles, chain positions, and query wording. Filings, announcements, investor-relations material, and earnings calls cannot satisfy this gate. Do not synthesize or validate an official-only report: if repeated expert searches are exhausted without useful evidence, stop and report the expert-evidence gap.
+Keep `sell` and `primary` as separate corpus searches. Within `primary`, run expert and official material as separate `research_search` calls; never let one official-material search count as coverage of the full primary corpus. Search experts first with company or product plus customer, supplier, competitor, channel, and former-employee roles, varying demand, orders, inventory, capacity, pricing, delivery, product progress, share, and time terms. If a core industry claim lacks expert evidence, repeat the expert call with different roles, chain positions, and wording. Official material cannot satisfy this gate; after exhaustive expert search, stop and report the gap instead of writing an official-only report.
 
 ## Required Workflow
 
 Run these stages in order:
 
-1. Run the expert-first search gate above, then search `sell` and official-primary material for the initial landscape, passing the same absolute `workspace` path to every research tool call. Handle the one-time conversational research confirmation above before continuing retrieval.
+1. Search both `sell` and `primary` corpora for the initial landscape, passing the same absolute `workspace` path to every research tool call. Within `primary`, make and record separate expert-targeted and official-targeted calls as required above. Handle the one-time conversational research confirmation before continuing retrieval.
 2. Save the topic-shaped module plan, dispatch host-native workers or use the sequential fallback, and read every `modules/<id>.md` memo.
 3. Search both corpora iteratively with varied query seeds, relevant time windows, exact chunk reads, and surrounding context. Continue until additional retrieval no longer materially changes the claims, conflicts, or known gaps, or access is exhausted. Record the stopping reason and remaining gaps in `coverage_stats.json`; do not use record counts as a proxy for depth.
 4. Reconcile every module candidate in `evidence_disposition.md`: accept it into the evidence backbone or reject it with a reason. Then save `sell_side_logic.md`, `validation.md`, and the unified `evidence.json`. Every accepted item must link to one or more claim IDs and state whether it supports, challenges, or contextualizes them.
