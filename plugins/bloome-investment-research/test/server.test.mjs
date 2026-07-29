@@ -12,7 +12,7 @@ async function fixtureWorkspace() {
   const root = await mkdtemp(path.join(os.tmpdir(), "bloome-research-test-"));
   const evidence = [
     { claim:"需求扩张",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"sell",chunk_id:"s1",report_id:"sr1",quote:"需求增长",source_type:"sell-side",title:"NAND Market Outlook",source_path:"sell/report.pdf",page_start:1,published_at:"2026-07-01" },
-    { claim:"交付约束",claim_ids:["C1"],relation:"challenge",stance:"challenge",kind:"fact",corpus:"primary",chunk_id:"p1",report_id:"pr1",quote:"交付仍受约束",source_type:"interview",title:"Industry Interview",source_path:"primary/interview.txt",line_start:2,line_end:3,published_at:"2026-07-02" },
+    { claim:"交付约束",claim_ids:["C1"],relation:"challenge",stance:"challenge",kind:"fact",corpus:"primary",primary_layer:"expert",chunk_id:"p1",report_id:"pr1",quote:"交付仍受约束",title:"Industry Interview",source_path:"primary/interview.txt",line_start:2,line_end:3,published_at:"2026-07-02" },
   ];
   const coverage = {
     retrieval_rounds: [
@@ -203,13 +203,24 @@ test("workspace validator rejects official-only primary evidence and requires ex
   const workspace = await fixtureWorkspace();
   const evidencePath = path.join(workspace, "evidence.json");
   const evidence = JSON.parse(await readFile(evidencePath, "utf8"));
-  evidence[1].source_type = "earnings-transcript";
+  evidence[1].primary_layer = "official";
   evidence[1].title = "Company Earnings Call";
   await writeFile(evidencePath, JSON.stringify(evidence));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
   assert.ok(result.errors.some((error) => /Repeat expert-targeted primary searches/.test(error)));
   assert.ok(result.errors.some((error) => /official materials do not satisfy this gate/.test(error)));
+});
+
+test("workspace validator requires Agent classification for unlabeled primary results", async () => {
+  const workspace = await fixtureWorkspace();
+  const evidencePath = path.join(workspace, "evidence.json");
+  const evidence = JSON.parse(await readFile(evidencePath, "utf8"));
+  delete evidence[1].primary_layer;
+  await writeFile(evidencePath, JSON.stringify(evidence));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("p1: primary evidence requires Agent-classified primary_layer expert or official"));
 });
 
 test("workspace validator requires separate expert and official primary searches", async () => {

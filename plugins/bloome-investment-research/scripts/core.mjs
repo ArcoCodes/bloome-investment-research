@@ -73,8 +73,7 @@ function preservesNarrative(report, html) {
 }
 
 function isIndustryExpertEvidence(item) {
-  return /(?:expert|industry[_ -]?interview|channel[_ -]?check|consultant|fieldwork|former[_ -]?employee|ex[_ -]?employee)/i
-    .test(`${item?.source_type ?? ""} ${item?.kind ?? ""} ${item?.title ?? ""}`);
+  return item?.primary_layer === "expert";
 }
 
 export function validateReport(report, html, evidence, staged = {}) {
@@ -88,8 +87,11 @@ export function validateReport(report, html, evidence, staged = {}) {
   for (const id of validationClaimIds) if (!logicClaimIds.has(id)) errors.push(`Claim ${id} is missing from sell_side_logic.md`);
   const citations = new Set();
   for (const item of evidence) {
-    for (const key of ["claim", "stance", "kind", "corpus", "chunk_id", "report_id", "quote", "source_type", "title", "source_path", "published_at"]) {
+    for (const key of ["claim", "stance", "kind", "corpus", "chunk_id", "report_id", "quote", "title", "source_path", "published_at"]) {
       if (!String(item[key] ?? "").trim()) errors.push(`${item.chunk_id || "unknown"}: missing ${key}`);
+    }
+    if (item.corpus === "primary" && !["expert", "official"].includes(item.primary_layer)) {
+      errors.push(`${item.chunk_id || "unknown"}: primary evidence requires Agent-classified primary_layer expert or official`);
     }
     const linkedClaims = Array.isArray(item.claim_ids) ? item.claim_ids.map((id) => String(id).toUpperCase()) : [];
     if (!linkedClaims.length) errors.push(`${item.chunk_id || "unknown"}: missing claim_ids`);

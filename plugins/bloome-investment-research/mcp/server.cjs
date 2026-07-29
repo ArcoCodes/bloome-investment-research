@@ -100,7 +100,7 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "research_search",
       "Search investment research",
-      "Search the controlled sell-side or primary research corpus. Keep sell and primary as separate calls. Within primary, search industry-expert and official material in separate calls using source_types and targeted terms; expert search has priority and official results do not complete it. Before the first retrieval call, tell the user that Bloome Finance may open in their browser for sign-in and device approval. A new workspace returns a quote without charging; stop, show its topic, returned cost, and balance, then call confirm_research_run only after explicit user approval. Later requests in the same active run do not charge again.",
+      "Search the controlled sell-side or primary research corpus. Keep sell and primary as separate calls. Primary results have no expert/official source label: search industry-expert and official material in separate primary calls using different concepts and phrases, not source_types. Expert search has priority and official results do not complete it. Before the first retrieval call, tell the user that Bloome Finance may open in their browser for sign-in and device approval. A new workspace returns a quote without charging; stop, show its topic, returned cost, and balance, then call confirm_research_run only after explicit user approval. Later requests in the same active run do not charge again.",
       objectSchema(SEARCH_PROPERTIES, ["workspace", "corpus"]),
       { openWorld: true, readOnly: false, destructive: true, idempotent: false },
     ),

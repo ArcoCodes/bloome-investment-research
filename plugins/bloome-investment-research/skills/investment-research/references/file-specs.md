@@ -116,7 +116,7 @@ Record search breadth and the evidence-saturation judgment. Required fields:
 - `stopping_reason`
 - `remaining_gaps`
 
-Each `retrieval_rounds` entry records `corpus`. Primary retrieval must contain separate entries with `source_layer: "expert"` and `source_layer: "official"`; one primary call cannot represent both.
+Each `retrieval_rounds` entry records `corpus`. Primary retrieval must contain separate entries with `source_layer: "expert"` and `source_layer: "official"`; this field records the query intent because primary search results do not carry that source label. One primary call cannot represent both.
 
 Useful descriptive fields, without minimum quotas:
 
@@ -162,11 +162,12 @@ Required fields include:
 - `chunk_id`
 - `report_id`
 - `quote`: the full original paragraph(s) containing the claim, copied verbatim from the source chunk — not a trimmed sentence. This field feeds the reader-facing `.src` tooltips, so it must be long enough to read as original text on its own.
-- `source_type`
 - `title`
 - `source_path`
 - `published_at`
 - `page_start` or `line_start`
+
+For every `primary` item, add `primary_layer: "expert"` or `"official"` after reading the source content. This is the Agent's evidence classification, not a label returned by the primary corpus. Preserve `source_type` only when the source actually returns one; never invent it.
 
 Add `origin_id` when known so repeated reporting of the same underlying source is not treated as independent corroboration.
 

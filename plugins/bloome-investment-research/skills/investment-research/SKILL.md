@@ -42,7 +42,7 @@ Read `references/multiagent-workflow.md` and `references/module-contract.md` bef
 
 ## Expert-First Gate
 
-Keep `sell` and `primary` as separate corpus searches. Within `primary`, run expert and official material as separate `research_search` calls; never let one official-material search count as coverage of the full primary corpus. Search experts first with company or product plus customer, supplier, competitor, channel, and former-employee roles, varying demand, orders, inventory, capacity, pricing, delivery, product progress, share, and time terms. If a core industry claim lacks expert evidence, repeat the expert call with different roles, chain positions, and wording. Official material cannot satisfy this gate; after exhaustive expert search, stop and report the gap instead of writing an official-only report.
+Keep `sell` and `primary` as separate corpus searches. Primary results have no reliable expert/official source label, so within `primary` run two separate `research_search` calls using different concepts and phrases—never `source_types`: one targets experts and one targets official material. Search experts first with company or product plus customer, supplier, competitor, channel, and former-employee roles, varying demand, orders, inventory, capacity, pricing, delivery, product progress, share, and time terms. Read the returned chunks, then classify accepted primary evidence as `primary_layer: "expert"` or `"official"` from its actual content. If a core industry claim lacks expert evidence, repeat the expert call with different roles, chain positions, and wording. Official material cannot satisfy this gate; after exhaustive expert search, stop and report the gap instead of writing an official-only report.
 
 ## Required Workflow
 

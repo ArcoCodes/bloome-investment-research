@@ -6,7 +6,7 @@ import { test } from "node:test";
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
   ["skills/investment-research/assets/template.html", "852b77895aff9685e8387562583c612eac8dab48452a438d8cff35dfaea4ae18"],
-  ["skills/investment-research/references/file-specs.md", "9e716f22f4aed2d3209c4bee944f8db283e593fb5b27ef89cdc42114add598ce"],
+  ["skills/investment-research/references/file-specs.md", "8186e84d56b9460f129d5b79c60dc5479c0e20d11d0a3538d9f68c7dff09325e"],
   ["skills/investment-research/references/chart-rules.md", "0f00fd2b12f7dac44b6ee3c718d638fd09fd5e078e03c1c6d2bc72b108282e10"],
 ]);
 
@@ -48,7 +48,9 @@ test("report-link delivery uses direct user-facing language", async () => {
 test("research skill makes industry-expert search a mandatory first gate", async () => {
   const skill = await readFile(new URL("skills/investment-research/SKILL.md", root), "utf8");
   assert.match(skill, /Keep `sell` and `primary` as separate corpus searches/);
-  assert.match(skill, /run expert and official material as separate `research_search` calls/);
+  assert.match(skill, /run two separate `research_search` calls using different concepts and phrases/);
+  assert.match(skill, /never `source_types`/);
+  assert.match(skill, /classify accepted primary evidence as `primary_layer: "expert"` or `"official"`/);
   assert.match(skill, /customer, supplier, competitor, channel, and former-employee roles/);
   assert.match(skill, /Official material never substitutes for the expert-first gate/);
   assert.match(skill, /instead of writing an official-only report/);
