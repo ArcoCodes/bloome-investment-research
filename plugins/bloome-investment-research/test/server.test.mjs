@@ -224,6 +224,26 @@ test("workspace validator rejects a single accepted primary source", async () =>
   assert.ok(result.errors.includes("One primary source is insufficient. Continue primary retrieval until multiple independent sources are accepted"));
 });
 
+test("workspace validator rejects a sell-side tooltip that shortens the original passage", async () => {
+  const workspace = await fixtureWorkspace();
+  const htmlPath = path.join(workspace, "report.html");
+  const html = await readFile(htmlPath, "utf8");
+  await writeFile(htmlPath, html.replace(/<span class="tip-bd">需求增长<\/span>/g, '<span class="tip-bd">需求</span>'));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some((error) => /Sell-side tooltip must show the full verbatim passage/.test(error)));
+});
+
+test("workspace validator rejects a primary quote trimmed to an excerpt", async () => {
+  const workspace = await fixtureWorkspace();
+  const htmlPath = path.join(workspace, "report.html");
+  const html = await readFile(htmlPath, "utf8");
+  await writeFile(htmlPath, html.replace(/交付仍受约束，客户验证时间也存在不确定性。/g, "交付仍受约束。"));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("Report body must show multiple independent primary passages; one isolated quote or source-bar listing is insufficient"));
+});
+
 test("workspace validator does not require invented primary classification fields", async () => {
   const workspace = await fixtureWorkspace();
   const evidencePath = path.join(workspace, "evidence.json");

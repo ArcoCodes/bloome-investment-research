@@ -2,7 +2,7 @@
   "$schema": "./schemas/plugin-config.schema.json",
   "schemaVersion": 1,
   "name": "bloome-investment-research",
-  "version": "0.4.7",
+  "version": "0.4.9",
   "displayName": "Bloome Investment Research",
   "marketplace": {
     "name": "bloome-research",
