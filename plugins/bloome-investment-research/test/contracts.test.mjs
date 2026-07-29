@@ -6,7 +6,7 @@ import { test } from "node:test";
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
   ["skills/investment-research/assets/template.html", "44d8fcbef9ba778a6fabfcb55c536421e337012120d5aae9cbea8838cec06424"],
-  ["skills/investment-research/references/file-specs.md", "8532046c4b6166d958d5a99a594cca6a86112bd510a984341db9e963e650f60a"],
+  ["skills/investment-research/references/file-specs.md", "1c37ddbe371cfbf5f25d533ddbda79f28db87e92bb0ee66f821b76a2e16a924e"],
   ["skills/investment-research/references/chart-rules.md", "0f00fd2b12f7dac44b6ee3c718d638fd09fd5e078e03c1c6d2bc72b108282e10"],
 ]);
 
@@ -63,7 +63,9 @@ test("research skill makes industry-expert evidence a mandatory completion gate"
   assert.match(skill, /customers and end users, procurement or operations staff, upstream suppliers, competitors, distributors and channel partners, integrators, and former executives or employees/);
   assert.match(skill, /Official material:\*\* regulatory filings, company announcements, government documents, investor-relations materials, and earnings releases or calls/);
   assert.match(skill, /Earnings-call management commentary is official material, not an expert interview/);
-  assert.match(skill, /final evidence mix and report body must be expert-heavy/);
+  assert.match(skill, /highest-priority retrieval requirement/);
+  assert.match(skill, /a floor on expert coverage, not a ceiling on other evidence/);
+  assert.match(skill, /never cut or thin sell-side or official content to shift the evidence mix toward experts/);
   assert.match(skill, /distributed across the core industry claims rather than concentrated in one section/);
   assert.match(skill, /highest-priority reader-facing evidence layer/);
   assert.match(skill, /complete verbatim passages from multiple independent expert sources/);
@@ -73,7 +75,8 @@ test("research skill makes industry-expert evidence a mandatory completion gate"
   assert.match(skill, /official results do not count as expert coverage/);
   assert.match(skill, /until the core industry claims are covered by multiple independent expert sources/);
   assert.match(skill, /Continue searching industry-expert material until the core industry claims have broad, independent expert coverage/);
-  assert.match(skill, /instead of writing an official-only report/);
+  assert.match(skill, /still write the complete report/);
+  assert.match(skill, /instead of dropping the claim, thinning the analysis, or withholding the report/);
 });
 
 test("shared workflow delegates memos with host-managed concurrency and a sequential fallback", async () => {
