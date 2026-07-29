@@ -118,13 +118,32 @@ export function validateReport(report, html, evidence, staged = {}) {
   const classes = [...html.matchAll(/class\s*=\s*["']([^"']*)["']/gi)].map((match) => match[1].split(/\s+/));
   const sourceCount = classes.filter((names) => names.includes("src")).length;
   const tooltipCount = classes.filter((names) => names.includes("tip")).length;
-  const underlineCount = (html.match(/<u\b/gi) ?? []).length;
   const primaryQuoteCount = classes.filter((names) => names.includes("primary-quote")).length;
   const sellCitationCount = matchedEvidence.filter((item) => item?.corpus === "sell").length;
-  const primaryCitationCount = matchedEvidence.filter((item) => item?.corpus === "primary").length;
-  const primaryTooltipCount = Math.max(0, sourceCount - sellCitationCount);
-  if (sourceCount < sellCitationCount || tooltipCount < sellCitationCount || underlineCount < sellCitationCount || primaryQuoteCount + primaryTooltipCount < primaryCitationCount) {
-    errors.push("Every Markdown citation must have a matching visible citation: sell citations require src tooltips; primary citations require a visible primary-quote or a tooltip");
+  if (sourceCount < sellCitationCount || tooltipCount < sellCitationCount) {
+    errors.push("Every sell-side Markdown citation must have a matching src tooltip");
+  }
+  const tooltipBodies = [...html.matchAll(/<span\s+class=["'][^"']*\btip-bd\b[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi)].map((match) => match[1]);
+  if (tooltipBodies.some((body) => /<u\b/i.test(body))) {
+    errors.push("Sell-side tooltip bodies must preserve the original passage as plain text without underlines or <u> markup");
+  }
+  const primaryQuoteBodies = [...html.matchAll(/<blockquote\s+class=["'][^"']*\bprimary-quote\b[^"']*["'][^>]*>([\s\S]*?)<\/blockquote>/gi)]
+    .map((match) => htmlNarrative(match[1]));
+  const quoteIsVisible = (item) => {
+    const quote = normalizedNarrative(String(item?.quote ?? ""));
+    return quote && primaryQuoteBodies.some((body) => body.includes(quote));
+  };
+  const primaryEvidence = evidence.filter((item) => item.corpus === "primary");
+  if (primaryEvidence.length && !primaryEvidence.some(quoteIsVisible)) {
+    errors.push("Report must show at least one verbatim primary-source quotation in a visible primary-quote block");
+  }
+  const citedPrimaryEvidence = matchedEvidence.filter((item) => item?.corpus === "primary");
+  for (const item of citedPrimaryEvidence) {
+    if (!quoteIsVisible(item)) errors.push(`Primary citation must show its verbatim quote in a visible primary-quote block: ${item.title}`);
+  }
+  const expertEvidence = primaryEvidence.filter((item) => /(?:expert|interview|channel[_ -]?check|industry|consultant|fieldwork)/i.test(`${item.source_type} ${item.kind}`));
+  if (expertEvidence.length && !expertEvidence.some(quoteIsVisible)) {
+    errors.push("Expert or industry-interview evidence exists but no expert verbatim quote is visible in report.html");
   }
   if (primaryQuoteCount && /专家纪要\s*\/\s*产业访谈\s*·\s*日期|evidence\.json\s*回填|来源待填/i.test(html)) {
     errors.push("Primary quote source must be populated from evidence.json, not a generic placeholder");

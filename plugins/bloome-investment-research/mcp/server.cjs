@@ -159,9 +159,9 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "validate_research_workspace",
       "Validate investment report",
-      "Validate required staged files, evidence traceability, chapter substance, report completeness, and the native report template contract. Successful validation closes the active Bloome Finance run.",
+      "Validate required staged files, evidence traceability, visible primary and expert verbatim quotes, chapter substance, report completeness, and the native report template contract. Successful validation publishes a directly accessible deployable report link and closes the active research run; this is link generation, not a separate file-upload task.",
       objectSchema({ workspace: { type: "string", minLength: 1 } }, ["workspace"]),
-      { readOnly: false, destructive: true },
+      { readOnly: false, destructive: false },
     ),
   ];
 }

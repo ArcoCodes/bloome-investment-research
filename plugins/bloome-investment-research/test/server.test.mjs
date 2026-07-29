@@ -53,7 +53,7 @@ async function fixtureWorkspace() {
     ].filter(Boolean).join("\n");
   }).join("\n\n");
   const finalReport = chapters.join("\n\n");
-  const visibleCitations = chapters.map(() => `<span class="src">NAND Market Outlook<span class="tip"><u>需求增长</u></span></span><blockquote class="primary-quote">交付仍受约束<cite>Industry Interview · 2026-07-02</cite></blockquote>`).join("");
+  const visibleCitations = chapters.map(() => `<span class="src">NAND Market Outlook<span class="tip"><span class="tip-bd">需求增长</span></span></span><blockquote class="primary-quote">交付仍受约束<cite>Industry Interview · 2026-07-02</cite></blockquote>`).join("");
   const figures = visualPlans.map((visual) => `<figure aria-label="${visual.title}"><h3>${visual.title}</h3><svg viewBox="0 0 640 240" role="img" aria-label="${visual.title}"><text>Demand</text></svg><div class="chart-source">NAND Market Outlook · evidence s1 p1</div></figure>`);
   const reportSections = chapters.map((chapter, index) => `<section>${chapter}${figures[index] || ""}</section>`).join("");
   const html = `<!doctype html><html><body><div class="report"><div class="top-bar"></div><div class="header"><div class="header-title">NAND cycle</div><div class="header-meta">2026年7月</div></div><div class="section judge-box">${reportSections}${visibleCitations}</div><div class="source-bar">Sources</div><div class="bottom-bar"></div></div></body></html>`;
@@ -107,7 +107,7 @@ test("MCP initializes and exposes the six focused tools", async () => {
     assert.equal(definition.annotations.idempotentHint, false);
   }
   assert.equal(listed.result.tools.find((tool) => tool.name === "confirm_research_run").annotations.destructiveHint, true);
-  assert.equal(listed.result.tools.at(-1).annotations.destructiveHint, true);
+  assert.equal(listed.result.tools.at(-1).annotations.destructiveHint, false);
 });
 
 test("runtime profiles keep host-specific presentation out of the shared research core", async () => {
@@ -173,6 +173,26 @@ test("workspace validator enforces all staged and report contracts", async () =>
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, true, result.errors.join("\n"));
   assert.equal(result.chapters, 2);
+});
+
+test("workspace validator rejects underlined sell-side tooltip passages", async () => {
+  const workspace = await fixtureWorkspace();
+  const htmlPath = path.join(workspace, "report.html");
+  const html = await readFile(htmlPath, "utf8");
+  await writeFile(htmlPath, html.replace('<span class="tip-bd">需求增长</span>', '<span class="tip-bd"><u>需求增长</u></span>'));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some((error) => /plain text without underlines/.test(error)));
+});
+
+test("workspace validator requires visible expert verbatim evidence", async () => {
+  const workspace = await fixtureWorkspace();
+  const htmlPath = path.join(workspace, "report.html");
+  const html = await readFile(htmlPath, "utf8");
+  await writeFile(htmlPath, html.replace(/<blockquote class="primary-quote">交付仍受约束<cite>Industry Interview · 2026-07-02<\/cite><\/blockquote>/g, ""));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("Expert or industry-interview evidence exists but no expert verbatim quote is visible in report.html"));
 });
 
 test("successful workspace validation closes its Bloome Finance run", async () => {
