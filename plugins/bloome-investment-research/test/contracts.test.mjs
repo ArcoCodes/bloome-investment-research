@@ -54,8 +54,11 @@ test("research skill makes industry-expert evidence a mandatory completion gate"
   assert.doesNotMatch(skill, /primary_layer/);
   assert.match(skill, /Finding official materials does not complete primary research/);
   assert.match(skill, /customer, supplier, competitor, channel, and former-employee roles/);
-  assert.match(skill, /Industry-expert material includes expert interviews, former-employee interviews, industry interviews, consultant conversations, channel checks, fieldwork/);
-  assert.match(skill, /Official material includes regulatory filings, company announcements, government documents, investor-relations materials, and earnings releases or calls/);
+  assert.match(skill, /`sell` contains research published by sell-side institutions/);
+  assert.match(skill, /It represents what the market believes: earnings forecasts, key assumptions, debates, risks, and valuation frameworks/);
+  assert.match(skill, /Industry-expert material:\*\* expert interviews, former-employee interviews, industry-participant or consultant conversations, channel checks, fieldwork/);
+  assert.match(skill, /customers and end users, procurement or operations staff, upstream suppliers, competitors, distributors and channel partners, integrators, and former executives or employees/);
+  assert.match(skill, /Official material:\*\* regulatory filings, company announcements, government documents, investor-relations materials, and earnings releases or calls/);
   assert.match(skill, /Earnings-call management commentary is official material, not an expert interview/);
   assert.match(skill, /final evidence mix and report body must be expert-heavy/);
   assert.match(skill, /distributed across the core industry claims rather than concentrated in one section/);
@@ -66,7 +69,7 @@ test("research skill makes industry-expert evidence a mandatory completion gate"
   assert.match(skill, /In every `primary` iteration, keep expert-targeted and official-targeted directions separate/);
   assert.match(skill, /official results do not count as expert coverage/);
   assert.match(skill, /until the core industry claims are covered by multiple independent expert sources/);
-  assert.match(skill, /Official material never substitutes for the expert evidence gate/);
+  assert.match(skill, /Continue searching industry-expert material until the core industry claims have broad, independent expert coverage/);
   assert.match(skill, /instead of writing an official-only report/);
 });
 

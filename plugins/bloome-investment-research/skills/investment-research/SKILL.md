@@ -65,9 +65,14 @@ The bundled `research_search` and `research_get_chunk` tools are the research co
 
 ## Evidence Layers
 
-`sell` is the analytical and quantitative layer. Use it to extract conclusions, causal chains, assumptions, indicators, risks, market size, shipments, pricing, capex, shares, costs, forecasts, model tables, and historical series.
+`sell` contains research published by sell-side institutions. It represents what the market believes: earnings forecasts, key assumptions, debates, risks, and valuation frameworks. Use it to understand expectations and extract structured analysis, but treat its conclusions as hypotheses to test, not proof of industry reality.
 
-Within `primary`, keep two distinct layers. Industry-expert material includes expert interviews, former-employee interviews, industry interviews, consultant conversations, channel checks, fieldwork, and research notes whose substance is commentary from industry participants; use it to discover leading industrial change. Official material includes regulatory filings, company announcements, government documents, investor-relations materials, and earnings releases or calls; use it to confirm disclosed facts and management statements. Earnings-call management commentary is official material, not an expert interview. Official material never substitutes for the expert evidence gate.
+Within `primary`, search two material categories separately:
+
+- **Industry-expert material:** expert interviews, former-employee interviews, industry-participant or consultant conversations, channel checks, fieldwork, and research notes based on direct industry-participant commentary. Search across customers and end users, procurement or operations staff, upstream suppliers, competitors, distributors and channel partners, integrators, and former executives or employees. Use these materials to identify leading changes in demand, orders, inventory, capacity, pricing, delivery, product progress, and market share. Seek supporting, opposing, and conflicting views from different roles and value-chain positions.
+- **Official material:** regulatory filings, company announcements, government documents, investor-relations materials, and earnings releases or calls. Use these materials to confirm disclosed facts and management statements. Earnings-call management commentary is official material, not an expert interview.
+
+Finding official materials does not complete primary research. Continue searching industry-expert material until the core industry claims have broad, independent expert coverage or the remaining evidence gap is explicitly reported.
 
 `primary` outweighs `sell`. Sell-side views are hypotheses to be tested against primary reality, not co-equal proof: when the two conflict on the same question, let `primary` control the conclusion and keep the overruled sell-side view visible as a disagreement. A claim supported only by sell-side narrative carries less evidence strength than one calibrated by primary material, and should be labeled accordingly.
 
