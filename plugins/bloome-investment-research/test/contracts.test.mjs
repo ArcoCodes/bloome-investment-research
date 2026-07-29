@@ -45,6 +45,14 @@ test("report-link delivery uses direct user-facing language", async () => {
   assert.match(readme, /生成可直接访问的报告链接/);
 });
 
+test("research skill makes industry-expert search a mandatory first gate", async () => {
+  const skill = await readFile(new URL("skills/investment-research/SKILL.md", root), "utf8");
+  assert.match(skill, /Industry-expert evidence is the highest-priority source layer/);
+  assert.match(skill, /customer, supplier, competitor, channel, and former-employee roles/);
+  assert.match(skill, /Official material never substitutes for the expert-first gate/);
+  assert.match(skill, /Do not synthesize or validate an official-only report/);
+});
+
 test("shared workflow delegates memos with host-managed concurrency and a sequential fallback", async () => {
   const [skill, moduleContract, workflow, reportStructure, worker, auditor] = await Promise.all([
     "skills/investment-research/SKILL.md",

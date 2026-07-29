@@ -72,6 +72,11 @@ function preservesNarrative(report, html) {
   return segments.every((segment) => rendered.includes(segment));
 }
 
+function isIndustryExpertEvidence(item) {
+  return /(?:expert|industry[_ -]?interview|channel[_ -]?check|consultant|fieldwork|former[_ -]?employee|ex[_ -]?employee)/i
+    .test(`${item?.source_type ?? ""} ${item?.kind ?? ""} ${item?.title ?? ""}`);
+}
+
 export function validateReport(report, html, evidence, staged = {}) {
   const errors = [];
   const warnings = [];
@@ -141,8 +146,10 @@ export function validateReport(report, html, evidence, staged = {}) {
   for (const item of citedPrimaryEvidence) {
     if (!quoteIsVisible(item)) errors.push(`Primary citation must show its verbatim quote in a visible primary-quote block: ${item.title}`);
   }
-  const expertEvidence = primaryEvidence.filter((item) => /(?:expert|interview|channel[_ -]?check|industry|consultant|fieldwork)/i.test(`${item.source_type} ${item.kind}`));
-  if (expertEvidence.length && !expertEvidence.some(quoteIsVisible)) {
+  const expertEvidence = primaryEvidence.filter(isIndustryExpertEvidence);
+  if (!expertEvidence.length) {
+    errors.push("No accepted industry-expert evidence found. Repeat expert-targeted primary searches with different roles, value-chain positions, and query wording; official materials do not satisfy this gate");
+  } else if (!expertEvidence.some(quoteIsVisible)) {
     errors.push("Expert or industry-interview evidence exists but no expert verbatim quote is visible in report.html");
   }
   if (primaryQuoteCount && /专家纪要\s*\/\s*产业访谈\s*·\s*日期|evidence\.json\s*回填|来源待填/i.test(html)) {

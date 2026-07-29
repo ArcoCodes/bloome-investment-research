@@ -40,11 +40,15 @@ Let the host manage worker scheduling and concurrency. Each worker handles one s
 
 Read `references/multiagent-workflow.md` and `references/module-contract.md` before planning or dispatching workers.
 
+## Expert-First Gate
+
+Industry-expert evidence is the highest-priority source layer and is distinct from official primary material. Search for expert interviews, former-employee interviews, channel checks, and fieldwork first, using the company or product plus customer, supplier, competitor, channel, and former-employee roles; vary demand, orders, inventory, capacity, pricing, delivery, product progress, share, and time-window terms. If a core industry claim still lacks expert evidence, repeat the search with different roles, chain positions, and query wording. Filings, announcements, investor-relations material, and earnings calls cannot satisfy this gate. Do not synthesize or validate an official-only report: if repeated expert searches are exhausted without useful evidence, stop and report the expert-evidence gap.
+
 ## Required Workflow
 
 Run these stages in order:
 
-1. Search both `sell` and `primary` corpora for the initial landscape, passing the same absolute `workspace` path to every research tool call. Handle the one-time conversational research confirmation above before continuing retrieval.
+1. Run the expert-first search gate above, then search `sell` and official-primary material for the initial landscape, passing the same absolute `workspace` path to every research tool call. Handle the one-time conversational research confirmation above before continuing retrieval.
 2. Save the topic-shaped module plan, dispatch host-native workers or use the sequential fallback, and read every `modules/<id>.md` memo.
 3. Search both corpora iteratively with varied query seeds, relevant time windows, exact chunk reads, and surrounding context. Continue until additional retrieval no longer materially changes the claims, conflicts, or known gaps, or access is exhausted. Record the stopping reason and remaining gaps in `coverage_stats.json`; do not use record counts as a proxy for depth.
 4. Reconcile every module candidate in `evidence_disposition.md`: accept it into the evidence backbone or reject it with a reason. Then save `sell_side_logic.md`, `validation.md`, and the unified `evidence.json`. Every accepted item must link to one or more claim IDs and state whether it supports, challenges, or contextualizes them.
@@ -63,7 +67,7 @@ The bundled `research_search` and `research_get_chunk` tools are the research co
 
 `sell` is the analytical and quantitative layer. Use it to extract conclusions, causal chains, assumptions, indicators, risks, market size, shipments, pricing, capex, shares, costs, forecasts, model tables, and historical series.
 
-`primary` is the validation layer. Use expert notes, industry interviews, channel checks, filings, earnings transcripts, announcements, and other primary or near-primary materials to support, narrow, calibrate, or challenge each sell-side claim.
+Within `primary`, keep two distinct layers: industry-expert material discovers leading industrial change; official material confirms disclosed facts. Official material never substitutes for the expert-first gate.
 
 `primary` outweighs `sell`. Sell-side views are hypotheses to be tested against primary reality, not co-equal proof: when the two conflict on the same question, let `primary` control the conclusion and keep the overruled sell-side view visible as a disagreement. A claim supported only by sell-side narrative carries less evidence strength than one calibrated by primary material, and should be labeled accordingly.
 

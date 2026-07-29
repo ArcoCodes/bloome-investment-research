@@ -195,6 +195,19 @@ test("workspace validator requires visible expert verbatim evidence", async () =
   assert.ok(result.errors.includes("Expert or industry-interview evidence exists but no expert verbatim quote is visible in report.html"));
 });
 
+test("workspace validator rejects official-only primary evidence and requires expert re-search", async () => {
+  const workspace = await fixtureWorkspace();
+  const evidencePath = path.join(workspace, "evidence.json");
+  const evidence = JSON.parse(await readFile(evidencePath, "utf8"));
+  evidence[1].source_type = "earnings-transcript";
+  evidence[1].title = "Company Earnings Call";
+  await writeFile(evidencePath, JSON.stringify(evidence));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some((error) => /Repeat expert-targeted primary searches/.test(error)));
+  assert.ok(result.errors.some((error) => /official materials do not satisfy this gate/.test(error)));
+});
+
 test("successful workspace validation closes its Bloome Finance run", async () => {
   const workspace = await fixtureWorkspace();
   const credentialFile = path.join(workspace, "credential.json");
