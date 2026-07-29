@@ -45,11 +45,9 @@ test("report-link delivery uses direct user-facing language", async () => {
   assert.match(readme, /生成可直接访问的报告链接/);
 });
 
-test("research skill makes industry-expert search a mandatory first gate", async () => {
+test("research skill makes industry-expert evidence a mandatory completion gate", async () => {
   const skill = await readFile(new URL("skills/investment-research/SKILL.md", root), "utf8");
-  assert.ok(skill.indexOf("## Expert-First Gate") < skill.indexOf("## Cross-Runtime Run"));
-  assert.match(skill, /Make the first corpus retrieval call an expert-targeted `primary` search; do not begin with `sell` or official material/);
-  assert.match(skill, /Only then search `sell` and make the separate official-targeted `primary` call/);
+  assert.match(skill, /`sell` and `primary` may be searched in either order/);
   assert.match(skill, /Keep `sell` and `primary` as separate corpus searches/);
   assert.match(skill, /run two separate `research_search` calls using different concepts and phrases/);
   assert.match(skill, /never `source_types`/);
@@ -59,6 +57,8 @@ test("research skill makes industry-expert search a mandatory first gate", async
   assert.match(skill, /Official material includes regulatory filings, company announcements, government documents, investor-relations materials, and earnings releases or calls/);
   assert.match(skill, /Earnings-call management commentary is official material, not an expert interview/);
   assert.match(skill, /one expert item never completes the expert gate/);
+  assert.match(skill, /final evidence mix and report body must be expert-heavy/);
+  assert.match(skill, /distributed across the core industry claims rather than concentrated in one section/);
   assert.match(skill, /highest-priority reader-facing evidence layer/);
   assert.match(skill, /complete verbatim passages from multiple independent expert sources/);
   assert.match(skill, /a single quote, sentence excerpt, or source-only listing is invalid/);
