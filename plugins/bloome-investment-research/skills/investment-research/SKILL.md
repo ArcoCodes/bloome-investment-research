@@ -65,6 +65,8 @@ The bundled `research_search` and `research_get_chunk` tools are the research co
 
 `primary` is the validation layer. Use expert notes, industry interviews, channel checks, filings, earnings transcripts, announcements, and other primary or near-primary materials to support, narrow, calibrate, or challenge each sell-side claim.
 
+`primary` outweighs `sell`. Sell-side views are hypotheses to be tested against primary reality, not co-equal proof: when the two conflict on the same question, let `primary` control the conclusion and keep the overruled sell-side view visible as a disagreement. A claim supported only by sell-side narrative carries less evidence strength than one calibrated by primary material, and should be labeled accordingly.
+
 For every material claim, record support, opposing evidence, calibration result, unresolved point, evidence strength, and what would change the judgment. If no primary calibration exists, state that plainly.
 
 ## Long Report
@@ -81,7 +83,7 @@ For every material claim, record support, opposing evidence, calibration result,
 
 ## Final Report and HTML
 
-Use sell-side material for the analytical frame and structured data; use primary material for validation, narrative proof, and calibration. Sell-side data may be used extensively in tables, charts, forecasts, valuation ranges, and model calculations, but key figures should be calibrated by primary evidence where available.
+Use sell-side material for the analytical frame and structured data; use primary material for validation, narrative proof, and calibration. Sell-side data may be used extensively in tables, charts, forecasts, valuation ranges, and model calculations, but key figures should be calibrated by primary evidence where available. Cite primary material generously: wherever accepted primary evidence substantiates a major claim, surface it as a visible quotation instead of summarizing it away — a report that is light on primary quotations while the evidence backbone holds relevant accepted material is under-cited, not concise.
 
 Render primary evidence quotations visibly with `<blockquote class="primary-quote">` and replace `{{primary_quote_source}}` with the exact matched `evidence.json` source label. The visible source line should use the returned source party/title and publication date; keep page/line locators inside `evidence.json` for traceability, not in the reader-facing line. Never write a generic label or invent a source. Keep sell-side references as the template's `.src` hover tooltips. The tooltip body (`tip-bd`) must carry the full original passage from the matched evidence entry — the complete paragraph(s) containing the cited statement, copied verbatim, not a one-sentence summary or paraphrase. Readers open tooltips to read the original text; include every relevant paragraph (separated by blank lines; the tip scrolls, so length is not a reason to trim) and underline the key sentences with `<u>`. Every claim, quote, table source, chart source, and tooltip must map to `evidence.json`. Keep disagreements visible.
 
