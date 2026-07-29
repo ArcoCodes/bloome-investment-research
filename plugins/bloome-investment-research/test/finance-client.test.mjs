@@ -133,19 +133,19 @@ test("research request starts one workspace run and forwards only the research p
   assert.equal(JSON.parse(await readFile(path.join(workspace, ".bloome-finance-run.json"), "utf8")).runId, "run-1");
 });
 
-test("new workspaces require conversational confirmation before research", async () => {
+test("annual unlimited workspaces still require conversational confirmation without charging", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "bloome-finance-confirm-"));
   const credentialFile = path.join(root, "credential.json");
   await writeFile(credentialFile, JSON.stringify({ accessToken: "access-secret" }));
   const fetcher = async (url, options = {}) => {
     const body = JSON.parse(options.body);
-    if (!body.confirmationId) return json({ confirmationRequired: true, confirmationId: "c".repeat(43), topic: "NAND", cost: 1, balance: 2 });
-    return json({ run: { id: "run-1", expiresAt: "2026-08-01T00:00:00.000Z" }, charged: true }, 201);
+    if (!body.confirmationId) return json({ confirmationRequired: true, confirmationId: "c".repeat(43), topic: "NAND", cost: 0, balance: 2 });
+    return json({ run: { id: "run-1", expiresAt: "2026-08-01T00:00:00.000Z" }, charged: false }, 201);
   };
   const quote = await finance.researchRequest("search", { corpus: "sell" }, root, undefined, { baseUrl: "https://finance.example", credentialFile, fetcher });
   assert.equal(quote.confirmationRequired, true);
-  assert.match(quote.message, /costs 1 credit/);
-  assert.equal(await finance.confirmResearchRun(root, "c".repeat(43), undefined, { baseUrl: "https://finance.example", credentialFile, fetcher }).then((result) => result.charged), true);
+  assert.match(quote.message, /included in your annual unlimited plan/);
+  assert.equal(await finance.confirmResearchRun(root, "c".repeat(43), undefined, { baseUrl: "https://finance.example", credentialFile, fetcher }).then((result) => result.charged), false);
   assert.equal(JSON.parse(await readFile(path.join(root, ".bloome-finance-run.json"), "utf8")).runId, "run-1");
 });
 
