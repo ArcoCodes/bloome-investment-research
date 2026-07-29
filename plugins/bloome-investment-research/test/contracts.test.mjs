@@ -47,6 +47,9 @@ test("report-link delivery uses direct user-facing language", async () => {
 
 test("research skill makes industry-expert search a mandatory first gate", async () => {
   const skill = await readFile(new URL("skills/investment-research/SKILL.md", root), "utf8");
+  assert.ok(skill.indexOf("## Expert-First Gate") < skill.indexOf("## Cross-Runtime Run"));
+  assert.match(skill, /Make the first corpus retrieval call an expert-targeted `primary` search; do not begin with `sell` or official material/);
+  assert.match(skill, /Only then search `sell` and make the separate official-targeted `primary` call/);
   assert.match(skill, /Keep `sell` and `primary` as separate corpus searches/);
   assert.match(skill, /run two separate `research_search` calls using different concepts and phrases/);
   assert.match(skill, /never `source_types`/);

@@ -9,6 +9,10 @@ Use the active host—Codex or Claude/Cowork (including Claude Code plugin runti
 
 Do not write a long report in one pass. Keep `evidence.json` as the unified evidence backbone. MCP is the shared data plane only: it must never spawn an agent, invoke a model CLI, or call a model API.
 
+## Expert-First Gate
+
+Make the first corpus retrieval call an expert-targeted `primary` search; do not begin with `sell` or official material. Keep `sell` and `primary` as separate corpus searches. Primary results have no expert/official source label, so within `primary` run two separate `research_search` calls using different concepts and phrases—never `source_types`: one targets experts and one targets official material. Search experts with company or product plus customer, supplier, competitor, channel, and former-employee roles, varying demand, orders, inventory, capacity, pricing, delivery, product progress, share, and time terms. Read the returned chunks, then classify accepted primary evidence as `primary_layer: "expert"` or `"official"` from its actual content. Finding official material does not complete primary retrieval, and one expert item never completes the expert gate: seek multiple independent expert sources and test each core industry claim against them. If a core industry claim lacks expert evidence, repeat the expert call with different roles, chain positions, and wording. Official material cannot satisfy this gate; after exhaustive expert search, stop and report the gap instead of writing an official-only report.
+
 ## Cross-Runtime Run
 
 1. Create a project workspace at `.bloome/research/<topic-slug>/`.
@@ -40,15 +44,11 @@ Let the host manage worker scheduling and concurrency. Each worker handles one s
 
 Read `references/multiagent-workflow.md` and `references/module-contract.md` before planning or dispatching workers.
 
-## Expert-First Gate
-
-Keep `sell` and `primary` as separate corpus searches. Primary results have no expert/official source label, so within `primary` run two separate `research_search` calls using different concepts and phrases—never `source_types`: one targets experts and one targets official material. Search experts first with company or product plus customer, supplier, competitor, channel, and former-employee roles, varying demand, orders, inventory, capacity, pricing, delivery, product progress, share, and time terms. Read the returned chunks, then classify accepted primary evidence as `primary_layer: "expert"` or `"official"` from its actual content. Finding official material does not complete primary retrieval, and one expert item never completes the expert gate: seek multiple independent expert sources and test each core industry claim against them. If a core industry claim lacks expert evidence, repeat the expert call with different roles, chain positions, and wording. Official material cannot satisfy this gate; after exhaustive expert search, stop and report the gap instead of writing an official-only report.
-
 ## Required Workflow
 
 Run these stages in order:
 
-1. Search both `sell` and `primary` corpora for the initial landscape, passing the same absolute `workspace` path to every research tool call. Within `primary`, make and record separate expert-targeted and official-targeted calls as required above. Handle the one-time conversational research confirmation before continuing retrieval.
+1. Start the initial landscape with an expert-targeted `primary` call and read its returned chunks. Only then search `sell` and make the separate official-targeted `primary` call. Pass the same absolute `workspace` path to every research tool call, record all three retrieval directions separately, and handle the one-time conversational research confirmation before continuing retrieval.
 2. Save the topic-shaped module plan, dispatch host-native workers or use the sequential fallback, and read every `modules/<id>.md` memo.
 3. Search both corpora iteratively with varied query seeds, relevant time windows, exact chunk reads, and surrounding context. Continue until additional retrieval no longer materially changes the claims, conflicts, or known gaps, or access is exhausted. Record the stopping reason and remaining gaps in `coverage_stats.json`; do not use record counts as a proxy for depth.
 4. Reconcile every module candidate in `evidence_disposition.md`: accept it into the evidence backbone or reject it with a reason. Then save `sell_side_logic.md`, `validation.md`, and the unified `evidence.json`. Every accepted item must link to one or more claim IDs and state whether it supports, challenges, or contextualizes them.
