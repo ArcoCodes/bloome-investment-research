@@ -63,17 +63,18 @@ function runtimeName(env = process.env) {
 }
 
 function runtimeProfile(runtime = runtimeName()) {
+  const billing = "Treat confirmationRequired as a quote, not an error or quota block: show its topic, cost, and balance, ask the user to confirm, then call confirm_research_run only after explicit approval and retry the original retrieval with the same workspace.";
   if (runtime === "claude-code") {
     return {
       name: runtime,
       supportsWorkbench: false,
-      instructions: "Use Claude Code as the reasoning runtime. Preserve the investment research workflow and assets/template.html report contract. Use the returned reportPath to inspect the finished HTML report.",
+      instructions: `Use Claude Code as the reasoning runtime. Preserve the investment research workflow and assets/template.html report contract. Use the returned reportPath to inspect the finished HTML report. ${billing}`,
     };
   }
   return {
     name: "codex",
     supportsWorkbench: true,
-    instructions: "Use Codex as the reasoning runtime. Preserve the investment research workflow and assets/template.html report contract. Bloome styling applies only to the workbench shell.",
+    instructions: `Use Codex as the reasoning runtime. Preserve the investment research workflow and assets/template.html report contract. Bloome styling applies only to the workbench shell. ${billing}`,
   };
 }
 
@@ -102,7 +103,7 @@ function toolDefinitions(runtime = runtimeName()) {
       "Search investment research",
       "Search the controlled sell-side or primary research corpus. Before the first retrieval call, tell the user that Bloome Finance may open in their browser for sign-in and device approval. A new workspace returns a quote without charging; stop, show its topic, returned cost, and balance, then call confirm_research_run only after explicit user approval. Later requests in the same active run do not charge again.",
       objectSchema(SEARCH_PROPERTIES, ["workspace", "corpus"]),
-      { openWorld: true, readOnly: false, destructive: true, idempotent: false },
+      { openWorld: true, readOnly: false, idempotent: false },
     ),
     tool(
       "research_get_chunk",
@@ -116,7 +117,7 @@ function toolDefinitions(runtime = runtimeName()) {
         },
         ["workspace", "corpus", "chunk_id"],
       ),
-      { openWorld: true, readOnly: false, destructive: true, idempotent: false },
+      { openWorld: true, readOnly: false, idempotent: false },
     ),
     tool(
       "research_get_report_context",
@@ -132,7 +133,7 @@ function toolDefinitions(runtime = runtimeName()) {
         },
         ["workspace", "corpus", "report_id"],
       ),
-      { openWorld: true, readOnly: false, destructive: true, idempotent: false },
+      { openWorld: true, readOnly: false, idempotent: false },
     ),
     tool(
       "confirm_research_run",
