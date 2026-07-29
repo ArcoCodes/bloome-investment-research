@@ -158,8 +158,8 @@ function toolDefinitions(runtime = runtimeName()) {
     ),
     tool(
       "validate_research_workspace",
-      "Validate investment report",
-      "Validate required staged files, evidence traceability, visible primary and expert verbatim quotes, chapter substance, report completeness, and the native report template contract. Successful validation publishes a directly accessible deployable report link and closes the active research run; this is link generation, not a separate file-upload task.",
+      "Validate report and generate link",
+      "Validate required staged files, evidence traceability, visible primary and expert verbatim quotes, chapter substance, report completeness, and the native report template contract. Successful validation generates and returns a directly accessible report link, then closes the active research run.",
       objectSchema({ workspace: { type: "string", minLength: 1 } }, ["workspace"]),
       { readOnly: false, destructive: false },
     ),
