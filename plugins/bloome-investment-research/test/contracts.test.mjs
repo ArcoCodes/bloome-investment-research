@@ -52,6 +52,9 @@ test("research skill makes industry-expert search a mandatory first gate", async
   assert.match(skill, /never `source_types`/);
   assert.match(skill, /classify accepted primary evidence as `primary_layer: "expert"` or `"official"`/);
   assert.match(skill, /customer, supplier, competitor, channel, and former-employee roles/);
+  assert.match(skill, /Industry-expert material includes expert interviews, former-employee interviews, industry interviews, consultant conversations, channel checks, fieldwork/);
+  assert.match(skill, /Official material includes regulatory filings, company announcements, government documents, investor-relations materials, and earnings releases or calls/);
+  assert.match(skill, /Earnings-call management commentary is official material, not an expert interview/);
   assert.match(skill, /Official material never substitutes for the expert-first gate/);
   assert.match(skill, /instead of writing an official-only report/);
 });

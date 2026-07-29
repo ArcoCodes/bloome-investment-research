@@ -67,7 +67,7 @@ The bundled `research_search` and `research_get_chunk` tools are the research co
 
 `sell` is the analytical and quantitative layer. Use it to extract conclusions, causal chains, assumptions, indicators, risks, market size, shipments, pricing, capex, shares, costs, forecasts, model tables, and historical series.
 
-Within `primary`, keep two distinct layers: industry-expert material discovers leading industrial change; official material confirms disclosed facts. Official material never substitutes for the expert-first gate.
+Within `primary`, keep two distinct layers. Industry-expert material includes expert interviews, former-employee interviews, industry interviews, consultant conversations, channel checks, fieldwork, and research notes whose substance is commentary from industry participants; use it to discover leading industrial change. Official material includes regulatory filings, company announcements, government documents, investor-relations materials, and earnings releases or calls; use it to confirm disclosed facts and management statements. Earnings-call management commentary is official material, not an expert interview. Official material never substitutes for the expert-first gate.
 
 `primary` outweighs `sell`. Sell-side views are hypotheses to be tested against primary reality, not co-equal proof: when the two conflict on the same question, let `primary` control the conclusion and keep the overruled sell-side view visible as a disagreement. A claim supported only by sell-side narrative carries less evidence strength than one calibrated by primary material, and should be labeled accordingly.
 
