@@ -12,7 +12,8 @@ async function fixtureWorkspace() {
   const root = await mkdtemp(path.join(os.tmpdir(), "bloome-research-test-"));
   const evidence = [
     { claim:"需求扩张",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"sell",chunk_id:"s1",report_id:"sr1",quote:"需求增长",source_type:"sell-side",title:"NAND Market Outlook",source_path:"sell/report.pdf",page_start:1,published_at:"2026-07-01" },
-    { claim:"交付约束",claim_ids:["C1"],relation:"challenge",stance:"challenge",kind:"fact",corpus:"primary",primary_layer:"expert",chunk_id:"p1",report_id:"pr1",quote:"交付仍受约束",title:"Industry Interview",source_path:"primary/interview.txt",line_start:2,line_end:3,published_at:"2026-07-02" },
+    { claim:"交付约束",claim_ids:["C1"],relation:"challenge",stance:"challenge",kind:"fact",corpus:"primary",primary_layer:"expert",chunk_id:"p1",report_id:"pr1",origin_id:"expert-origin-1",quote:"交付仍受约束，客户验证时间也存在不确定性。",title:"Industry Interview",source_path:"primary/interview.txt",line_start:2,line_end:3,published_at:"2026-07-02" },
+    { claim:"订单能见度",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"primary",primary_layer:"expert",chunk_id:"p2",report_id:"pr2",origin_id:"expert-origin-2",quote:"渠道反馈显示订单能见度正在改善，但库存消化仍需观察。",title:"Customer Channel Check",source_path:"primary/channel-check.txt",line_start:5,line_end:7,published_at:"2026-07-03" },
   ];
   const coverage = {
     retrieval_rounds: [
@@ -40,7 +41,7 @@ async function fixtureWorkspace() {
       "",
       "## Boundary and opposing evidence",
       "",
-      "边界条件是交付约束可能让需求信号晚于预期兑现，且独立产业访谈仍显示供应链存在不确定性。[Industry Interview, lines 2-3] 如果后续订单、库存或报价没有按时间窗口改善，应下调判断强度而不是删除反方证据。",
+      "边界条件是交付约束可能让需求信号晚于预期兑现，且独立产业访谈仍显示供应链存在不确定性。[Industry Interview, lines 2-3] 另一份渠道调研显示订单能见度改善，但库存仍需观察。[Customer Channel Check, lines 5-7] 如果后续订单、库存或报价没有按时间窗口改善，应下调判断强度而不是删除反方证据。",
     ].join("\n");
   });
   const visualPlans = [
@@ -57,13 +58,13 @@ async function fixtureWorkspace() {
     ].filter(Boolean).join("\n");
   }).join("\n\n");
   const finalReport = chapters.join("\n\n");
-  const visibleCitations = chapters.map(() => `<span class="src">NAND Market Outlook<span class="tip"><span class="tip-bd">需求增长</span></span></span><blockquote class="primary-quote">交付仍受约束<cite>Industry Interview · 2026-07-02</cite></blockquote>`).join("");
+  const visibleCitations = chapters.map(() => `<span class="src">NAND Market Outlook<span class="tip"><span class="tip-bd">需求增长</span></span></span><blockquote class="primary-quote">交付仍受约束，客户验证时间也存在不确定性。<cite>Industry Interview · 2026-07-02</cite></blockquote><blockquote class="primary-quote">渠道反馈显示订单能见度正在改善，但库存消化仍需观察。<cite>Customer Channel Check · 2026-07-03</cite></blockquote>`).join("");
   const figures = visualPlans.map((visual) => `<figure aria-label="${visual.title}"><h3>${visual.title}</h3><svg viewBox="0 0 640 240" role="img" aria-label="${visual.title}"><text>Demand</text></svg><div class="chart-source">NAND Market Outlook · evidence s1 p1</div></figure>`);
   const reportSections = chapters.map((chapter, index) => `<section>${chapter}${figures[index] || ""}</section>`).join("");
   const html = `<!doctype html><html><body><div class="report"><div class="top-bar"></div><div class="header"><div class="header-title">NAND cycle</div><div class="header-meta">2026年7月</div></div><div class="section judge-box">${reportSections}${visibleCitations}</div><div class="source-bar">Sources</div><div class="bottom-bar"></div></div></body></html>`;
   const moduleMemo = [
     "# Direct answer", "需求与供给纪律共同决定周期弹性。[NAND Market Outlook, p.1]",
-    "# Claim–evidence pairs", "chunk_id: `s1`\n\n需求扩张构成支持证据。[NAND Market Outlook, p.1]\n\nchunk_id: `p1`\n\n产业访谈对交付节奏构成反方校准。[Industry Interview, lines 2-3]",
+    "# Claim–evidence pairs", "chunk_id: `s1`\n\n需求扩张构成支持证据。[NAND Market Outlook, p.1]\n\nchunk_id: `p1`\n\n产业访谈对交付节奏构成反方校准。[Industry Interview, lines 2-3]\n\nchunk_id: `p2`\n\n渠道调研为订单能见度提供独立支持。[Customer Channel Check, lines 5-7]",
     "# Metrics", "跟踪订单、库存、报价和资本开支，并保留每个数字的原始定位。",
     "# Conflicts and date reconciliation", "同一证据链采用较新日期，独立来源的分歧继续保留。",
     "# Invalidating conditions", "若订单和报价未在验证窗口改善，则需求传导假设失效。",
@@ -83,7 +84,7 @@ async function fixtureWorkspace() {
     "plan.json": JSON.stringify({ topic:"AI 与 NAND",modules }),
     "sell_side_logic.md":"# Logic\n\n## C1 需求扩张\n",
     "validation.md":"# Validation\n\n## C1 需求扩张\n",
-    "evidence_disposition.md":"# Evidence disposition\n\n## Demand module\n\n- Accepted `s1` as decisive support for C1 because it directly measures demand growth.\n- Accepted `p1` as decisive challenge evidence for C1 because it limits the timing of delivery.\n",
+    "evidence_disposition.md":"# Evidence disposition\n\n## Demand module\n\n- Accepted `s1` as decisive support for C1 because it directly measures demand growth.\n- Accepted `p1` as decisive challenge evidence for C1 because it limits the timing of delivery.\n- Accepted `p2` as independent expert support for C1 because it reports improving order visibility.\n",
     "decision.md":"# Decision\n\n## Rule\n\nPrioritize probability of success, then compare payoff only after alternatives use the same valuation date and forecast basis.\n\n## Ranking\n\nbase > challenger\n\n## Reasoning\n\nBase ranks first because its evidence is stronger and more direct. Challenger has higher theoretical payoff, but more of it depends on unverified timing. Both are compared on the same valuation date and forecast year, using `s1` and `p1` for C1. The representative exposure is stated explicitly for each alternative.\n",
     "report_outline.md":outline,
     "final_report.md":finalReport,
@@ -158,7 +159,7 @@ test("workspace snapshot drives progress, evidence, and native report preview", 
   assert.equal(snapshot.topic, "AI 与 NAND");
   assert.equal(snapshot.progress, 100);
   assert.equal(snapshot.stage, 5);
-  assert.equal(snapshot.evidence.length, 2);
+  assert.equal(snapshot.evidence.length, 3);
   assert.match(snapshot.reportHtml, /class="report"/);
   assert.equal(snapshot.reportPath, path.join(workspace, "report.html"));
 });
@@ -193,18 +194,42 @@ test("workspace validator requires visible expert verbatim evidence", async () =
   const workspace = await fixtureWorkspace();
   const htmlPath = path.join(workspace, "report.html");
   const html = await readFile(htmlPath, "utf8");
-  await writeFile(htmlPath, html.replace(/<blockquote class="primary-quote">交付仍受约束<cite>Industry Interview · 2026-07-02<\/cite><\/blockquote>/g, ""));
+  await writeFile(htmlPath, html
+    .replace(/<blockquote class="primary-quote">交付仍受约束，客户验证时间也存在不确定性。<cite>Industry Interview · 2026-07-02<\/cite><\/blockquote>/g, "")
+    .replace(/<blockquote class="primary-quote">渠道反馈显示订单能见度正在改善，但库存消化仍需观察。<cite>Customer Channel Check · 2026-07-03<\/cite><\/blockquote>/g, ""));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
-  assert.ok(result.errors.includes("Expert or industry-interview evidence exists but no expert verbatim quote is visible in report.html"));
+  assert.ok(result.errors.includes("Report body must show multiple independent expert passages; one isolated expert quote or source-bar listing is insufficient"));
+});
+
+test("workspace validator rejects a report body with only one expert passage", async () => {
+  const workspace = await fixtureWorkspace();
+  const htmlPath = path.join(workspace, "report.html");
+  const html = await readFile(htmlPath, "utf8");
+  await writeFile(htmlPath, html.replace(/<blockquote class="primary-quote">渠道反馈显示订单能见度正在改善，但库存消化仍需观察。<cite>Customer Channel Check · 2026-07-03<\/cite><\/blockquote>/g, ""));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("Report body must show multiple independent expert passages; one isolated expert quote or source-bar listing is insufficient"));
+});
+
+test("workspace validator rejects a single accepted expert source", async () => {
+  const workspace = await fixtureWorkspace();
+  const evidencePath = path.join(workspace, "evidence.json");
+  const evidence = JSON.parse(await readFile(evidencePath, "utf8"));
+  await writeFile(evidencePath, JSON.stringify(evidence.filter((item) => item.chunk_id !== "p2")));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("One expert source cannot complete the expert-first gate. Repeat expert-targeted search until multiple independent expert sources are accepted"));
 });
 
 test("workspace validator rejects official-only primary evidence and requires expert re-search", async () => {
   const workspace = await fixtureWorkspace();
   const evidencePath = path.join(workspace, "evidence.json");
   const evidence = JSON.parse(await readFile(evidencePath, "utf8"));
-  evidence[1].primary_layer = "official";
-  evidence[1].title = "Company Earnings Call";
+  for (const item of evidence.filter((entry) => entry.primary_layer === "expert")) {
+    item.primary_layer = "official";
+    item.title = "Company Earnings Call";
+  }
   await writeFile(evidencePath, JSON.stringify(evidence));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);

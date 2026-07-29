@@ -159,7 +159,7 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "validate_research_workspace",
       "Validate report and generate link",
-      "Validate the mandatory industry-expert evidence gate, evidence traceability, visible verbatim quotes, chapter substance, report completeness, and the native report template contract. Official-only reports fail and must repeat expert-targeted search. Successful validation generates and returns a directly accessible report link, then closes the active research run.",
+      "Validate the mandatory industry-expert evidence gate, evidence traceability, multiple independent visible expert passages, chapter substance, report completeness, and the native report template contract. Official-only reports and reports with one isolated expert quote fail and must repeat expert-targeted search. Successful validation generates and returns a directly accessible report link, then closes the active research run.",
       objectSchema({ workspace: { type: "string", minLength: 1 } }, ["workspace"]),
       { readOnly: false, destructive: false },
     ),

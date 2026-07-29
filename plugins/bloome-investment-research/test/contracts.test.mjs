@@ -6,7 +6,7 @@ import { test } from "node:test";
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
   ["skills/investment-research/assets/template.html", "852b77895aff9685e8387562583c612eac8dab48452a438d8cff35dfaea4ae18"],
-  ["skills/investment-research/references/file-specs.md", "8186e84d56b9460f129d5b79c60dc5479c0e20d11d0a3538d9f68c7dff09325e"],
+  ["skills/investment-research/references/file-specs.md", "895282055c32abb774ac70f59204ed43076d7c3c08502dc71d1e531e64578adf"],
   ["skills/investment-research/references/chart-rules.md", "0f00fd2b12f7dac44b6ee3c718d638fd09fd5e078e03c1c6d2bc72b108282e10"],
 ]);
 
@@ -55,6 +55,10 @@ test("research skill makes industry-expert search a mandatory first gate", async
   assert.match(skill, /Industry-expert material includes expert interviews, former-employee interviews, industry interviews, consultant conversations, channel checks, fieldwork/);
   assert.match(skill, /Official material includes regulatory filings, company announcements, government documents, investor-relations materials, and earnings releases or calls/);
   assert.match(skill, /Earnings-call management commentary is official material, not an expert interview/);
+  assert.match(skill, /one expert item never completes the expert gate/);
+  assert.match(skill, /highest-priority reader-facing evidence layer/);
+  assert.match(skill, /multiple independent expert passages/);
+  assert.match(skill, /one isolated quotation, one extracted sentence/);
   assert.match(skill, /Official material never substitutes for the expert-first gate/);
   assert.match(skill, /instead of writing an official-only report/);
 });

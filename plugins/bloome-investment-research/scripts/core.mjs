@@ -151,8 +151,24 @@ export function validateReport(report, html, evidence, staged = {}) {
   const expertEvidence = primaryEvidence.filter(isIndustryExpertEvidence);
   if (!expertEvidence.length) {
     errors.push("No accepted industry-expert evidence found. Repeat expert-targeted primary searches with different roles, value-chain positions, and query wording; official materials do not satisfy this gate");
-  } else if (!expertEvidence.some(quoteIsVisible)) {
-    errors.push("Expert or industry-interview evidence exists but no expert verbatim quote is visible in report.html");
+  } else {
+    const expertOrigin = (item) => String(item.origin_id || item.report_id || item.chunk_id);
+    const independentExpertOrigins = new Set(expertEvidence.map(expertOrigin));
+    const visibleExpertEvidence = expertEvidence.filter(quoteIsVisible);
+    const visibleExpertOrigins = new Set(visibleExpertEvidence.map(expertOrigin));
+    if (independentExpertOrigins.size < 2) {
+      errors.push("One expert source cannot complete the expert-first gate. Repeat expert-targeted search until multiple independent expert sources are accepted");
+    }
+    if (visibleExpertOrigins.size < 2) {
+      errors.push("Report body must show multiple independent expert passages; one isolated expert quote or source-bar listing is insufficient");
+    }
+    const expertClaimIds = new Set(expertEvidence.flatMap((item) =>
+      Array.isArray(item.claim_ids) ? item.claim_ids.map((id) => String(id).toUpperCase()) : []));
+    for (const id of expertClaimIds) {
+      const claimHasVisibleExpert = visibleExpertEvidence.some((item) =>
+        Array.isArray(item.claim_ids) && item.claim_ids.some((claimId) => String(claimId).toUpperCase() === id));
+      if (!claimHasVisibleExpert) errors.push(`Core claim ${id} has accepted expert evidence but no matched expert passage visible in report.html`);
+    }
   }
   if (primaryQuoteCount && /专家纪要\s*\/\s*产业访谈\s*·\s*日期|evidence\.json\s*回填|来源待填/i.test(html)) {
     errors.push("Primary quote source must be populated from evidence.json, not a generic placeholder");
