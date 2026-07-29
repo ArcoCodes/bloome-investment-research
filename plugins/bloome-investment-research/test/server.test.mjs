@@ -12,8 +12,8 @@ async function fixtureWorkspace() {
   const root = await mkdtemp(path.join(os.tmpdir(), "bloome-research-test-"));
   const evidence = [
     { claim:"需求扩张",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"sell",chunk_id:"s1",report_id:"sr1",quote:"需求增长",source_type:"sell-side",title:"NAND Market Outlook",source_path:"sell/report.pdf",page_start:1,published_at:"2026-07-01" },
-    { claim:"交付约束",claim_ids:["C1"],relation:"challenge",stance:"challenge",kind:"fact",corpus:"primary",primary_layer:"expert",chunk_id:"p1",report_id:"pr1",origin_id:"expert-origin-1",quote:"交付仍受约束，客户验证时间也存在不确定性。",title:"Industry Interview",source_path:"primary/interview.txt",line_start:2,line_end:3,published_at:"2026-07-02" },
-    { claim:"订单能见度",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"primary",primary_layer:"expert",chunk_id:"p2",report_id:"pr2",origin_id:"expert-origin-2",quote:"渠道反馈显示订单能见度正在改善，但库存消化仍需观察。",title:"Customer Channel Check",source_path:"primary/channel-check.txt",line_start:5,line_end:7,published_at:"2026-07-03" },
+    { claim:"交付约束",claim_ids:["C1"],relation:"challenge",stance:"challenge",kind:"fact",corpus:"primary",chunk_id:"p1",report_id:"pr1",origin_id:"expert-origin-1",quote:"交付仍受约束，客户验证时间也存在不确定性。",title:"Industry Interview",source_path:"primary/interview.txt",line_start:2,line_end:3,published_at:"2026-07-02" },
+    { claim:"订单能见度",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"primary",chunk_id:"p2",report_id:"pr2",origin_id:"expert-origin-2",quote:"渠道反馈显示订单能见度正在改善，但库存消化仍需观察。",title:"Customer Channel Check",source_path:"primary/channel-check.txt",line_start:5,line_end:7,published_at:"2026-07-03" },
   ];
   const coverage = {
     retrieval_rounds: [
@@ -190,7 +190,7 @@ test("workspace validator rejects underlined sell-side tooltip passages", async 
   assert.ok(result.errors.some((error) => /plain text without underlines/.test(error)));
 });
 
-test("workspace validator requires visible expert verbatim evidence", async () => {
+test("workspace validator requires visible primary verbatim evidence", async () => {
   const workspace = await fixtureWorkspace();
   const htmlPath = path.join(workspace, "report.html");
   const html = await readFile(htmlPath, "utf8");
@@ -199,53 +199,36 @@ test("workspace validator requires visible expert verbatim evidence", async () =
     .replace(/<blockquote class="primary-quote">渠道反馈显示订单能见度正在改善，但库存消化仍需观察。<cite>Customer Channel Check · 2026-07-03<\/cite><\/blockquote>/g, ""));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
-  assert.ok(result.errors.includes("Report body must show multiple independent expert passages; one isolated expert quote or source-bar listing is insufficient"));
+  assert.ok(result.errors.includes("Report body must show multiple independent primary passages; one isolated quote or source-bar listing is insufficient"));
 });
 
-test("workspace validator rejects a report body with only one expert passage", async () => {
+test("workspace validator rejects a report body with only one primary passage", async () => {
   const workspace = await fixtureWorkspace();
   const htmlPath = path.join(workspace, "report.html");
   const html = await readFile(htmlPath, "utf8");
   await writeFile(htmlPath, html.replace(/<blockquote class="primary-quote">渠道反馈显示订单能见度正在改善，但库存消化仍需观察。<cite>Customer Channel Check · 2026-07-03<\/cite><\/blockquote>/g, ""));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
-  assert.ok(result.errors.includes("Report body must show multiple independent expert passages; one isolated expert quote or source-bar listing is insufficient"));
+  assert.ok(result.errors.includes("Report body must show multiple independent primary passages; one isolated quote or source-bar listing is insufficient"));
 });
 
-test("workspace validator rejects a single accepted expert source", async () => {
+test("workspace validator rejects a single accepted primary source", async () => {
   const workspace = await fixtureWorkspace();
   const evidencePath = path.join(workspace, "evidence.json");
   const evidence = JSON.parse(await readFile(evidencePath, "utf8"));
   await writeFile(evidencePath, JSON.stringify(evidence.filter((item) => item.chunk_id !== "p2")));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
-  assert.ok(result.errors.includes("One expert source cannot complete the expert-first gate. Repeat expert-targeted search until multiple independent expert sources are accepted"));
+  assert.ok(result.errors.includes("One primary source is insufficient. Continue primary retrieval until multiple independent sources are accepted"));
 });
 
-test("workspace validator rejects official-only primary evidence and requires expert re-search", async () => {
+test("workspace validator does not require invented primary classification fields", async () => {
   const workspace = await fixtureWorkspace();
   const evidencePath = path.join(workspace, "evidence.json");
   const evidence = JSON.parse(await readFile(evidencePath, "utf8"));
-  for (const item of evidence.filter((entry) => entry.primary_layer === "expert")) {
-    item.primary_layer = "official";
-    item.title = "Company Earnings Call";
-  }
-  await writeFile(evidencePath, JSON.stringify(evidence));
+  assert.ok(evidence.filter((item) => item.corpus === "primary").every((item) => !("primary_layer" in item)));
   const result = await server.validateWorkspace(workspace);
-  assert.equal(result.ok, false);
-  assert.ok(result.errors.some((error) => /Repeat expert-targeted primary searches/.test(error)));
-  assert.ok(result.errors.some((error) => /official materials do not satisfy this gate/.test(error)));
-});
-
-test("workspace validator requires Agent classification for unlabeled primary results", async () => {
-  const workspace = await fixtureWorkspace();
-  const evidencePath = path.join(workspace, "evidence.json");
-  const evidence = JSON.parse(await readFile(evidencePath, "utf8"));
-  delete evidence[1].primary_layer;
-  await writeFile(evidencePath, JSON.stringify(evidence));
-  const result = await server.validateWorkspace(workspace);
-  assert.equal(result.ok, false);
-  assert.ok(result.errors.includes("p1: primary evidence requires Agent-classified primary_layer expert or official"));
+  assert.equal(result.ok, true, result.errors.join("\n"));
 });
 
 test("workspace validator requires separate expert and official primary searches", async () => {

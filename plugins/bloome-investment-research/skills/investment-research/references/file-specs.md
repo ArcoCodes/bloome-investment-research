@@ -167,7 +167,7 @@ Required fields include:
 - `published_at`
 - `page_start` or `line_start`
 
-For every `primary` item, add `primary_layer: "expert"` or `"official"` after reading the source content. This is the Agent's evidence classification, not a label returned by the primary corpus. Preserve `source_type` only when the source actually returns one; never invent it.
+Preserve `source_type` only when the source actually returns one; never invent a source classification.
 
 Add `origin_id` when known so repeated reporting of the same underlying source is not treated as independent corroboration.
 

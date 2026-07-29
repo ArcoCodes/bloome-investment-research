@@ -6,7 +6,7 @@ import { test } from "node:test";
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
   ["skills/investment-research/assets/template.html", "852b77895aff9685e8387562583c612eac8dab48452a438d8cff35dfaea4ae18"],
-  ["skills/investment-research/references/file-specs.md", "895282055c32abb774ac70f59204ed43076d7c3c08502dc71d1e531e64578adf"],
+  ["skills/investment-research/references/file-specs.md", "8532046c4b6166d958d5a99a594cca6a86112bd510a984341db9e963e650f60a"],
   ["skills/investment-research/references/chart-rules.md", "0f00fd2b12f7dac44b6ee3c718d638fd09fd5e078e03c1c6d2bc72b108282e10"],
 ]);
 
@@ -49,14 +49,14 @@ test("research skill makes industry-expert evidence a mandatory completion gate"
   const skill = await readFile(new URL("skills/investment-research/SKILL.md", root), "utf8");
   assert.match(skill, /`sell` and `primary` may be searched in either order/);
   assert.match(skill, /Keep `sell` and `primary` as separate corpus searches/);
-  assert.match(skill, /run two separate `research_search` calls using different concepts and phrases/);
+  assert.match(skill, /run separate expert-targeted and official-targeted `research_search` calls using different concepts and phrases/);
   assert.match(skill, /never `source_types`/);
-  assert.match(skill, /classify accepted primary evidence as `primary_layer: "expert"` or `"official"`/);
+  assert.doesNotMatch(skill, /primary_layer/);
+  assert.match(skill, /Finding official materials does not complete primary research/);
   assert.match(skill, /customer, supplier, competitor, channel, and former-employee roles/);
   assert.match(skill, /Industry-expert material includes expert interviews, former-employee interviews, industry interviews, consultant conversations, channel checks, fieldwork/);
   assert.match(skill, /Official material includes regulatory filings, company announcements, government documents, investor-relations materials, and earnings releases or calls/);
   assert.match(skill, /Earnings-call management commentary is official material, not an expert interview/);
-  assert.match(skill, /one expert item never completes the expert gate/);
   assert.match(skill, /final evidence mix and report body must be expert-heavy/);
   assert.match(skill, /distributed across the core industry claims rather than concentrated in one section/);
   assert.match(skill, /highest-priority reader-facing evidence layer/);

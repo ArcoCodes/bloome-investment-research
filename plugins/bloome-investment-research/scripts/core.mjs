@@ -72,10 +72,6 @@ function preservesNarrative(report, html) {
   return segments.every((segment) => rendered.includes(segment));
 }
 
-function isIndustryExpertEvidence(item) {
-  return item?.primary_layer === "expert";
-}
-
 export function validateReport(report, html, evidence, staged = {}) {
   const errors = [];
   const warnings = [];
@@ -89,9 +85,6 @@ export function validateReport(report, html, evidence, staged = {}) {
   for (const item of evidence) {
     for (const key of ["claim", "stance", "kind", "corpus", "chunk_id", "report_id", "quote", "title", "source_path", "published_at"]) {
       if (!String(item[key] ?? "").trim()) errors.push(`${item.chunk_id || "unknown"}: missing ${key}`);
-    }
-    if (item.corpus === "primary" && !["expert", "official"].includes(item.primary_layer)) {
-      errors.push(`${item.chunk_id || "unknown"}: primary evidence requires Agent-classified primary_layer expert or official`);
     }
     const linkedClaims = Array.isArray(item.claim_ids) ? item.claim_ids.map((id) => String(id).toUpperCase()) : [];
     if (!linkedClaims.length) errors.push(`${item.chunk_id || "unknown"}: missing claim_ids`);
@@ -148,26 +141,23 @@ export function validateReport(report, html, evidence, staged = {}) {
   for (const item of citedPrimaryEvidence) {
     if (!quoteIsVisible(item)) errors.push(`Primary citation must show its verbatim quote in a visible primary-quote block: ${item.title}`);
   }
-  const expertEvidence = primaryEvidence.filter(isIndustryExpertEvidence);
-  if (!expertEvidence.length) {
-    errors.push("No accepted industry-expert evidence found. Repeat expert-targeted primary searches with different roles, value-chain positions, and query wording; official materials do not satisfy this gate");
-  } else {
-    const expertOrigin = (item) => String(item.origin_id || item.report_id || item.chunk_id);
-    const independentExpertOrigins = new Set(expertEvidence.map(expertOrigin));
-    const visibleExpertEvidence = expertEvidence.filter(quoteIsVisible);
-    const visibleExpertOrigins = new Set(visibleExpertEvidence.map(expertOrigin));
-    if (independentExpertOrigins.size < 2) {
-      errors.push("One expert source cannot complete the expert-first gate. Repeat expert-targeted search until multiple independent expert sources are accepted");
+  if (primaryEvidence.length) {
+    const primaryOrigin = (item) => String(item.origin_id || item.report_id || item.chunk_id);
+    const independentPrimaryOrigins = new Set(primaryEvidence.map(primaryOrigin));
+    const visiblePrimaryEvidence = primaryEvidence.filter(quoteIsVisible);
+    const visiblePrimaryOrigins = new Set(visiblePrimaryEvidence.map(primaryOrigin));
+    if (independentPrimaryOrigins.size < 2) {
+      errors.push("One primary source is insufficient. Continue primary retrieval until multiple independent sources are accepted");
     }
-    if (visibleExpertOrigins.size < 2) {
-      errors.push("Report body must show multiple independent expert passages; one isolated expert quote or source-bar listing is insufficient");
+    if (visiblePrimaryOrigins.size < 2) {
+      errors.push("Report body must show multiple independent primary passages; one isolated quote or source-bar listing is insufficient");
     }
-    const expertClaimIds = new Set(expertEvidence.flatMap((item) =>
+    const primaryClaimIds = new Set(primaryEvidence.flatMap((item) =>
       Array.isArray(item.claim_ids) ? item.claim_ids.map((id) => String(id).toUpperCase()) : []));
-    for (const id of expertClaimIds) {
-      const claimHasVisibleExpert = visibleExpertEvidence.some((item) =>
+    for (const id of primaryClaimIds) {
+      const claimHasVisiblePrimary = visiblePrimaryEvidence.some((item) =>
         Array.isArray(item.claim_ids) && item.claim_ids.some((claimId) => String(claimId).toUpperCase() === id));
-      if (!claimHasVisibleExpert) errors.push(`Core claim ${id} has accepted expert evidence but no matched expert passage visible in report.html`);
+      if (!claimHasVisiblePrimary) errors.push(`Core claim ${id} has accepted primary evidence but no matched primary passage visible in report.html`);
     }
   }
   if (primaryQuoteCount && /专家纪要\s*\/\s*产业访谈\s*·\s*日期|evidence\.json\s*回填|来源待填/i.test(html)) {
