@@ -12,6 +12,7 @@ const reportHtml = fs.readFileSync(path.resolve(__dirname, "../skills/investment
   .replace("高/中/低 — 原因", "中 — 需求信号明确，价格传导仍待验证")
   .replace("① 观点标题", "① 需求结构正在改变")
   .replace("分析内容，引用用", "推理负载把更多中间状态带回服务器本地存储，单位计算的闪存需求上升。")
+  .replace("〔机构·报告〕", "Nvidia Corp. (NVDA): Strong guidance plus improved capital allocation; we see CapEx sustainability driving a clearer path to outperformance")
   .replace("买方纪要原话……", "客户对高容量企业级 SSD 的询单增加，但交付节奏仍然谨慎。")
   .replace("② 相关标的核心数据", "② 相关标的核心数据")
   .replaceAll("{{sell_reports_read}}", "15")
