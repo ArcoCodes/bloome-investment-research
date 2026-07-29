@@ -65,7 +65,7 @@ The bundled `research_search` and `research_get_chunk` tools are the research co
 
 ## Evidence Layers
 
-`sell` contains research published by sell-side institutions. It represents what the market believes: earnings forecasts, key assumptions, debates, risks, and valuation frameworks. Use it to understand expectations and extract structured analysis, but treat its conclusions as hypotheses to test, not proof of industry reality.
+`sell` contains research published by sell-side institutions. It represents what the market believes: earnings forecasts, key assumptions, debates, risks, and valuation frameworks. Use it to extract the investment logic, causal chain, key assumptions, forecasts, disagreements, and valuation framework, and to understand what the market has priced in. Treat its conclusions as hypotheses to test against industry-expert and official material, not proof of industry reality.
 
 Within `primary`, search two material categories separately:
 

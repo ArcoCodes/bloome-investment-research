@@ -56,6 +56,9 @@ test("research skill makes industry-expert evidence a mandatory completion gate"
   assert.match(skill, /customer, supplier, competitor, channel, and former-employee roles/);
   assert.match(skill, /`sell` contains research published by sell-side institutions/);
   assert.match(skill, /It represents what the market believes: earnings forecasts, key assumptions, debates, risks, and valuation frameworks/);
+  assert.match(skill, /Use it to extract the investment logic, causal chain, key assumptions, forecasts, disagreements, and valuation framework/);
+  assert.match(skill, /understand what the market has priced in/);
+  assert.match(skill, /Treat its conclusions as hypotheses to test against industry-expert and official material, not proof of industry reality/);
   assert.match(skill, /Industry-expert material:\*\* expert interviews, former-employee interviews, industry-participant or consultant conversations, channel checks, fieldwork/);
   assert.match(skill, /customers and end users, procurement or operations staff, upstream suppliers, competitors, distributors and channel partners, integrators, and former executives or employees/);
   assert.match(skill, /Official material:\*\* regulatory filings, company announcements, government documents, investor-relations materials, and earnings releases or calls/);
