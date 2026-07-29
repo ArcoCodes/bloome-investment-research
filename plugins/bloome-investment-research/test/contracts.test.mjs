@@ -57,8 +57,9 @@ test("research skill makes industry-expert search a mandatory first gate", async
   assert.match(skill, /Earnings-call management commentary is official material, not an expert interview/);
   assert.match(skill, /one expert item never completes the expert gate/);
   assert.match(skill, /highest-priority reader-facing evidence layer/);
-  assert.match(skill, /multiple independent expert passages/);
-  assert.match(skill, /one isolated quotation, one extracted sentence/);
+  assert.match(skill, /complete verbatim passages from multiple independent expert sources/);
+  assert.match(skill, /a single quote, sentence excerpt, or source-only listing is invalid/);
+  assert.match(skill, /For every core industry claim supported or challenged by expert evidence/);
   assert.match(skill, /Official material never substitutes for the expert-first gate/);
   assert.match(skill, /instead of writing an official-only report/);
 });
