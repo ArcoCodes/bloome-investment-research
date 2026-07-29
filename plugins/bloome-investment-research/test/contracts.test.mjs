@@ -63,7 +63,10 @@ test("research skill makes industry-expert evidence a mandatory completion gate"
   assert.match(skill, /complete verbatim passages from multiple independent expert sources/);
   assert.match(skill, /a single quote, sentence excerpt, or source-only listing is invalid/);
   assert.match(skill, /For every core industry claim supported or challenged by expert evidence/);
-  assert.match(skill, /Official material never substitutes for the expert-first gate/);
+  assert.match(skill, /In every `primary` iteration, keep expert-targeted and official-targeted directions separate/);
+  assert.match(skill, /official results do not count as expert coverage/);
+  assert.match(skill, /until the core industry claims are covered by multiple independent expert sources/);
+  assert.match(skill, /Official material never substitutes for the expert evidence gate/);
   assert.match(skill, /instead of writing an official-only report/);
 });
 
