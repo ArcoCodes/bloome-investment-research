@@ -5,8 +5,8 @@ import { test } from "node:test";
 
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
-  ["skills/investment-research/assets/template.html", "44d8fcbef9ba778a6fabfcb55c536421e337012120d5aae9cbea8838cec06424"],
-  ["skills/investment-research/references/file-specs.md", "1c37ddbe371cfbf5f25d533ddbda79f28db87e92bb0ee66f821b76a2e16a924e"],
+  ["skills/investment-research/assets/template.html", "fd2ae028ffb631a17a5ec806daca3cef62db3f5f9a18bc6c484b567a2d758ae1"],
+  ["skills/investment-research/references/file-specs.md", "ba0243ece9ddb41fda84cb9a327c2614711629e5f4ce439dec06b5dde3aabc77"],
   ["skills/investment-research/references/chart-rules.md", "0f00fd2b12f7dac44b6ee3c718d638fd09fd5e078e03c1c6d2bc72b108282e10"],
 ]);
 
@@ -68,7 +68,11 @@ test("research skill makes industry-expert evidence a mandatory completion gate"
   assert.match(skill, /never cut or thin sell-side or official content to shift the evidence mix toward experts/);
   assert.match(skill, /distributed across the core industry claims rather than concentrated in one section/);
   assert.match(skill, /highest-priority reader-facing evidence layer/);
-  assert.match(skill, /complete verbatim passages from multiple independent expert sources/);
+  assert.match(skill, /complete passages from multiple independent expert sources/);
+  assert.match(skill, /translate every non-Chinese sell-side tooltip and primary quotation into complete, faithful Chinese/);
+  assert.match(skill, /evidence\.json\.quote_zh/);
+  assert.match(skill, /Place each visible `primary-quote` immediately after the paragraph, list item, or table interpretation/);
+  assert.match(skill, /Use only accepted evidence mapped in `evidence\.json`; do not invent or add evidence/);
   assert.match(skill, /a single quote, sentence excerpt, or source-only listing is invalid/);
   assert.match(skill, /For every core industry claim supported or challenged by expert evidence/);
   assert.match(skill, /In every `primary` iteration, keep expert-targeted and official-targeted directions separate/);

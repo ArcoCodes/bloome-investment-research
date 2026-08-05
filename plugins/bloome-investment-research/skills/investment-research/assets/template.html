@@ -78,10 +78,11 @@
   <div class="section">
     <div class="section-label">① 观点标题</div>
     <div class="analysis-text">
-      <p>分析内容，引用用 <span class="src" tabindex="0">〔机构·报告〕<span class="tip"><span class="tip-hd">研报原文 · 机构 · 报告</span><span class="tip-bd">完整原文段落——逐字抄录该论断所在的整个段落（而非一句话摘要），可含多段，段落间空一行；正文保持纯文本，不使用下划线。tooltip 已支持滚动，不必为长度截断原文</span></span></span>。</p>
+      <p>分析内容，引用用 <span class="src" tabindex="0">〔机构·报告〕<span class="tip"><span class="tip-hd">引用中译 · 机构 · 报告</span><span class="tip-bd">完整中文引文——若原文为外文，忠实翻译该论断所在的完整段落，保留所有数字、日期、限定条件与段落边界；不要摘要、截断或留下大段英文。正文保持纯文本</span></span></span>。</p>
     </div>
-    <!-- 买方/产业纪要原话直接展示，不使用 hover tooltip；逐字抄录完整段落，尽可能长，禁止用省略号压缩成一句摘要 -->
-    <blockquote class="primary-quote">“逐字抄录该论断所在的完整原话段落——保留说话人给出的具体数字、时间、条件与因果，不要删节、不要用省略号跳过中间内容；原话有多句就全部保留，宁长勿短。”<cite>来源：{{primary_quote_source}}</cite></blockquote>
+    <!-- 买方/产业纪要引文紧跟上方对应论述；同一论点可使用多条具有增量信息的独立引文；中文报告展示完整中译，原文留在 evidence.json 中溯源 -->
+    <blockquote class="primary-quote">“完整中文引文——原文为外文时忠实翻译全文，保留具体数字、时间、条件与因果，不删节、不用省略号。”<cite>来源：{{primary_quote_source}}</cite></blockquote>
+    <p>紧接引文解释它如何支持、限定或反驳上方判断，再进入下一个论点。</p>
     <!-- 图表插入位置：<div class="chart-row"><div class="chart-col">…SVG…</div></div> -->
   </div>
 
