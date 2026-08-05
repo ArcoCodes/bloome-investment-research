@@ -58,6 +58,8 @@ Every substantive chapter should include:
 - the implication for the final decision;
 - the condition that would change the section's conclusion or ranking.
 
+Integrate primary quotations inside the argument. Place a quotation immediately after the paragraph, list item, or table interpretation whose claim it supports or challenges, and continue with the implication or calibration. Multiple independent passages may appear together when they add distinct evidence to the same claim. Preserve the report's natural structure; do not move decision-relevant evidence away from its argument merely to collect quotations elsewhere.
+
 The final synthesis may rewrite and de-duplicate chapter prose, but it must preserve the approved argument order, decisive evidence, causal bridges, calculations, caveats, and decision logic. Do not reduce a completed chapter to one paragraph when it contains distinct demand, supply, pricing, profit, valuation, or risk arguments.
 
 ## Depth review
@@ -92,6 +94,7 @@ Before delivery, compare Markdown and HTML for content parity:
 
 - every reader-facing heading and subsection appears in order;
 - every table, list, primary quotation, citation, and planned visual is present;
+- every primary quotation remains adjacent to the claim it supports or challenges;
 - late sections such as monitoring and research gaps are not omitted;
 - mobile rendering preserves access to every column in wide tables;
 - screenshots cover the beginning, middle, and end of the long page.

@@ -58,10 +58,10 @@ async function fixtureWorkspace() {
     ].filter(Boolean).join("\n");
   }).join("\n\n");
   const finalReport = chapters.join("\n\n");
-  const visibleCitations = chapters.map(() => `<span class="src">NAND Market Outlook<span class="tip"><span class="tip-bd">需求增长</span></span></span><blockquote class="primary-quote">交付仍受约束，客户验证时间也存在不确定性。<cite>Industry Interview · 2026-07-02</cite></blockquote><blockquote class="primary-quote">渠道反馈显示订单能见度正在改善，但库存消化仍需观察。<cite>Customer Channel Check · 2026-07-03</cite></blockquote>`).join("");
+  const inlineEvidence = `<span class="src">NAND Market Outlook<span class="tip"><span class="tip-bd">需求增长</span></span></span><blockquote class="primary-quote">交付仍受约束，客户验证时间也存在不确定性。<cite>Industry Interview · 2026-07-02</cite></blockquote><blockquote class="primary-quote">渠道反馈显示订单能见度正在改善，但库存消化仍需观察。<cite>Customer Channel Check · 2026-07-03</cite></blockquote><p>这两条独立一手证据共同限定了需求传导的时间，因此在结论中保留验证和库存边界。</p>`;
   const figures = visualPlans.map((visual) => `<figure aria-label="${visual.title}"><h3>${visual.title}</h3><svg viewBox="0 0 640 240" role="img" aria-label="${visual.title}"><text>Demand</text></svg><div class="chart-source">NAND Market Outlook · evidence s1 p1</div></figure>`);
-  const reportSections = chapters.map((chapter, index) => `<section>${chapter}${figures[index] || ""}</section>`).join("");
-  const html = `<!doctype html><html><body><div class="report"><div class="top-bar"></div><div class="header"><div class="header-title">NAND cycle</div><div class="header-meta">2026年7月</div></div><div class="section judge-box">${reportSections}${visibleCitations}</div><div class="source-bar">Sources</div><div class="bottom-bar"></div></div></body></html>`;
+  const reportSections = chapters.map((chapter, index) => `<section class="section"><div class="section-label">${sectionTitles[index]}</div><div class="analysis-text">${chapter}</div>${inlineEvidence}${figures[index] || ""}</section>`).join("");
+  const html = `<!doctype html><html><body><div class="report"><div class="top-bar"></div><div class="header"><div class="header-title">NAND cycle</div><div class="header-meta">2026年7月</div></div><div class="section judge-box">${reportSections}</div><div class="source-bar">Sources</div><div class="bottom-bar"></div></div></body></html>`;
   const moduleMemo = [
     "# Direct answer", "需求与供给纪律共同决定周期弹性。[NAND Market Outlook, p.1]",
     "# Claim–evidence pairs", "chunk_id: `s1`\n\n需求扩张构成支持证据。[NAND Market Outlook, p.1]\n\nchunk_id: `p1`\n\n产业访谈对交付节奏构成反方校准。[Industry Interview, lines 2-3]\n\nchunk_id: `p2`\n\n渠道调研为订单能见度提供独立支持。[Customer Channel Check, lines 5-7]",
@@ -182,6 +182,46 @@ test("workspace validator enforces all staged and report contracts", async () =>
   assert.equal(result.chapters, 2);
 });
 
+test("workspace validator accepts complete Chinese display translations while preserving original quotes", async () => {
+  const workspace = await fixtureWorkspace();
+  const evidencePath = path.join(workspace, "evidence.json");
+  const evidence = JSON.parse(await readFile(evidencePath, "utf8"));
+  evidence[0].quote = "Demand is growing.";
+  evidence[0].quote_zh = "需求增长";
+  evidence[1].quote = "Deliveries remain constrained, and customer qualification timing is uncertain.";
+  evidence[1].quote_zh = "交付仍受约束，客户验证时间也存在不确定性。";
+  evidence[2].quote = "Channel checks show improving order visibility, but inventory digestion still requires observation.";
+  evidence[2].quote_zh = "渠道反馈显示订单能见度正在改善，但库存消化仍需观察。";
+  await writeFile(evidencePath, JSON.stringify(evidence));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, true, result.errors.join("\n"));
+});
+
+test("workspace validator rejects English evidence without quote_zh in a Chinese report", async () => {
+  const workspace = await fixtureWorkspace();
+  const evidencePath = path.join(workspace, "evidence.json");
+  const evidence = JSON.parse(await readFile(evidencePath, "utf8"));
+  evidence[0].quote = "Demand growth continues across the market while customer qualification remains the key timing constraint.";
+  await writeFile(evidencePath, JSON.stringify(evidence));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("s1: Chinese report requires quote_zh for non-Chinese evidence"));
+});
+
+test("workspace validator requires substantive local argument before a primary quote group", async () => {
+  const workspace = await fixtureWorkspace();
+  const htmlPath = path.join(workspace, "report.html");
+  const html = await readFile(htmlPath, "utf8");
+  const detached = html.replace(
+    /<div class="section-label">Causal mechanism<\/div><div class="analysis-text">[\s\S]*?<\/div>(?=<span class="src">)/,
+    '<div class="section-label">Causal mechanism</div><div class="analysis-text">简短标题。</div>',
+  );
+  await writeFile(htmlPath, detached);
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("Each primary quote group needs a substantive local argument immediately before it"));
+});
+
 test("workspace validator rejects underlined sell-side tooltip passages", async () => {
   const workspace = await fixtureWorkspace();
   const htmlPath = path.join(workspace, "report.html");
@@ -231,7 +271,7 @@ test("workspace validator rejects a sell-side tooltip that shortens the original
   await writeFile(htmlPath, html.replace(/<span class="tip-bd">需求增长<\/span>/g, '<span class="tip-bd">需求</span>'));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
-  assert.ok(result.errors.some((error) => /Sell-side tooltip must show the full verbatim passage/.test(error)));
+  assert.ok(result.errors.some((error) => /Sell-side tooltip must show the complete reader-facing passage/.test(error)));
 });
 
 test("workspace validator rejects a primary quote trimmed to an excerpt", async () => {
