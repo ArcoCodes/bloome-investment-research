@@ -13,15 +13,15 @@ The parent host owns the research run. MCP provides research data and determinis
 
 ## Reconciliation and writing
 
-The parent, not a worker:
+The parent:
 
 1. Deduplicates evidence by source and locator.
 2. Resolves same-chain date conflicts while preserving independent disagreement.
 3. Accounts for every module candidate in `evidence_disposition.md`, with an acceptance decision or a rejection reason, then merges accepted rows into the single `evidence.json` backbone.
 4. Writes `sell_side_logic.md`, `validation.md`, and `decision.md`. Ranked decisions must use comparable bases, exact evidence links, and a reproducible final order.
-5. Writes a natural-language editorial outline and, where useful, evidence-backed visual notes. Do not add internal section or visual IDs.
-6. Writes each chapter in the outline's editorial order with natural headings. Every substantive chapter includes citations and an explicit boundary, opposing-evidence, risk, or invalidation discussion.
-7. Synthesizes `final_report.md` from the chapter drafts and reconciled evidence. Rewrite and compress where useful, resolve contradictions, and retain decisive accepted evidence, citations, boundaries, disagreements, unresolved points, and the exact ranking from `decision.md`.
+5. Writes a natural-language editorial outline and, where useful, evidence-backed visual notes. Do not add reader-facing internal section or visual IDs.
+6. Freezes `evidence.json`, `decision.md`, and `report_outline.md`, then dispatches one chapter worker per substantive outline section using `chapter-contract.md`. Each worker receives only its section brief, relevant accepted evidence and memo passages, the decision, and neighboring-section boundaries, and writes one unique `chapter_XX_*.md`. If delegation is unavailable or a worker fails, the parent writes only the missing chapter with the same contract.
+7. Reads every chapter and resolves contradictions in the chapter files before assembly. Then assembles `final_report.md` in outline order while preserving every substantive chapter paragraph verbatim. It may add title/front matter, transitions, and source-coverage framing or remove an exact duplicate paragraph; it must not rewrite the chapters into a shorter summary.
 8. Copies `final_report.md` into `report.md`, renders all of it—not a dashboard summary—into the bundled single-page `report.html` template, then runs workspace validation.
 
-Only module memos may be written concurrently. Shared evidence, validation, chapter, and final-report files are parent-owned and written after workers finish.
+Evidence memos may be written concurrently in the first pass. Chapter files may be written concurrently in the second pass after evidence and decisions are frozen. Every worker has one unique output path; shared evidence, decision, outline, final-report, and HTML files remain parent-owned.

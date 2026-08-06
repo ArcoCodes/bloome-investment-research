@@ -377,15 +377,16 @@ test("workspace validator rejects shallow module and chapter artifacts", async (
   assert.ok(result.errors.some((error) => /chapter_01_section\.md requires at least one exact source citation/.test(error)));
 });
 
-test("workspace validator allows final synthesis to rewrite chapter drafts", async () => {
+test("workspace validator rejects final assembly that drops chapter prose", async () => {
   const workspace = await fixtureWorkspace();
-  const synthesis = await readFile(path.join(workspace, "chapter_01_section.md"), "utf8");
+  const shortened = await readFile(path.join(workspace, "chapter_01_section.md"), "utf8");
   await Promise.all([
-    writeFile(path.join(workspace, "final_report.md"), synthesis),
-    writeFile(path.join(workspace, "report.md"), synthesis),
+    writeFile(path.join(workspace, "final_report.md"), shortened),
+    writeFile(path.join(workspace, "report.md"), shortened),
   ]);
   const result = await server.validateWorkspace(workspace);
-  assert.equal(result.ok, true, result.errors.join("\n"));
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some((error) => /chapter_02_section\.md has substantive prose missing from final_report\.md/.test(error)));
 });
 
 test("workspace validator rejects summary HTML that omits the Markdown report", async () => {

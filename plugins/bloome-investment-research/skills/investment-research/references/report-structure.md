@@ -60,7 +60,7 @@ Every substantive chapter should include:
 
 Integrate primary quotations inside the argument. Place a quotation immediately after the paragraph, list item, or table interpretation whose claim it supports or challenges, and continue with the implication or calibration. Multiple independent passages may appear together when they add distinct evidence to the same claim. Preserve the report's natural structure; do not move decision-relevant evidence away from its argument merely to collect quotations elsewhere.
 
-The final synthesis may rewrite and de-duplicate chapter prose, but it must preserve the approved argument order, decisive evidence, causal bridges, calculations, caveats, and decision logic. Do not reduce a completed chapter to one paragraph when it contains distinct demand, supply, pricing, profit, valuation, or risk arguments.
+Resolve contradictions and improve prose inside each chapter before final assembly. Then assemble the chapters in the approved argument order and preserve every substantive chapter paragraph verbatim. Add transitions or remove an exact duplicate paragraph only; do not rewrite completed chapters into a shorter synthesis. Distinct demand, supply, pricing, profit, valuation, and risk arguments must survive as distinct prose.
 
 ## Depth review
 
@@ -71,7 +71,7 @@ Do not use length, chapter count, or source count as a quality target. Review de
 - preserve the causal bridge from demand through qualified supply and pricing into earnings and valuation;
 - retain the opposing evidence, unresolved conflicts, ranking-flip conditions, and a concrete monitoring or invalidation framework.
 
-If the final report feels compressed, compare it against the chapter drafts and restore omitted reasoning. Shorten only by removing repetition, generic background, or non-decision-useful source description.
+Before rendering, compare the final report against every chapter draft and restore any omitted paragraph. Shorten inside chapter drafting by removing generic background or non-decision-useful source description; after assembly, remove only exact duplicate paragraphs.
 
 ## Visual notes
 

@@ -292,6 +292,13 @@ function chapterErrors(name, markdown) {
   return errors;
 }
 
+function chapterAssemblyErrors(chapters, finalReport) {
+  const assembled = finalReport.replace(/\s+/g, " ").trim();
+  return chapters.flatMap(({ name, markdown }) => bodyParagraphs(markdown)
+    .filter((paragraph) => !assembled.includes(paragraph))
+    .map(() => `${name} has substantive prose missing from final_report.md; assemble chapters verbatim instead of rewriting a shorter synthesis`));
+}
+
 async function validateWorkspace(workspace) {
   const root = workspacePath(workspace);
   const core = await import(pathToFileURL(path.join(ROOT, "scripts", "core.mjs")).href);
@@ -318,6 +325,7 @@ async function validateWorkspace(workspace) {
   const chapterFiles = chapterArtifacts.map(({ name }) => ({ name, markdown: readText(path.join(root, name)) }));
   for (const chapter of chapterFiles) errors.push(...chapterErrors(chapter.name, chapter.markdown));
   const finalReport = readText(path.join(root, "final_report.md"));
+  errors.push(...chapterAssemblyErrors(chapterFiles, finalReport));
 
   const evidence = readJson(path.join(root, "evidence.json"), []);
   const report = readText(path.join(root, "report.md"));

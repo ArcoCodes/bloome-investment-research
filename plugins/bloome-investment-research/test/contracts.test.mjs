@@ -83,29 +83,37 @@ test("research skill makes industry-expert evidence a mandatory completion gate"
   assert.match(skill, /instead of dropping the claim, thinning the analysis, or withholding the report/);
 });
 
-test("shared workflow delegates memos with host-managed concurrency and a sequential fallback", async () => {
-  const [skill, moduleContract, workflow, reportStructure, worker, auditor] = await Promise.all([
+test("shared workflow delegates evidence and chapters with host-managed concurrency and a sequential fallback", async () => {
+  const [skill, moduleContract, chapterContract, workflow, reportStructure, worker, chapterWriter, auditor] = await Promise.all([
     "skills/investment-research/SKILL.md",
     "skills/investment-research/references/module-contract.md",
+    "skills/investment-research/references/chapter-contract.md",
     "skills/investment-research/references/multiagent-workflow.md",
     "skills/investment-research/references/report-structure.md",
     "agents/research-module.md",
+    "agents/chapter-writer.md",
     "agents/evidence-auditor.md",
   ].map((file) => readFile(new URL(file, root), "utf8")));
   assert.match(skill, /Let the host manage worker scheduling and concurrency/);
-  assert.match(skill, /run only the missing modules sequentially in the parent/);
+  assert.match(skill, /run only the missing modules or chapters sequentially in the parent/);
+  assert.match(skill, /one chapter worker to each planned substantive section/);
+  assert.match(skill, /Preserve every substantive chapter paragraph verbatim/);
   assert.match(skill, /render all of `report\.md` into a static single-page `report\.html`/);
   assert.match(skill, /evidence_disposition\.md/);
   assert.match(skill, /Save `decision\.md`/);
   assert.match(skill, /Continue until additional retrieval no longer materially changes/);
-  assert.match(skill, /Synthesize `final_report\.md` from the chapter drafts, reconciled evidence, and `decision\.md`/);
+  assert.match(skill, /Assemble `final_report\.md` from the chapter drafts in outline order/);
   assert.match(skill, /writes only `modules\/<id>\.md`/);
   assert.match(workflow, /MCP provides research data and deterministic validation; it never starts agents or calls a model/);
+  assert.match(workflow, /Chapter files may be written concurrently in the second pass/);
   assert.match(moduleContract, /# Conflicts and date reconciliation/);
   assert.match(moduleContract, /must not write an executive summary, chapter, outline, `evidence\.json`, or final report/);
+  assert.match(chapterContract, /Write only the assigned chapter file/);
+  assert.match(chapterContract, /complete evidence-to-conclusion chain/);
   assert.match(reportStructure, /natural-language editorial plan/);
   assert.match(reportStructure, /Do not require internal labels such as `S01` or `V01`/);
   assert.match(worker, /Write only the assigned module memo/);
+  assert.match(chapterWriter, /Write only the assigned chapter file/);
   assert.match(auditor, /Do not edit files or write report prose/);
 });
 
