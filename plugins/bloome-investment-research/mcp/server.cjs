@@ -6,6 +6,7 @@ const readline = require("node:readline");
 const { pathToFileURL } = require("node:url");
 const finance = require("./finance-client.cjs");
 const reportRenderer = require("../dist/render-report.cjs");
+const { resolvedCitations } = require("../scripts/citations.cjs");
 
 const ROOT = path.resolve(__dirname, "..");
 const PLUGIN_CONFIG = JSON.parse(fs.readFileSync(path.join(ROOT, "plugin.config.json"), "utf8"));
@@ -273,12 +274,6 @@ function coverageErrors(coverage) {
   return errors;
 }
 
-function citations(markdown) {
-  return [...markdown.matchAll(/(?:\[([^\]\n]+)\]|〔([^〕\n]+)〕|【([^】\n]+)】)/g)]
-    .map((match) => match[1] ?? match[2] ?? match[3])
-    .filter((value) => /,\s*(?:p{1,2}\.\d+(?:-\d+)?|lines? \d+(?:-\d+)?)/.test(value));
-}
-
 function bodyParagraphs(markdown) {
   return markdown
     .replace(/^#{1,6}\s+.*$/gm, "")
@@ -287,29 +282,28 @@ function bodyParagraphs(markdown) {
     .filter(Boolean);
 }
 
-function moduleErrors(id, markdown) {
+function moduleErrors(id, markdown, evidence) {
   const errors = [];
   if (!bodyParagraphs(markdown).length) errors.push(`module ${id} is title-only or lacks substantive evidence`);
-  if (!citations(markdown).length) errors.push(`module ${id} requires at least one exact source citation`);
+  if (!resolvedCitations(markdown, evidence).length) errors.push(`module ${id} requires at least one citation resolved to evidence.json`);
   return errors;
 }
 
-function chapterErrors(name, markdown) {
+function chapterErrors(name, markdown, evidence) {
   const errors = [];
   if (!bodyParagraphs(markdown).length) errors.push(`${name} is title-only or lacks substantive analysis`);
-  if (!citations(markdown).length) errors.push(`${name} requires at least one exact source citation`);
+  if (!resolvedCitations(markdown, evidence).length) errors.push(`${name} requires at least one citation resolved to evidence.json`);
   return errors;
 }
 
-function chapterCoverageErrors(chapters, finalReport) {
+function chapterCoverageErrors(chapters, finalReport, evidence) {
   const errors = [];
-  const finalCitations = new Set(citations(finalReport));
+  const finalEvidence = new Set(resolvedCitations(finalReport, evidence).map(({ item }) => item.chunk_id));
   for (const { name, markdown } of chapters) {
     const heading = markdown.match(/^#\s+(.+)$/m)?.[1]?.trim();
     if (heading && !finalReport.includes(heading)) errors.push(`${name} heading is missing from final_report.md`);
-    for (const citation of citations(markdown)) {
-      if (!finalCitations.has(citation)) errors.push(`${name} citation is missing from final_report.md: ${citation}`);
-    }
+    const chapterEvidence = resolvedCitations(markdown, evidence).map(({ item }) => item.chunk_id);
+    if (chapterEvidence.length && !chapterEvidence.some((id) => finalEvidence.has(id))) errors.push(`${name} has no evidence represented in final_report.md`);
   }
   return errors;
 }
@@ -317,14 +311,12 @@ function chapterCoverageErrors(chapters, finalReport) {
 function visualPlanErrors(outline, html, visuals) {
   const errors = [];
   const specs = new Map((Array.isArray(visuals) ? visuals : visuals?.visuals || []).map((visual) => [String(visual.key), visual]));
-  const planned = [...outline.matchAll(/^Planned visual:\s*(figure|table)\s+—\s+([a-z0-9][a-z0-9_-]*)\s+—/gim)]
-    .map((match) => ({ kind:match[1].toLowerCase(), key:match[2] }));
+  const planned = [...outline.matchAll(/^Planned visual:\s*(?:(?:figure|table|bar|line|range|flow|matrix)\s+—\s+)?([a-z0-9][a-z0-9_-]*)\s+—/gim)]
+    .map((match) => ({ key:match[1] }));
   for (const plan of planned) {
     const visual = specs.get(plan.key);
     if (!visual) { errors.push(`report_outline.md planned visual is missing from visuals.json: ${plan.key}`); continue; }
-    const isTable = ["table", "matrix"].includes(visual.type);
-    if ((plan.kind === "table") !== isTable) errors.push(`Planned visual kind does not match visuals.json type: ${plan.key}`);
-    if (!html.includes(`class="viz viz-${visual.type}"`)) errors.push(`report.html is missing planned visual: ${plan.key}`);
+    if (!html.includes(`data-visual-key="${plan.key}"`)) errors.push(`report.html is missing planned visual: ${plan.key}`);
   }
   for (const key of specs.keys()) if (!planned.some((plan) => plan.key === key)) errors.push(`visuals.json item is not planned in report_outline.md: ${key}`);
   return errors;
@@ -342,6 +334,7 @@ async function validateWorkspace(workspace) {
   const chapters = chapterArtifacts.length;
   if (!chapters) errors.push("research workspace requires chapter drafts");
 
+  const evidence = readJson(path.join(root, "evidence.json"), []);
   const plan = readJson(path.join(root, "plan.json"), {});
   const modules = Array.isArray(plan.modules) ? plan.modules : [];
   if (!names.has("plan.json")) errors.push("missing plan.json");
@@ -351,18 +344,20 @@ async function validateWorkspace(workspace) {
     if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) { errors.push(`invalid module id: ${id || "missing"}`); continue; }
     const memo = readText(path.join(root, "modules", `${id}.md`));
     if (!memo) errors.push(`missing modules/${id}.md`);
-    else errors.push(...moduleErrors(id, memo));
+    else errors.push(...moduleErrors(id, memo, evidence));
   }
 
   const chapterFiles = chapterArtifacts.map(({ name }) => ({ name, markdown: readText(path.join(root, name)) }));
-  for (const chapter of chapterFiles) errors.push(...chapterErrors(chapter.name, chapter.markdown));
+  for (const chapter of chapterFiles) errors.push(...chapterErrors(chapter.name, chapter.markdown, evidence));
   const finalReport = readText(path.join(root, "final_report.md"));
-  errors.push(...chapterCoverageErrors(chapterFiles, finalReport));
+  errors.push(...chapterCoverageErrors(chapterFiles, finalReport, evidence));
 
-  const evidence = readJson(path.join(root, "evidence.json"), []);
   const visuals = readJson(path.join(root, "visuals.json"), null);
   const coverage = readJson(path.join(root, "coverage_stats.json"), {});
   const report = readText(path.join(root, "report.md"));
+  const reportTitle = report.match(/^#\s+(.+)$/m)?.[1]?.trim();
+  const chapterHeadings = new Set(chapterFiles.map(({ markdown }) => markdown.match(/^#\s+(.+)$/m)?.[1]?.trim()).filter(Boolean));
+  if (!reportTitle || chapterHeadings.has(reportTitle)) errors.push("report.md requires a distinct H1 report title before its first H1 section");
   if (report.replace(/\s+/g, " ").trim() !== finalReport.replace(/\s+/g, " ").trim()) {
     errors.push("report.md must match the synthesized final_report.md");
   }

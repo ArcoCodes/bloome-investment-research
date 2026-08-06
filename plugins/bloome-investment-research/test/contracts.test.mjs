@@ -6,7 +6,7 @@ import { test } from "node:test";
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
   ["skills/investment-research/assets/template.html", "7bbfe936cb8d3f7cd3ebf29597f85446f40f8d257029bd696c49d5d13f997618"],
-  ["skills/investment-research/references/file-specs.md", "761e9b41276733f56636517400c45a6a22706df6d2e0e60fb9a80ddb78ce22c9"],
+  ["skills/investment-research/references/file-specs.md", "e60d10c779a59d39dfc6a5637329b3a84a34216324c9c7b662d5d4dc372161f8"],
   ["skills/investment-research/references/chart-rules.md", "64888516fee7a54e54822ea839b62a47f816d1a637350ea533da0cb0c45376d7"],
 ]);
 
@@ -104,7 +104,7 @@ test("shared workflow delegates evidence and chapters with host-managed concurre
   assert.match(skill, /Save `decision\.md`/);
   assert.match(skill, /Continue until additional retrieval no longer materially changes/);
   assert.match(skill, /Edit `final_report\.md` from the chapter drafts in outline order/);
-  assert.match(skill, /Planned visual: figure/);
+  assert.match(skill, /Planned visual: <descriptive-key>/);
   assert.match(skill, /Visual treatment: prose/);
   assert.match(skill, /writes only `modules\/<id>\.md`/);
   assert.match(workflow, /MCP provides research data and deterministic validation; it never starts agents or calls a model/);
@@ -113,7 +113,8 @@ test("shared workflow delegates evidence and chapters with host-managed concurre
   assert.match(moduleContract, /must not write an executive summary, chapter, outline, `evidence\.json`, or final report/);
   assert.match(chapterContract, /Write only the assigned chapter file/);
   assert.match(chapterContract, /complete evidence-to-conclusion chain/);
-  assert.match(chapterContract, /exact evidence or calculation inputs/);
+  assert.match(chapterContract, /supporting evidence or calculation in reader-facing analysis/);
+  assert.match(chapterContract, /Do not add “图表输入”/);
   assert.match(reportStructure, /natural-language editorial plan/);
   assert.match(reportStructure, /Do not require internal labels such as `S01` or `V01`/);
   assert.match(worker, /Write only the assigned module memo/);

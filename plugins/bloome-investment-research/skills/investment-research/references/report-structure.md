@@ -11,19 +11,19 @@ Use normal Markdown headings:
 
 Explain the decision, why it wins, the decisive evidence, and the main caveat.
 
-Planned visual: figure — probability-vs-payoff — Separate probability from payoff and keep the common valuation basis visible.
+Planned visual: probability-vs-payoff — Separate probability from payoff and keep the common valuation basis visible.
 
 # 供需机制
 
 Explain how demand, qualified capacity, yield, inventory, and pricing interact.
 
-Planned visual: figure — qualification-to-earnings — Show where qualification or pricing can interrupt the path from demand to earnings.
+Planned visual: qualification-to-earnings — Show where qualification or pricing can interrupt the path from demand to earnings.
 
 # 情景、估值与标的
 
 Compare scenarios and securities on the same date, forecast period, currency, and accounting basis.
 
-Planned visual: table — valuation-scenarios — Show the valuation range and the assumptions that create it.
+Planned visual: valuation-scenarios — Show the valuation range and the assumptions that create it.
 ```
 
 Let the topic determine the headings, order, and number of sections. Do not require internal labels such as `S01` or `V01`.
@@ -44,6 +44,8 @@ For a deep comparative or ranked investment question, use this as the default ed
 Combine adjacent items when that improves the narrative, but do not omit a layer merely to make the report shorter. A reader should be able to audit both why the industry wins and why the selected security wins at its current valuation.
 
 ## Chapters
+
+The final report begins with one reader-facing H1 title before the first H1 chapter heading. The renderer uses that first H1 as the document header rather than a substantive section.
 
 Write one chapter draft for each substantive outline section, in the same editorial order. Use the same natural heading or a clearly equivalent heading. Chapters may add subsections when useful.
 
@@ -75,7 +77,7 @@ Before rendering, compare the final report against every chapter draft and resto
 
 ## Visual notes
 
-Give every outline section one explicit visual treatment. Use `Planned visual: figure — <descriptive-key> — ...` or `Planned visual: table — <descriptive-key> — ...` when a visual materially improves the argument; otherwise use `Visual treatment: prose — ...` and explain why prose is clearer. Keys describe the argument and map to `visuals.json`; never use opaque labels such as `V01`. Do not target a fixed number of visuals.
+Give every outline section one explicit visual treatment. Use `Planned visual: <descriptive-key> — ...` when a visual materially improves the argument; otherwise use `Visual treatment: prose — ...` and explain why prose is clearer. The component type belongs only in `visuals.json`, so the outline cannot disagree with the renderer. Keys describe the argument and map to `visuals.json`; never use opaque labels such as `V01`. Do not target a fixed number of visuals.
 
 For each planned visual, describe:
 

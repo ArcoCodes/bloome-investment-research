@@ -59,10 +59,10 @@ async function fixtureWorkspace() {
     const visual = visualPlans[index];
     return [
       `# ${title}`, "Explain the section's purpose, evidence, caveat, and investment implication.",
-      visual ? `Planned visual: figure — ${visual.key} — ${visual.title}. ${visual.brief}` : "Visual treatment: prose — The section is a compact boundary discussion without a useful quantitative or spatial comparison.",
+      visual ? `Planned visual: ${visual.key} — ${visual.title}. ${visual.brief}` : "Visual treatment: prose — The section is a compact boundary discussion without a useful quantitative or spatial comparison.",
     ].filter(Boolean).join("\n");
   }).join("\n\n");
-  const finalReport = chapters.join("\n\n");
+  const finalReport = `# NAND cycle research\n\n${chapters.join("\n\n")}`;
   const inlineEvidence = `<span class="src">NAND Market Outlook<span class="tip"><span class="tip-bd">需求增长</span></span></span><blockquote class="primary-quote">交付仍受约束，客户验证时间也存在不确定性。<cite>Industry Interview · 2026-07-02</cite></blockquote><blockquote class="primary-quote">渠道反馈显示订单能见度正在改善，但库存消化仍需观察。<cite>Customer Channel Check · 2026-07-03</cite></blockquote><p>这两条独立一手证据共同限定了需求传导的时间，因此在结论中保留验证和库存边界。</p>`;
   const figures = visualPlans.map((visual) => `<figure aria-label="${visual.title}"><h3>${visual.title}</h3><svg viewBox="0 0 640 240" role="img" aria-label="${visual.title}"><text>Demand</text></svg><div class="chart-source">NAND Market Outlook · evidence s1 p1</div></figure>`);
   const reportSections = chapters.map((chapter, index) => `<section class="section"><div class="section-label">${sectionTitles[index]}</div><div class="analysis-text">${chapter}</div>${inlineEvidence}${figures[index] || ""}</section>`).join("");
@@ -302,6 +302,16 @@ test("workspace validator rejects a primary quote trimmed to an excerpt", async 
   assert.ok(result.errors.includes("Report body must show multiple independent primary passages; one isolated quote or source-bar listing is insufficient"));
 });
 
+test("workspace validator rejects a primary quote attributed to the wrong source", async () => {
+  const workspace = await fixtureWorkspace();
+  const htmlPath = path.join(workspace, "report.html");
+  const html = await readFile(htmlPath, "utf8");
+  await writeFile(htmlPath, html.replace("来源：Industry Interview · 2026-07-02", "来源：Customer Channel Check · 2026-07-03"));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("Primary quote does not match its stated source: Customer Channel Check"));
+});
+
 test("workspace validator does not require invented primary classification fields", async () => {
   const workspace = await fixtureWorkspace();
   const evidencePath = path.join(workspace, "evidence.json");
@@ -392,7 +402,7 @@ test("workspace validator rejects shallow module and chapter artifacts", async (
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
   assert.ok(result.errors.some((error) => /module demand is title-only/.test(error)));
-  assert.ok(result.errors.some((error) => /chapter_01_section\.md requires at least one exact source citation/.test(error)));
+  assert.ok(result.errors.some((error) => /chapter_01_section\.md requires at least one citation resolved to evidence\.json/.test(error)));
 });
 
 test("workspace validator allows editorial rewrites but rejects missing chapter coverage", async () => {
@@ -405,6 +415,17 @@ test("workspace validator allows editorial rewrites but rejects missing chapter 
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
   assert.ok(result.errors.includes("chapter_02_section.md heading is missing from final_report.md"));
+});
+
+test("workspace validator requires a report title before chapter headings", async () => {
+  const workspace = await fixtureWorkspace();
+  const reportPath = path.join(workspace, "report.md");
+  const finalPath = path.join(workspace, "final_report.md");
+  const report = (await readFile(reportPath, "utf8")).replace(/^# NAND cycle research\n\n/, "");
+  await Promise.all([writeFile(reportPath, report), writeFile(finalPath, report)]);
+  await server.callTool("render_research_report", { workspace });
+  const result = await server.validateWorkspace(workspace);
+  assert.ok(result.errors.includes("report.md requires a distinct H1 report title before its first H1 section"));
 });
 
 test("workspace validator rejects summary HTML that omits the Markdown report", async () => {

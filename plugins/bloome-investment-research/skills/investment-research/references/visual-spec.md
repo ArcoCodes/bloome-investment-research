@@ -1,6 +1,6 @@
 # Controlled Visual Specifications
 
-`visuals.json` is the only visual data input to the React report renderer. It keeps chart data, evidence links, and presentation intent separate from report prose. Never put raw HTML, SVG, CSS, JavaScript, or event handlers in `report.md` or `visuals.json`.
+`visuals.json` is the only visual data input to the React report renderer. It keeps chart data, evidence links, and presentation intent separate from report prose. A visual must answer one investment question faster than prose; otherwise use prose. Never put raw HTML, SVG, CSS, JavaScript, event handlers, or internal production notes in the reader-facing report.
 
 Use this top-level shape even when no visual is useful:
 
@@ -81,7 +81,7 @@ Valuation, scenario, or estimate ranges on one common basis.
 
 ### `flow`
 
-A restrained causal mechanism in one reading direction.
+A restrained causal bridge in one reading direction. Use three to five short nodes; put qualifications in `uncertainty`, not extra nodes. Do not use a flow for chronology, evidence lists, or prose broken into boxes.
 
 ```json
 {
@@ -96,7 +96,7 @@ A restrained causal mechanism in one reading direction.
 
 ### `table`
 
-Exact lookup across comparable measures.
+Exact lookup across comparable measures. Keep cells to one concise claim. The renderer uses a table on desktop and labeled row cards on narrow screens.
 
 ```json
 {
@@ -124,4 +124,4 @@ Two-variable sensitivity with printed values.
 }
 ```
 
-Use a prose section instead of inventing unsupported geometry. Add a new React component and contract test only when a recurring evidence structure cannot be expressed honestly by these types.
+Prefer `line` for time, `bar` for one-period comparison, `range` for valuation, `table` or `matrix` for qualitative comparisons, and `flow` only for a short causal bridge. Interview fragments and isolated observations belong in cited prose, not pseudo-quantitative charts. Use a prose section instead of inventing unsupported geometry. Add a new React component and contract test only when a recurring evidence structure cannot be expressed honestly by these types.

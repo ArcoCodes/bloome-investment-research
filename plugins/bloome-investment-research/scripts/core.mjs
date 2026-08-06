@@ -1,5 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import citationUtils from "./citations.cjs";
+
+const { citationLabels, locator, normalize, resolveCitation, resolvedCitations } = citationUtils;
 
 export function assertPlan(modules) {
   if (!Array.isArray(modules) || !modules.length) throw new Error("Research plan requires at least one module");
@@ -42,11 +45,6 @@ export async function loadPlan(cwd, workspace, topic, modules) {
   return root;
 }
 
-function locator(item) {
-  if (item.page_start != null) return `${item.page_end != null && item.page_end !== item.page_start ? "pp" : "p"}.${item.page_start}${item.page_end != null && item.page_end !== item.page_start ? `-${item.page_end}` : ""}`;
-  return `line${item.line_end != null && item.line_end !== item.line_start ? "s" : ""} ${item.line_start}${item.line_end != null && item.line_end !== item.line_start ? `-${item.line_end}` : ""}`;
-}
-
 function normalizedNarrative(value) {
   return value.replace(/[^\p{Letter}\p{Number}]+/gu, "").toLowerCase();
 }
@@ -86,7 +84,6 @@ export function validateReport(report, html, evidence, staged = {}) {
   const stagedClaimIds = new Set([...logicClaimIds, ...validationClaimIds]);
   for (const id of logicClaimIds) if (!validationClaimIds.has(id)) errors.push(`Claim ${id} is missing from validation.md`);
   for (const id of validationClaimIds) if (!logicClaimIds.has(id)) errors.push(`Claim ${id} is missing from sell_side_logic.md`);
-  const citations = new Set();
   for (const item of evidence) {
     for (const key of ["claim", "stance", "kind", "corpus", "chunk_id", "report_id", "quote", "title", "source_path", "published_at"]) {
       if (!String(item[key] ?? "").trim()) errors.push(`${item.chunk_id || "unknown"}: missing ${key}`);
@@ -100,7 +97,6 @@ export function validateReport(report, html, evidence, staged = {}) {
     for (const id of linkedClaims) if (!stagedClaimIds.has(id)) errors.push(`${item.chunk_id || "unknown"}: unknown claim_id ${id}`);
     if (!["support", "challenge", "context"].includes(item.relation)) errors.push(`${item.chunk_id || "unknown"}: invalid relation`);
     if (item.page_start == null && item.line_start == null) errors.push(`${item.chunk_id}: missing page/line locator`);
-    citations.add(`${item.title}, ${locator(item)}`);
   }
   for (const id of stagedClaimIds) {
     const linked = evidence.filter((item) => Array.isArray(item.claim_ids) && item.claim_ids.some((claimId) => String(claimId).toUpperCase() === id));
@@ -110,14 +106,15 @@ export function validateReport(report, html, evidence, staged = {}) {
       if (!linked.some((item) => item.relation === "challenge")) warnings.push(`Claim ${id} has no linked challenge evidence`);
     }
   }
-  const found = [...report.matchAll(/(?:\[([^\]\n]+)\]|〔([^〕\n]+)〕|【([^】\n]+)】)/g)]
-    .map((match) => ({ citation: match[1] ?? match[2] ?? match[3] }))
-    .filter(({ citation }) => /,\s*(?:p{1,2}\.\d+(?:-\d+)?|lines? \d+(?:-\d+)?)/.test(citation));
-  if (!found.length) errors.push("Report must contain reader-facing citations");
-  const matchedEvidence = found.map((citation) => evidence.find((item) => `${item.title}, ${locator(item)}` === citation.citation));
-  for (const citation of found) if (!citations.has(citation.citation)) errors.push(`Citation has no matching evidence: ${citation.citation}`);
+  const citationLabelsFound = citationLabels(report);
+  const resolved = resolvedCitations(report, evidence);
+  if (!resolved.length) errors.push("Report must contain reader-facing citations resolved to evidence.json");
+  for (const label of citationLabelsFound) {
+    if (!resolveCitation(label, evidence) && /(?:\d{4}-\d{2}-\d{2}|p{1,2}\.\s*\d+|lines?\s*\d+)/i.test(label)) errors.push(`Citation has no matching evidence: ${label}`);
+  }
+  const matchedEvidence = resolved.map(({ item }) => item);
   if (!evidence.some((item) => item.stance === "challenge")) errors.push("At least one challenge evidence item is required");
-  if (/\b(?:sell|primary|corpus|report_id|chunk_id|BM25|research_(?:search|plan|run_modules|synthesize))\b|模块/i.test(report)) errors.push("Report contains internal workflow jargon");
+  if (/\b(?:corpus|report_id|chunk_id|BM25|research_(?:search|plan|run_modules|synthesize))\b/i.test(report)) errors.push("Report contains internal workflow jargon");
   if (!/^<!doctype html>/i.test(html.trimStart()) || !/class=["'][^"']*report/i.test(html)) errors.push("HTML must be a complete report document");
   if (!preservesNarrative(report, html)) errors.push("HTML omits report.md narrative; render every heading, paragraph, table row, and citation context instead of rewriting a summary");
   const requiredTemplateClasses = ["report", "top-bar", "header", "header-title", "header-meta", "section", "judge-box", "source-bar", "bottom-bar"];
@@ -148,6 +145,20 @@ export function validateReport(report, html, evidence, staged = {}) {
   }
   const primaryQuoteElements = [...html.matchAll(/<blockquote\s+class=["'][^"']*\bprimary-quote\b[^"']*["'][^>]*>([\s\S]*?)<\/blockquote>/gi)];
   const primaryQuoteBodies = primaryQuoteElements.map((match) => htmlNarrative(match[1]));
+  for (const quote of primaryQuoteElements) {
+    const text = quote[1].replace(/<\/(?:p|div|cite|li)>/gi, "\n").replace(/<[^>]*>/g, " ")
+      .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    const sourceLabel = text.match(/来源[:：]\s*([^\n]+)/)?.[1]?.trim();
+    const quoteBody = htmlNarrative(quote[1]);
+    let source = sourceLabel && resolveCitation(sourceLabel, evidence);
+    if (!source && sourceLabel) {
+      const label = normalize(sourceLabel);
+      const candidates = evidence.filter((item) => item.corpus === "primary" && label.includes(normalize(item.title)) && (!item.published_at || label.includes(String(item.published_at).slice(0, 10))) && quoteBody.includes(normalizedNarrative(displayQuote(item))));
+      if (candidates.length === 1) source = candidates[0];
+    }
+    if (!source || source.corpus !== "primary") errors.push(`Primary quote source does not resolve to primary evidence: ${sourceLabel || "missing source line"}`);
+    else if (!quoteBody.includes(normalizedNarrative(displayQuote(source)))) errors.push(`Primary quote does not match its stated source: ${source.title}`);
+  }
   const quoteGroupStarts = primaryQuoteElements.length ? [primaryQuoteElements[0]] : [];
   for (let index = 1; index < primaryQuoteElements.length; index += 1) {
     const previous = primaryQuoteElements[index - 1];

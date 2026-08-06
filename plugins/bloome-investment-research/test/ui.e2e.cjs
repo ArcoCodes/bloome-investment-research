@@ -43,12 +43,13 @@ const reportTemplate = fs.readFileSync(path.resolve(__dirname, "../skills/invest
   .replaceAll("{{evidence_locator}}", "p.7");
 const reportHtml = renderer.renderReport({
   template:reportTemplate,
-  markdown:`# AI 推理需求与 NAND 价格周期\n\n# 核心判断\n\n推理侧本地存储需求正在改善需求结构，但价格弹性仍取决于库存去化和原厂资本开支纪律。[NAND Market Outlook, p.7]\n\n> 客户对高容量企业级 SSD 的询单增加，但交付节奏仍然谨慎。\n>\n> 来源：产业访谈 · 2026-07-02\n\n# 需求、盈利与估值\n\n推理负载增加通过本地闪存需求传导至价格与盈利。\n\n{{visual:demand-to-earnings}}\n\n估值必须保留库存重新累积的反方边界。\n\n{{visual:valuation-range}}`,
+  markdown:`# AI 推理需求与 NAND 价格周期\n\n# 核心判断\n\n推理侧本地存储需求正在改善需求结构，但价格弹性仍取决于库存去化和原厂资本开支纪律。[NAND Market Outlook, p.7]\n\n> 客户对高容量企业级 SSD 的询单增加，但交付节奏仍然谨慎。\n>\n> 来源：产业访谈 · 2026-07-02\n\n# 需求、盈利与估值\n\n推理负载增加通过本地闪存需求传导至价格与盈利。\n\n{{visual:demand-to-earnings}}\n\n估值必须保留库存重新累积的反方边界。\n\n{{visual:valuation-range}}\n\n{{visual:scenario-table}}`,
   evidence:[{chunk_id:"C1",title:"NAND Market Outlook",published_at:"2026-07-01",page_start:7,quote:"推理系统将更多中间状态卸载到本地闪存。"}],
   coverage:{sell_reports_read:15,primary_sources_read:9,report_month:"2026年7月"},
   visuals:{visuals:[
     {key:"demand-to-earnings",type:"flow",title:"本地存储需求通过价格传导至盈利",aria_label:"AI 推理需求到 NAND 盈利的传导链",uncertainty:"库存去化慢于预期会推迟价格兑现",evidence_ids:["C1"],nodes:[{label:"AI 推理",detail:"中间状态增加"},{label:"SSD 需求",detail:"单位容量提升"},{label:"合约价格",detail:"供给纪律决定弹性"},{label:"原厂盈利",detail:"价格进入毛利",highlight:true}]},
     {key:"valuation-range",type:"range",title:"基准估值仍有上行但不是单点承诺",aria_label:"NAND 标的估值区间",uncertainty:"库存和资本开支变化会改变区间",evidence_ids:["C1"],items:[{label:"代表标的",low:8,base:13,high:18,current:10,display:"$8–18"}]},
+    {key:"scenario-table",type:"table",title:"情景差异来自价格与供给纪律",aria_label:"NAND 情景比较",evidence_ids:["C1"],columns:["情景","价格","供给","结论"],rows:[["乐观","上升","克制","盈利扩张"],["基准","温和上升","稳定","逐步改善"],["悲观","持平","扩张","兑现推迟"]]},
   ]},
 });
 const fixture = {
@@ -144,6 +145,8 @@ function fixtureHtml({ disableAutoPanel = false } = {}) {
     const ledgerDisplay = await page.locator(".ledger").evaluate((node) => getComputedStyle(node).display);
     assert.equal(ledgerDisplay === "none", viewport.width <= 1180, `ledger breakpoint at ${viewport.width}px`);
   }
+  assert.equal(await reportFrame.locator(".viz-table-cards").evaluate((node) => getComputedStyle(node).display), "grid");
+  assert.equal(await reportFrame.locator(".viz-table-grid").evaluate((node) => getComputedStyle(node).display), "none");
 
   await page.getByRole("button", { name:"Thesis" }).click();
   await page.getByRole("button", { name:"Evidence" }).click();

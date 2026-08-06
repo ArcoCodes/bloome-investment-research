@@ -3,29 +3,21 @@ import path from "node:path";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { marked } from "marked";
+import citationUtils from "../../scripts/citations.cjs";
 
+const { locator, resolveCitation } = citationUtils;
 const VISUAL_TYPES = new Set(["bar", "line", "range", "flow", "table", "matrix"]);
-
-function locator(item) {
-  if (item.page_start != null) return `${item.page_end != null && item.page_end !== item.page_start ? "pp" : "p"}.${item.page_start}${item.page_end != null && item.page_end !== item.page_start ? `-${item.page_end}` : ""}`;
-  return `line${item.line_end != null && item.line_end !== item.line_start ? "s" : ""} ${item.line_start}${item.line_end != null && item.line_end !== item.line_start ? `-${item.line_end}` : ""}`;
-}
-
-function evidenceCitation(item) {
-  return item?.title && (item.page_start != null || item.line_start != null) ? `${item.title}, ${locator(item)}` : "";
-}
 
 function Citation({ item, label }) {
   const source = [item.title, item.published_at].filter(Boolean).join(" · ");
-  return <span className="src" tabIndex="0">〔{label}〕<span className="tip"><span className="tip-hd">{source}</span><span className="tip-bd">{item.quote_zh || item.quote}</span></span></span>;
+  return <span className="src" tabIndex="0">{label}<span className="tip"><span className="tip-hd">{source}</span><span className="tip-bd">{item.quote_zh || item.quote}</span></span></span>;
 }
 
-function citationParts(text, evidenceByCitation) {
-  const pattern = /(\[[^\]\n]+,\s*(?:p{1,2}\.\d+(?:-\d+)?|lines? \d+(?:-\d+)?)\]|〔[^〕\n]+〕|【[^】\n]+】)/g;
+function citationParts(text, evidence) {
+  const pattern = /(\[[^\]\n]+\]|〔[^〕\n]+〕|【[^】\n]+】)/g;
   return String(text).split(pattern).filter(Boolean).map((part, index) => {
-    const label = /^[\[〔【]/.test(part) ? part.slice(1, -1) : "";
-    const item = evidenceByCitation.get(label);
-    return item ? <Citation key={`${label}-${index}`} item={item} label={label} /> : <React.Fragment key={index}>{part}</React.Fragment>;
+    const item = /^[\[〔【]/.test(part) ? resolveCitation(part.slice(1, -1), evidence) : null;
+    return item ? <Citation key={`${part}-${index}`} item={item} label={part} /> : <React.Fragment key={index}>{part}</React.Fragment>;
   });
 }
 
@@ -48,19 +40,13 @@ function Inline({ tokens = [], evidenceByCitation }) {
   });
 }
 
-function visualSource(visual, evidenceById) {
-  return visual.evidence_ids.map((id) => {
-    const item = evidenceById.get(id);
-    return item ? evidenceCitation(item) : id;
-  }).join(" · ");
-}
-
 function Figure({ visual, evidenceById, children }) {
-  return <figure className={`viz viz-${visual.type}`} aria-label={visual.aria_label || visual.title}>
+  const sources = visual.evidence_ids.map((id) => ({ id, item:evidenceById.get(id) }));
+  return <figure className={`viz viz-type-${visual.type}`} data-visual-key={visual.key} aria-label={visual.aria_label || visual.title}>
     <figcaption><strong>{visual.title}</strong>{visual.deck && <span>{visual.deck}</span>}</figcaption>
     {children}
     {visual.uncertainty && <p className="viz-uncertainty">边界：{visual.uncertainty}</p>}
-    <div className="chart-source">来源：{visualSource(visual, evidenceById)}</div>
+    <details className="viz-sources"><summary>来源：{sources.length} 项已核验证据</summary><ul>{sources.map(({ id, item }) => <li key={id}><strong>{id}</strong> · {item.title}{locator(item) && ` · ${locator(item)}`}</li>)}</ul></details>
   </figure>;
 }
 
@@ -119,7 +105,10 @@ function FlowVisual({ visual, evidenceById }) {
 
 function TableVisual({ visual, evidenceById }) {
   if (!Array.isArray(visual.columns) || !visual.columns.length || !Array.isArray(visual.rows) || visual.rows.some((row) => row.length !== visual.columns.length)) throw new Error(`Visual ${visual.key} table rows must match its columns`);
-  return <Figure visual={visual} evidenceById={evidenceById}><div className="data-table"><table><thead><tr>{visual.columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{visual.rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div></Figure>;
+  return <Figure visual={visual} evidenceById={evidenceById}>
+    <div className="data-table viz-table-grid"><table><thead><tr>{visual.columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{visual.rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody></table></div>
+    <div className="viz-table-cards">{visual.rows.map((row, rowIndex) => <section key={rowIndex}>{row.map((cell, cellIndex) => <p key={cellIndex}><strong>{visual.columns[cellIndex]}</strong><span>{cell}</span></p>)}</section>)}</div>
+  </Figure>;
 }
 
 function MatrixVisual({ visual, evidenceById }) {
@@ -138,7 +127,8 @@ function Blocks({ tokens = [], context }) {
     const key = `${token.type}-${index}`;
     if (token.type === "space") return null;
     if (token.type === "paragraph") {
-      const marker = token.text.trim().match(/^\{\{visual:([a-z0-9][a-z0-9_-]*)\}\}$/i);
+      const text = token.text.trim();
+      const marker = text.match(/^\{\{visual:([a-z0-9][a-z0-9_-]*)\}\}$/i);
       if (marker) return <Visual key={key} visual={context.visuals.get(marker[1])} evidenceById={context.evidenceById} />;
       return <p key={key}><Inline tokens={token.tokens} evidenceByCitation={context.evidenceByCitation} /></p>;
     }
@@ -190,14 +180,17 @@ function normalizeVisuals(value, evidenceById, markdown) {
   }
   const markers = [...markdown.matchAll(/\{\{visual:([a-z0-9][a-z0-9_-]*)\}\}/gi)].map((match) => match[1]);
   for (const key of markers) if (!map.has(key)) throw new Error(`Missing visual specification: ${key}`);
-  for (const key of map.keys()) if (!markers.includes(key)) throw new Error(`Visual ${key} is not placed in report.md`);
+  for (const key of map.keys()) {
+    const placements = markers.filter((marker) => marker === key).length;
+    if (placements !== 1) throw new Error(`Visual ${key} must be placed exactly once in report.md`);
+  }
   return map;
 }
 
 function Report({ markdown, evidence, coverage, visuals, css }) {
   const { title, sections } = reportParts(markdown);
   const [lead, ...rest] = sections;
-  const evidenceByCitation = new Map(evidence.map((item) => [evidenceCitation(item), item]).filter(([key]) => key));
+  const evidenceByCitation = evidence;
   const evidenceById = new Map(evidence.flatMap((item) => [item.id, item.chunk_id].filter(Boolean).map((id) => [String(id), item])));
   const visualMap = normalizeVisuals(visuals, evidenceById, markdown);
   const context = { evidenceByCitation, evidenceById, visuals:visualMap };
@@ -212,7 +205,7 @@ function Report({ markdown, evidence, coverage, visuals, css }) {
 }
 
 const componentCss = `
-.analysis-text h2,.analysis-text h3{margin:22px 0 10px;color:#003A5C;line-height:1.35}.analysis-text ul,.analysis-text ol{margin:0 0 14px 22px}.analysis-text li{margin:6px 0}.analysis-text pre{overflow:auto;margin:16px 0;padding:14px;background:#F7F5F0}.analysis-text code{font-family:ui-monospace,SFMono-Regular,monospace}.analysis-text table{margin:16px 0}.viz{margin:24px 0;padding:18px 20px;border:1px solid #E0DCD4;border-radius:8px;background:#fff;font-family:'Helvetica Neue',Arial,sans-serif}.viz figcaption{margin-bottom:18px}.viz figcaption strong{display:block;color:#003A5C;font-size:14px;line-height:1.4}.viz figcaption span{display:block;margin-top:5px;color:#5A5A5A;font-size:11px;line-height:1.5}.viz-uncertainty{margin:14px 0 0;padding-top:10px;border-top:1px solid #E0DCD4;color:#5A5A5A;font-size:11px;line-height:1.5}.viz-bars,.viz-ranges{display:flex;flex-direction:column;gap:12px}.viz-bar-row,.viz-range-row{display:grid;grid-template-columns:minmax(90px,1fr) minmax(180px,3fr) auto;gap:12px;align-items:center;font-size:11px}.viz-label{color:#003A5C;font-weight:600}.viz-track{height:10px;background:#E0DCD4;border-radius:5px;overflow:hidden}.viz-track i{display:block;height:100%;background:#7A93A6}.viz-track i.highlight{background:#B59A57}.viz-svg{display:block;width:100%;height:auto}.viz-svg polyline{stroke:#003A5C;stroke-width:2}.viz-svg circle{fill:#B59A57}.viz-svg text{fill:#5A5A5A;font-size:10px}.viz-svg .viz-context polyline{stroke:#7A93A6;stroke-dasharray:5 4}.viz-axis{fill:#5A5A5A}.viz-range-track{position:relative;height:26px;border-bottom:1px solid #D5D1C8}.viz-range-track i{position:absolute;top:10px;height:7px;border-radius:4px;background:#B59A57}.viz-range-track b,.viz-range-track em{position:absolute;top:4px;width:2px;height:19px;background:#003A5C}.viz-range-track em{width:7px;height:7px;top:10px;border-radius:50%;background:#C65B4A;transform:translateX(-3px)}.viz-flow{display:flex;align-items:center;gap:8px}.viz-node{flex:1;min-width:0;padding:12px;border:1px solid #E0DCD4;border-radius:6px;text-align:center}.viz-node.highlight{border-color:#B59A57;background:#F7F5F0}.viz-node strong,.viz-node span{display:block}.viz-node strong{color:#003A5C;font-size:12px}.viz-node span{margin-top:4px;color:#5A5A5A;font-size:10px;line-height:1.4}.viz-arrow{position:relative;width:22px;height:12px;flex:none}.viz-arrow::before{content:'';position:absolute;top:5px;left:0;width:18px;border-top:1.5px solid #B59A57}.viz-arrow::after{content:'';position:absolute;top:2px;right:1px;width:6px;height:6px;border-top:1.5px solid #B59A57;border-right:1.5px solid #B59A57;transform:rotate(45deg)}.viz .data-table{padding:0;overflow-x:auto}.viz-matrix td.highlight{background:#F1EAD9;color:#003A5C;font-weight:700}@media(max-width:560px){.viz{padding:15px 14px}.viz-bar-row,.viz-range-row{grid-template-columns:80px minmax(110px,1fr) auto;gap:8px}.viz-flow{align-items:stretch;flex-direction:column}.viz-arrow{transform:rotate(90deg);align-self:center}.viz-svg text{font-size:11px}}
+.analysis-text h2,.analysis-text h3{margin:22px 0 10px;color:#003A5C;line-height:1.35}.analysis-text ul,.analysis-text ol{margin:0 0 14px 22px}.analysis-text li{margin:6px 0}.analysis-text pre{overflow:auto;margin:16px 0;padding:14px;background:#F7F5F0}.analysis-text code{font-family:ui-monospace,SFMono-Regular,monospace}.analysis-text table{margin:16px 0}.viz{margin:24px 0;padding:18px 20px;border:1px solid #E0DCD4;border-radius:8px;background:#fff;font-family:'Helvetica Neue',Arial,sans-serif}.viz figcaption{margin-bottom:18px}.viz figcaption strong{display:block;color:#003A5C;font-size:14px;line-height:1.4}.viz figcaption span{display:block;margin-top:5px;color:#5A5A5A;font-size:11px;line-height:1.5}.viz-uncertainty{margin:14px 0 0;padding-top:10px;border-top:1px solid #E0DCD4;color:#5A5A5A;font-size:11px;line-height:1.5}.viz-sources{margin-top:10px;color:#777;font-size:10px;line-height:1.5}.viz-sources summary{cursor:pointer}.viz-sources ul{max-height:180px;overflow:auto;margin:8px 0 0;padding-left:18px}.viz-sources li{margin:4px 0}.viz-table-cards{display:none}.viz-bars,.viz-ranges{display:flex;flex-direction:column;gap:12px}.viz-bar-row,.viz-range-row{display:grid;grid-template-columns:minmax(90px,1fr) minmax(180px,3fr) auto;gap:12px;align-items:center;font-size:11px}.viz-label{color:#003A5C;font-weight:600}.viz-track{height:10px;background:#E0DCD4;border-radius:5px;overflow:hidden}.viz-track i{display:block;height:100%;background:#7A93A6}.viz-track i.highlight{background:#B59A57}.viz-svg{display:block;width:100%;height:auto}.viz-svg polyline{stroke:#003A5C;stroke-width:2}.viz-svg circle{fill:#B59A57}.viz-svg text{fill:#5A5A5A;font-size:10px}.viz-svg .viz-context polyline{stroke:#7A93A6;stroke-dasharray:5 4}.viz-axis{fill:#5A5A5A}.viz-range-track{position:relative;height:26px;border-bottom:1px solid #D5D1C8}.viz-range-track i{position:absolute;top:10px;height:7px;border-radius:4px;background:#B59A57}.viz-range-track b,.viz-range-track em{position:absolute;top:4px;width:2px;height:19px;background:#003A5C}.viz-range-track em{width:7px;height:7px;top:10px;border-radius:50%;background:#C65B4A;transform:translateX(-3px)}.viz-flow{display:flex;align-items:center;gap:8px}.viz-node{flex:1;min-width:0;padding:12px;border:1px solid #E0DCD4;border-radius:6px;text-align:center}.viz-node.highlight{border-color:#B59A57;background:#F7F5F0}.viz-node strong,.viz-node span{display:block}.viz-node strong{color:#003A5C;font-size:12px}.viz-node span{margin-top:4px;color:#5A5A5A;font-size:10px;line-height:1.4}.viz-arrow{position:relative;width:22px;height:12px;flex:none}.viz-arrow::before{content:'';position:absolute;top:5px;left:0;width:18px;border-top:1.5px solid #B59A57}.viz-arrow::after{content:'';position:absolute;top:2px;right:1px;width:6px;height:6px;border-top:1.5px solid #B59A57;border-right:1.5px solid #B59A57;transform:rotate(45deg)}.viz .data-table{padding:0;overflow-x:auto}.viz-matrix td.highlight{background:#F1EAD9;color:#003A5C;font-weight:700}@media(max-width:560px){.viz{padding:15px 14px}.viz-table-grid{display:none}.viz-table-cards{display:grid;gap:10px}.viz-table-cards section{padding:12px;border:1px solid #E0DCD4;border-radius:6px;background:#fff}.viz-table-cards p{display:grid;grid-template-columns:minmax(90px,.8fr) 1.2fr;gap:10px;margin:0;padding:6px 0;border-bottom:1px solid #EEEAE2;font-size:11px;line-height:1.45}.viz-table-cards p:last-child{border-bottom:0}.viz-table-cards strong{color:#003A5C}.viz-table-cards span{color:#333}.viz-bar-row,.viz-range-row{grid-template-columns:80px minmax(110px,1fr) auto;gap:8px}.viz-flow{align-items:stretch;flex-direction:column}.viz-arrow{transform:rotate(90deg);align-self:center}.viz-svg text{font-size:11px}}
 `;
 
 export function renderReport({ markdown, evidence = [], coverage = {}, visuals = { visuals:[] }, template }) {
