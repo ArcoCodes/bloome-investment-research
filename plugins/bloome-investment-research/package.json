@@ -5,11 +5,17 @@
   "scripts": {
     "generate:manifests": "node scripts/generate-runtime-manifests.mjs",
     "check:manifests": "node scripts/generate-runtime-manifests.mjs --check",
+    "build:report": "esbuild src/report/render-report.jsx --bundle --minify --legal-comments=none --define:process.env.NODE_ENV='\"production\"' --platform=node --format=cjs --outfile=dist/render-report.cjs",
+    "check:report": "node scripts/check-report-bundle.mjs",
     "test": "node --test test/*.test.mjs",
     "test:ui": "node test/ui.e2e.cjs",
-    "verify": "npm run check:manifests && npm test"
+    "verify": "npm run check:manifests && npm run check:report && npm test"
   },
   "devDependencies": {
-    "playwright": "^1.58.0"
+    "esbuild": "^0.25.9",
+    "marked": "^16.2.1",
+    "playwright": "^1.58.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   }
 }

@@ -64,6 +64,7 @@ function preservesNarrative(report, html) {
   const rendered = htmlNarrative(html);
   const segments = report
     .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/\{\{visual:[^}]+\}\}/gi, "")
     .replace(/\[([^\]\n]+)\]\([^)\n]+\)/g, "$1")
     .replace(/(?:\[[^\]\n]+\]|〔[^〕\n]+〕|【[^】\n]+】)/g, "\n")
     .split(/\n+/)
@@ -154,7 +155,7 @@ export function validateReport(report, html, evidence, staged = {}) {
     const gap = html.slice(previous.index + previous[0].length, current.index);
     if (htmlNarrative(gap).length >= 24) quoteGroupStarts.push(current);
   }
-  const sectionLabelMarkers = [...html.matchAll(/<[^>]+class=["'][^"']*\bsection-label\b[^"']*["'][^>]*>/gi)];
+  const sectionLabelMarkers = [...html.matchAll(/<[^>]+class=["'][^"']*\b(?:section-label|judge-label)\b[^"']*["'][^>]*>/gi)];
   for (const quote of quoteGroupStarts) {
     const label = sectionLabelMarkers.filter((marker) => marker.index < quote.index).at(-1);
     const contextStart = label ? label.index + label[0].length : Math.max(0, quote.index - 1600);

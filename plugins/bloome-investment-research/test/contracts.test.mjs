@@ -5,9 +5,9 @@ import { test } from "node:test";
 
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
-  ["skills/investment-research/assets/template.html", "fd2ae028ffb631a17a5ec806daca3cef62db3f5f9a18bc6c484b567a2d758ae1"],
-  ["skills/investment-research/references/file-specs.md", "ba0243ece9ddb41fda84cb9a327c2614711629e5f4ce439dec06b5dde3aabc77"],
-  ["skills/investment-research/references/chart-rules.md", "0f00fd2b12f7dac44b6ee3c718d638fd09fd5e078e03c1c6d2bc72b108282e10"],
+  ["skills/investment-research/assets/template.html", "7bbfe936cb8d3f7cd3ebf29597f85446f40f8d257029bd696c49d5d13f997618"],
+  ["skills/investment-research/references/file-specs.md", "761e9b41276733f56636517400c45a6a22706df6d2e0e60fb9a80ddb78ce22c9"],
+  ["skills/investment-research/references/chart-rules.md", "64888516fee7a54e54822ea839b62a47f816d1a637350ea533da0cb0c45376d7"],
 ]);
 
 test("investment report contracts remain byte-for-byte unchanged", async () => {
@@ -17,11 +17,12 @@ test("investment report contracts remain byte-for-byte unchanged", async () => {
   }
 });
 
-test("cross-runtime skill keeps the original report template as source of truth", async () => {
+test("cross-runtime skill uses React SSR with the original report styles", async () => {
   const skill = await readFile(new URL("skills/investment-research/SKILL.md", root), "utf8");
   const template = await readFile(new URL("skills/investment-research/assets/template.html", root), "utf8");
-  assert.match(skill, /Use `assets\/template\.html` as the visual source of truth/);
-  assert.match(skill, /Do not replace it with a newly invented card layout/);
+  assert.match(skill, /React static renderer reads `assets\/template\.html` as the visual source of truth/);
+  assert.match(skill, /must not insert raw page HTML, SVG, CSS, JavaScript/);
+  assert.match(skill, /call `render_research_report`/);
   assert.match(skill, /evidence\.json` as the unified evidence backbone/);
   assert.match(skill, /Codex or Claude\/Cowork/);
   assert.match(skill, /host's existing account supplies the model/);
@@ -98,7 +99,7 @@ test("shared workflow delegates evidence and chapters with host-managed concurre
   assert.match(skill, /run only the missing modules or chapters sequentially in the parent/);
   assert.match(skill, /one chapter worker to each planned substantive section/);
   assert.match(skill, /rewrite, merge, and de-duplicate chapter prose for flow/);
-  assert.match(skill, /render all of `report\.md` into a static single-page `report\.html`/);
+  assert.match(skill, /call `render_research_report` with the absolute workspace path/);
   assert.match(skill, /evidence_disposition\.md/);
   assert.match(skill, /Save `decision\.md`/);
   assert.match(skill, /Continue until additional retrieval no longer materially changes/);
@@ -120,16 +121,20 @@ test("shared workflow delegates evidence and chapters with host-managed concurre
   assert.match(auditor, /Do not edit files or write report prose/);
 });
 
-test("editorial investment visualization is owned by a reusable skill, not validator markup", async () => {
-  const [skill, grammar, review, researchSkill] = await Promise.all([
+test("editorial investment visualization uses evidence-linked controlled components", async () => {
+  const [skill, grammar, review, visualSpec, researchSkill] = await Promise.all([
     "skills/investment-visualization/SKILL.md",
     "skills/investment-visualization/references/editorial-grammar.md",
     "skills/investment-visualization/references/review.md",
+    "skills/investment-research/references/visual-spec.md",
     "skills/investment-research/SKILL.md",
   ].map((file) => readFile(new URL(file, root), "utf8")));
   assert.match(skill, /This skill owns visual judgment/);
   assert.match(skill, /quality bar, not a request to reproduce another publisher's brand/);
   assert.match(skill, /Render the actual report in a browser and inspect it at desktop and narrow-phone widths/);
+  assert.match(skill, /never write raw HTML, SVG, CSS, JavaScript, or event handlers/);
+  assert.match(visualSpec, /`bar`, `line`, `range`, `flow`, `table`, or `matrix`/);
+  assert.match(visualSpec, /Every specification must have one marker/);
   assert.match(grammar, /The visual sentence/);
   assert.match(grammar, /Show probability evidence separately from payoff/);
   assert.match(review, /Five-second test/);

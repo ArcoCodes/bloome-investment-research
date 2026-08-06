@@ -11,19 +11,19 @@ Use normal Markdown headings:
 
 Explain the decision, why it wins, the decisive evidence, and the main caveat.
 
-Planned visual: figure — Separate probability from payoff and keep the common valuation basis visible.
+Planned visual: figure — probability-vs-payoff — Separate probability from payoff and keep the common valuation basis visible.
 
 # 供需机制
 
 Explain how demand, qualified capacity, yield, inventory, and pricing interact.
 
-Planned visual: figure — Show where qualification or pricing can interrupt the path from demand to earnings.
+Planned visual: figure — qualification-to-earnings — Show where qualification or pricing can interrupt the path from demand to earnings.
 
 # 情景、估值与标的
 
 Compare scenarios and securities on the same date, forecast period, currency, and accounting basis.
 
-Planned visual: table — Show the valuation range and the assumptions that create it.
+Planned visual: table — valuation-scenarios — Show the valuation range and the assumptions that create it.
 ```
 
 Let the topic determine the headings, order, and number of sections. Do not require internal labels such as `S01` or `V01`.
@@ -75,7 +75,7 @@ Before rendering, compare the final report against every chapter draft and resto
 
 ## Visual notes
 
-Give every outline section one explicit visual treatment. Use `Planned visual: figure — ...` or `Planned visual: table — ...` when a visual materially improves the argument; otherwise use `Visual treatment: prose — ...` and explain why prose is clearer. Do not target a fixed number of visuals.
+Give every outline section one explicit visual treatment. Use `Planned visual: figure — <descriptive-key> — ...` or `Planned visual: table — <descriptive-key> — ...` when a visual materially improves the argument; otherwise use `Visual treatment: prose — ...` and explain why prose is clearer. Keys describe the argument and map to `visuals.json`; never use opaque labels such as `V01`. Do not target a fixed number of visuals.
 
 For each planned visual, describe:
 
@@ -88,9 +88,9 @@ Do not prescribe a chart type before understanding the evidence. Use the `invest
 
 ## HTML
 
-Render the complete report in outline order inside the bundled single-page template. Do not expose internal planning labels in the reader-facing report.
+Call `render_research_report` to compile the complete report in outline order. The bundled React server renderer parses Markdown into tokens and emits one self-contained static HTML document with no browser React runtime. Do not hand-write the page shell or expose internal planning labels in the reader-facing report.
 
-Visuals use self-contained HTML/CSS/SVG, show a visible source line, and trace their values to exact `evidence.json` entries. The `investment-visualization` skill owns visual composition and quality review.
+Save visuals as supported component specifications in `visuals.json` using `visual-spec.md`, and place them with descriptive `{{visual:key}}` markers in `report.md`. Every visual traces to exact accepted evidence IDs. Do not insert raw HTML, SVG, CSS, JavaScript, or event handlers. The `investment-visualization` skill owns visual selection, data normalization, annotation text, and quality review; controlled React components own geometry, page integration, and responsive styles.
 
 Before delivery, compare Markdown and HTML for content parity:
 

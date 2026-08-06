@@ -5,6 +5,7 @@ const path = require("node:path");
 const readline = require("node:readline");
 const { pathToFileURL } = require("node:url");
 const finance = require("./finance-client.cjs");
+const reportRenderer = require("../dist/render-report.cjs");
 
 const ROOT = path.resolve(__dirname, "..");
 const PLUGIN_CONFIG = JSON.parse(fs.readFileSync(path.join(ROOT, "plugin.config.json"), "utf8"));
@@ -21,6 +22,7 @@ const REQUIRED_FILES = [
   "report.md",
   "report.html",
   "evidence.json",
+  "visuals.json",
   "coverage_stats.json",
 ];
 
@@ -68,13 +70,13 @@ function runtimeProfile(runtime = runtimeName()) {
     return {
       name: runtime,
       supportsWorkbench: false,
-      instructions: `Use Claude Code as the reasoning runtime. Preserve the investment research workflow and assets/template.html report contract. Use the returned reportPath to inspect the finished HTML report. ${billing}`,
+      instructions: `Use Claude Code as the reasoning runtime. Preserve the investment research workflow and render report.html with the bundled React static renderer. Use the returned reportPath to inspect the finished HTML report. ${billing}`,
     };
   }
   return {
     name: "codex",
     supportsWorkbench: true,
-    instructions: `Use Codex as the reasoning runtime. Preserve the investment research workflow and assets/template.html report contract. Bloome styling applies only to the workbench shell. ${billing}`,
+    instructions: `Use Codex as the reasoning runtime. Preserve the investment research workflow and render report.html with the bundled React static renderer. Bloome styling applies only to the workbench shell. ${billing}`,
   };
 }
 
@@ -158,10 +160,17 @@ function toolDefinitions(runtime = runtimeName()) {
       { widget: profile.supportsWorkbench },
     ),
     tool(
+      "render_research_report",
+      "Render static investment report",
+      "Compile report.md, evidence.json, visuals.json, and coverage_stats.json through the bundled React server renderer into a self-contained report.html. The output preserves the native report style, includes no React browser runtime, and is ready for visual review and upload.",
+      objectSchema({ workspace: WORKSPACE_PROPERTY }, ["workspace"]),
+      { readOnly: false, destructive: false },
+    ),
+    tool(
       "validate_research_workspace",
       "Validate report and generate link",
-      "Validate evidence traceability, multiple independent visible primary passages, chapter substance, report completeness, and the native report template contract. Successful validation generates and returns a directly accessible report link, then closes the active research run.",
-      objectSchema({ workspace: { type: "string", minLength: 1 } }, ["workspace"]),
+      "Validate evidence traceability, multiple independent visible primary passages, chapter substance, report completeness, planned visuals, and React-rendered static HTML. Successful validation generates and returns a directly accessible report link, then closes the active research run.",
+      objectSchema({ workspace: WORKSPACE_PROPERTY }, ["workspace"]),
       { readOnly: false, destructive: false },
     ),
   ];
@@ -305,15 +314,20 @@ function chapterCoverageErrors(chapters, finalReport) {
   return errors;
 }
 
-function visualPlanErrors(outline, html) {
-  const planned = [...outline.matchAll(/^Planned visual:\s*(figure|table)\b/gim)].map((match) => match[1].toLowerCase());
-  const rendered = {
-    figure: (html.match(/<figure\b/gi) || []).length,
-    table: (html.match(/<table\b/gi) || []).length,
-  };
-  return ["figure", "table"]
-    .filter((kind) => planned.filter((item) => item === kind).length > rendered[kind])
-    .map((kind) => `report.html is missing planned ${kind} visuals from report_outline.md`);
+function visualPlanErrors(outline, html, visuals) {
+  const errors = [];
+  const specs = new Map((Array.isArray(visuals) ? visuals : visuals?.visuals || []).map((visual) => [String(visual.key), visual]));
+  const planned = [...outline.matchAll(/^Planned visual:\s*(figure|table)\s+—\s+([a-z0-9][a-z0-9_-]*)\s+—/gim)]
+    .map((match) => ({ kind:match[1].toLowerCase(), key:match[2] }));
+  for (const plan of planned) {
+    const visual = specs.get(plan.key);
+    if (!visual) { errors.push(`report_outline.md planned visual is missing from visuals.json: ${plan.key}`); continue; }
+    const isTable = ["table", "matrix"].includes(visual.type);
+    if ((plan.kind === "table") !== isTable) errors.push(`Planned visual kind does not match visuals.json type: ${plan.key}`);
+    if (!html.includes(`class="viz viz-${visual.type}"`)) errors.push(`report.html is missing planned visual: ${plan.key}`);
+  }
+  for (const key of specs.keys()) if (!planned.some((plan) => plan.key === key)) errors.push(`visuals.json item is not planned in report_outline.md: ${key}`);
+  return errors;
 }
 
 async function validateWorkspace(workspace) {
@@ -346,15 +360,26 @@ async function validateWorkspace(workspace) {
   errors.push(...chapterCoverageErrors(chapterFiles, finalReport));
 
   const evidence = readJson(path.join(root, "evidence.json"), []);
+  const visuals = readJson(path.join(root, "visuals.json"), null);
+  const coverage = readJson(path.join(root, "coverage_stats.json"), {});
   const report = readText(path.join(root, "report.md"));
   if (report.replace(/\s+/g, " ").trim() !== finalReport.replace(/\s+/g, " ").trim()) {
     errors.push("report.md must match the synthesized final_report.md");
   }
   const html = readText(path.join(root, "report.html"));
-  errors.push(...visualPlanErrors(outline, html));
+  if (!/<meta\s+name=["']generator["']\s+content=["']Bloome React SSR["']/i.test(html)) {
+    errors.push("report.html must be generated by render_research_report");
+  }
+  try {
+    const template = readText(path.join(ROOT, "skills", "investment-research", "assets", "template.html"));
+    const expected = reportRenderer.renderReport({ markdown:report, evidence, coverage, visuals, template });
+    if (html.trim() !== expected.trim()) errors.push("report.html is stale; rerun render_research_report after changing report, evidence, visuals, coverage, or template inputs");
+  } catch (error) {
+    errors.push(`React report render failed: ${error.message}`);
+  }
+  errors.push(...visualPlanErrors(outline, html, visuals));
   const sellSideLogic = readText(path.join(root, "sell_side_logic.md"));
   const validationMarkdown = readText(path.join(root, "validation.md"));
-  const coverage = readJson(path.join(root, "coverage_stats.json"), {});
   errors.push(...coverageErrors(coverage));
   let result;
   if (Array.isArray(evidence) && report && html) {
@@ -423,6 +448,7 @@ async function callTool(name, args = {}, runtime = runtimeName(), options = {}) 
       workbenchAvailable: profile.supportsWorkbench,
     };
   }
+  if (name === "render_research_report") return reportRenderer.renderWorkspace(args.workspace, ROOT);
   if (name === "validate_research_workspace") return validateWorkspace(args.workspace);
   throw new Error(`unknown tool: ${name}`);
 }
