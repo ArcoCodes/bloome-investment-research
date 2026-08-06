@@ -11,7 +11,7 @@ The parent gives each writer:
 - only the accepted evidence entries, module memo passages, calculations, and opposing evidence relevant to that section;
 - short descriptions of neighboring sections so the chapter does not duplicate them.
 
-Write only the assigned chapter file. Use the natural reader-facing heading from the outline and the existing final-report citation and quotation format. Do not edit `evidence.json`, `decision.md`, the outline, another chapter, `final_report.md`, `report.md`, or HTML.
+Write only the assigned chapter file. Use the natural reader-facing heading from the outline and the existing final-report citation and quotation format. If the outline plans a figure or table, write the surrounding interpretation and the exact evidence or calculation inputs the parent needs to render it; do not render HTML. Do not edit `evidence.json`, `decision.md`, the outline, another chapter, `final_report.md`, `report.md`, or HTML.
 
 The chapter must contain:
 

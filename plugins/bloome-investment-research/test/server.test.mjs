@@ -54,7 +54,7 @@ async function fixtureWorkspace() {
     const visual = visualPlans[index];
     return [
       `# ${title}`, "Explain the section's purpose, evidence, caveat, and investment implication.",
-      visual ? `Possible visual: ${visual.title}. ${visual.brief}` : "",
+      visual ? `Planned visual: figure — ${visual.title}. ${visual.brief}` : "Visual treatment: prose — The section is a compact boundary discussion without a useful quantitative or spatial comparison.",
     ].filter(Boolean).join("\n");
   }).join("\n\n");
   const finalReport = chapters.join("\n\n");
@@ -377,7 +377,7 @@ test("workspace validator rejects shallow module and chapter artifacts", async (
   assert.ok(result.errors.some((error) => /chapter_01_section\.md requires at least one exact source citation/.test(error)));
 });
 
-test("workspace validator rejects final assembly that drops chapter prose", async () => {
+test("workspace validator allows editorial rewrites but rejects missing chapter coverage", async () => {
   const workspace = await fixtureWorkspace();
   const shortened = await readFile(path.join(workspace, "chapter_01_section.md"), "utf8");
   await Promise.all([
@@ -386,7 +386,7 @@ test("workspace validator rejects final assembly that drops chapter prose", asyn
   ]);
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
-  assert.ok(result.errors.some((error) => /chapter_02_section\.md has substantive prose missing from final_report\.md/.test(error)));
+  assert.ok(result.errors.includes("chapter_02_section.md heading is missing from final_report.md"));
 });
 
 test("workspace validator rejects summary HTML that omits the Markdown report", async () => {
@@ -408,6 +408,16 @@ test("research artifacts use natural headings without internal section or visual
   assert.doesNotMatch(html, /data-(?:section|visual)-id/);
 });
 
+test("workspace validator requires planned visuals in report HTML", async () => {
+  const workspace = await fixtureWorkspace();
+  const htmlPath = path.join(workspace, "report.html");
+  const html = await readFile(htmlPath, "utf8");
+  await writeFile(htmlPath, html.replace(/<figure\b[\s\S]*?<\/figure>/, ""));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("report.html is missing planned figure visuals from report_outline.md"));
+});
+
 test("workspace validator allows a topic with no useful visual", async () => {
   const workspace = await fixtureWorkspace();
   const outlinePath = path.join(workspace, "report_outline.md");
@@ -415,7 +425,7 @@ test("workspace validator allows a topic with no useful visual", async () => {
   const outline = await readFile(outlinePath, "utf8");
   const html = await readFile(htmlPath, "utf8");
   await Promise.all([
-    writeFile(outlinePath, outline.replace(/^Possible visual:.*\n?/m, "")),
+    writeFile(outlinePath, outline.replace(/^Planned visual:.*$/m, "Visual treatment: prose — A visual would not improve this argument.")),
     writeFile(htmlPath, html.replace(/<figure\b[\s\S]*?<\/figure>/, "")),
   ]);
   const result = await server.validateWorkspace(workspace);

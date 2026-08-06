@@ -97,12 +97,14 @@ test("shared workflow delegates evidence and chapters with host-managed concurre
   assert.match(skill, /Let the host manage worker scheduling and concurrency/);
   assert.match(skill, /run only the missing modules or chapters sequentially in the parent/);
   assert.match(skill, /one chapter worker to each planned substantive section/);
-  assert.match(skill, /Preserve every substantive chapter paragraph verbatim/);
+  assert.match(skill, /rewrite, merge, and de-duplicate chapter prose for flow/);
   assert.match(skill, /render all of `report\.md` into a static single-page `report\.html`/);
   assert.match(skill, /evidence_disposition\.md/);
   assert.match(skill, /Save `decision\.md`/);
   assert.match(skill, /Continue until additional retrieval no longer materially changes/);
-  assert.match(skill, /Assemble `final_report\.md` from the chapter drafts in outline order/);
+  assert.match(skill, /Edit `final_report\.md` from the chapter drafts in outline order/);
+  assert.match(skill, /Planned visual: figure/);
+  assert.match(skill, /Visual treatment: prose/);
   assert.match(skill, /writes only `modules\/<id>\.md`/);
   assert.match(workflow, /MCP provides research data and deterministic validation; it never starts agents or calls a model/);
   assert.match(workflow, /Chapter files may be written concurrently in the second pass/);
@@ -110,6 +112,7 @@ test("shared workflow delegates evidence and chapters with host-managed concurre
   assert.match(moduleContract, /must not write an executive summary, chapter, outline, `evidence\.json`, or final report/);
   assert.match(chapterContract, /Write only the assigned chapter file/);
   assert.match(chapterContract, /complete evidence-to-conclusion chain/);
+  assert.match(chapterContract, /exact evidence or calculation inputs/);
   assert.match(reportStructure, /natural-language editorial plan/);
   assert.match(reportStructure, /Do not require internal labels such as `S01` or `V01`/);
   assert.match(worker, /Write only the assigned module memo/);
@@ -131,5 +134,5 @@ test("editorial investment visualization is owned by a reusable skill, not valid
   assert.match(grammar, /Show probability evidence separately from payoff/);
   assert.match(review, /Five-second test/);
   assert.match(review, /Final decision test/);
-  assert.match(researchSkill, /use the `investment-visualization` skill/);
+  assert.match(researchSkill, /use the `investment-visualization` skill/i);
 });

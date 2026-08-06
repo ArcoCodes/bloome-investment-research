@@ -11,19 +11,19 @@ Use normal Markdown headings:
 
 Explain the decision, why it wins, the decisive evidence, and the main caveat.
 
-Possible visual: Separate probability from payoff and keep the common valuation basis visible.
+Planned visual: figure — Separate probability from payoff and keep the common valuation basis visible.
 
 # 供需机制
 
 Explain how demand, qualified capacity, yield, inventory, and pricing interact.
 
-Possible visual: Show where qualification or pricing can interrupt the path from demand to earnings.
+Planned visual: figure — Show where qualification or pricing can interrupt the path from demand to earnings.
 
 # 情景、估值与标的
 
 Compare scenarios and securities on the same date, forecast period, currency, and accounting basis.
 
-Possible visual: Show the valuation range and the assumptions that create it.
+Planned visual: table — Show the valuation range and the assumptions that create it.
 ```
 
 Let the topic determine the headings, order, and number of sections. Do not require internal labels such as `S01` or `V01`.
@@ -60,7 +60,7 @@ Every substantive chapter should include:
 
 Integrate primary quotations inside the argument. Place a quotation immediately after the paragraph, list item, or table interpretation whose claim it supports or challenges, and continue with the implication or calibration. Multiple independent passages may appear together when they add distinct evidence to the same claim. Preserve the report's natural structure; do not move decision-relevant evidence away from its argument merely to collect quotations elsewhere.
 
-Resolve contradictions and improve prose inside each chapter before final assembly. Then assemble the chapters in the approved argument order and preserve every substantive chapter paragraph verbatim. Add transitions or remove an exact duplicate paragraph only; do not rewrite completed chapters into a shorter synthesis. Distinct demand, supply, pricing, profit, valuation, and risk arguments must survive as distinct prose.
+Use the completed chapters as the analytical source for final editing. Rewrite, merge, and de-duplicate repeated background for flow, but preserve every chapter heading, direct answer, distinct mechanism, decisive number or calculation, citation, disagreement, caveat, and decision condition. Distinct demand, supply, pricing, profit, valuation, and risk arguments must survive as distinct prose; repeated explanations need not.
 
 ## Depth review
 
@@ -71,18 +71,20 @@ Do not use length, chapter count, or source count as a quality target. Review de
 - preserve the causal bridge from demand through qualified supply and pricing into earnings and valuation;
 - retain the opposing evidence, unresolved conflicts, ranking-flip conditions, and a concrete monitoring or invalidation framework.
 
-Before rendering, compare the final report against every chapter draft and restore any omitted paragraph. Shorten inside chapter drafting by removing generic background or non-decision-useful source description; after assembly, remove only exact duplicate paragraphs.
+Before rendering, compare the final report against every chapter draft and restore any omitted analytical element from the chapter checklist. Remove generic background, non-decision-useful source description, and repeated explanations even when their wording differs.
 
 ## Visual notes
 
-Describe visuals in ordinary Markdown near the section they support. A short paragraph or bullets are enough. Include:
+Give every outline section one explicit visual treatment. Use `Planned visual: figure — ...` or `Planned visual: table — ...` when a visual materially improves the argument; otherwise use `Visual treatment: prose — ...` and explain why prose is clearer. Do not target a fixed number of visuals.
+
+For each planned visual, describe:
 
 - what the reader should learn;
 - the evidence or calculation behind it;
 - the comparison basis;
 - the uncertainty that must remain visible.
 
-Do not prescribe a chart type before understanding the evidence. Use the `investment-visualization` skill to choose, render, and review the final form.
+Do not prescribe a chart type before understanding the evidence. Use the `investment-visualization` skill to choose, render, and review the final form. Every planned figure or table must appear in `report.html`.
 
 ## HTML
 

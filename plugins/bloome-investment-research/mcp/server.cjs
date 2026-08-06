@@ -292,11 +292,28 @@ function chapterErrors(name, markdown) {
   return errors;
 }
 
-function chapterAssemblyErrors(chapters, finalReport) {
-  const assembled = finalReport.replace(/\s+/g, " ").trim();
-  return chapters.flatMap(({ name, markdown }) => bodyParagraphs(markdown)
-    .filter((paragraph) => !assembled.includes(paragraph))
-    .map(() => `${name} has substantive prose missing from final_report.md; assemble chapters verbatim instead of rewriting a shorter synthesis`));
+function chapterCoverageErrors(chapters, finalReport) {
+  const errors = [];
+  const finalCitations = new Set(citations(finalReport));
+  for (const { name, markdown } of chapters) {
+    const heading = markdown.match(/^#\s+(.+)$/m)?.[1]?.trim();
+    if (heading && !finalReport.includes(heading)) errors.push(`${name} heading is missing from final_report.md`);
+    for (const citation of citations(markdown)) {
+      if (!finalCitations.has(citation)) errors.push(`${name} citation is missing from final_report.md: ${citation}`);
+    }
+  }
+  return errors;
+}
+
+function visualPlanErrors(outline, html) {
+  const planned = [...outline.matchAll(/^Planned visual:\s*(figure|table)\b/gim)].map((match) => match[1].toLowerCase());
+  const rendered = {
+    figure: (html.match(/<figure\b/gi) || []).length,
+    table: (html.match(/<table\b/gi) || []).length,
+  };
+  return ["figure", "table"]
+    .filter((kind) => planned.filter((item) => item === kind).length > rendered[kind])
+    .map((kind) => `report.html is missing planned ${kind} visuals from report_outline.md`);
 }
 
 async function validateWorkspace(workspace) {
@@ -306,6 +323,7 @@ async function validateWorkspace(workspace) {
   const names = new Set(artifacts.map((item) => item.name));
   const errors = REQUIRED_FILES.filter((name) => !names.has(name)).map((name) => `missing ${name}`);
   if (!names.has("report_outline.md")) errors.push("missing report_outline.md");
+  const outline = readText(path.join(root, "report_outline.md"));
   const chapterArtifacts = artifacts.filter((item) => item.name.startsWith("chapter_"));
   const chapters = chapterArtifacts.length;
   if (!chapters) errors.push("research workspace requires chapter drafts");
@@ -325,7 +343,7 @@ async function validateWorkspace(workspace) {
   const chapterFiles = chapterArtifacts.map(({ name }) => ({ name, markdown: readText(path.join(root, name)) }));
   for (const chapter of chapterFiles) errors.push(...chapterErrors(chapter.name, chapter.markdown));
   const finalReport = readText(path.join(root, "final_report.md"));
-  errors.push(...chapterAssemblyErrors(chapterFiles, finalReport));
+  errors.push(...chapterCoverageErrors(chapterFiles, finalReport));
 
   const evidence = readJson(path.join(root, "evidence.json"), []);
   const report = readText(path.join(root, "report.md"));
@@ -333,6 +351,7 @@ async function validateWorkspace(workspace) {
     errors.push("report.md must match the synthesized final_report.md");
   }
   const html = readText(path.join(root, "report.html"));
+  errors.push(...visualPlanErrors(outline, html));
   const sellSideLogic = readText(path.join(root, "sell_side_logic.md"));
   const validationMarkdown = readText(path.join(root, "validation.md"));
   const coverage = readJson(path.join(root, "coverage_stats.json"), {});
