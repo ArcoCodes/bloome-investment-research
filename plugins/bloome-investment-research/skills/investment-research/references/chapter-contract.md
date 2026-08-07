@@ -23,6 +23,6 @@ The chapter must contain:
 - a material boundary, opposing view, risk, or invalidating condition;
 - the condition that would change the section conclusion or final ranking.
 
-Use only accepted evidence supplied by the parent. Keep every exact citation mapped to `evidence.json`, preserve complete reader-facing quotations, and place primary quotations next to the claims they calibrate. Do not pad the chapter with generic background and do not compress distinct mechanisms, alternatives, scenarios, calculations, or risks into an executive-summary paragraph.
+Use only accepted evidence supplied by the parent. Write inline references as `{{cite:<evidence-id>}}` using the supplied exact `id` or `chunk_id`; never invent a shortened institution/date citation. Keep every citation mapped to `evidence.json`, preserve complete reader-facing quotations, and place primary quotations next to the claims they calibrate. Do not pad the chapter with generic background and do not compress distinct mechanisms, alternatives, scenarios, calculations, or risks into an executive-summary paragraph.
 
 Return only a short direct answer and the chapter path. The file retains the full prose.

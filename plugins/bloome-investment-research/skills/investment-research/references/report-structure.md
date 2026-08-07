@@ -92,7 +92,7 @@ Do not prescribe a chart type before understanding the evidence. Use the `invest
 
 Call `render_research_report` to compile the complete report in outline order. The bundled React server renderer parses Markdown into tokens and emits one self-contained static HTML document with no browser React runtime. Do not hand-write the page shell or expose internal planning labels in the reader-facing report.
 
-Save visuals as supported component specifications in `visuals.json` using `visual-spec.md`, and place them with descriptive `{{visual:key}}` markers in `report.md`. Every visual traces to exact accepted evidence IDs. Do not insert raw HTML, SVG, CSS, JavaScript, or event handlers. The `investment-visualization` skill owns visual selection, data normalization, annotation text, and quality review; controlled React components own geometry, page integration, and responsive styles.
+Save visuals as supported component specifications in `visuals.json` using `visual-spec.md`, place them with descriptive `{{visual:key}}` markers in `final_report.md`, and use `{{cite:<evidence-id>}}` for inline citations. `render_research_report` synchronizes the generated `report.md`. Every visual traces to exact accepted evidence IDs. Do not insert raw HTML, SVG, CSS, JavaScript, or event handlers. The `investment-visualization` skill owns visual selection, data normalization, annotation text, and quality review; controlled React components own geometry, page integration, and responsive styles.
 
 Before delivery, compare Markdown and HTML for content parity:
 

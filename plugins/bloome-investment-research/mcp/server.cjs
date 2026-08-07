@@ -163,7 +163,7 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "render_research_report",
       "Render static investment report",
-      "Compile report.md, evidence.json, visuals.json, and coverage_stats.json through the bundled React server renderer into a self-contained report.html. The output preserves the native report style, includes no React browser runtime, and is ready for visual review and upload.",
+      "Synchronize final_report.md to report.md, then compile it with evidence.json, visuals.json, and coverage_stats.json through the bundled React server renderer into a self-contained report.html. The output preserves the native report style, includes no React browser runtime, and is ready for visual review and upload.",
       objectSchema({ workspace: WORKSPACE_PROPERTY }, ["workspace"]),
       { readOnly: false, destructive: false },
     ),

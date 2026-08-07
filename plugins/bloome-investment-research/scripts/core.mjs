@@ -62,7 +62,7 @@ function preservesNarrative(report, html) {
   const rendered = htmlNarrative(html);
   const segments = report
     .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/\{\{visual:[^}]+\}\}/gi, "")
+    .replace(/\{\{(?:visual|cite):[^}]+\}\}/gi, "")
     .replace(/\[([^\]\n]+)\]\([^)\n]+\)/g, "$1")
     .replace(/(?:\[[^\]\n]+\]|〔[^〕\n]+〕|【[^】\n]+】)/g, "\n")
     .split(/\n+/)
@@ -101,6 +101,7 @@ export function validateReport(report, html, evidence, staged = {}) {
   for (const id of stagedClaimIds) {
     const linked = evidence.filter((item) => Array.isArray(item.claim_ids) && item.claim_ids.some((claimId) => String(claimId).toUpperCase() === id));
     if (!linked.length) errors.push(`Claim ${id} has no linked evidence`);
+    else if (!linked.some((item) => ["support", "challenge"].includes(item.relation))) errors.push(`Claim ${id} has no support or challenge evidence`);
     else {
       if (!linked.some((item) => item.relation === "support")) warnings.push(`Claim ${id} has no linked support evidence`);
       if (!linked.some((item) => item.relation === "challenge")) warnings.push(`Claim ${id} has no linked challenge evidence`);
@@ -110,10 +111,10 @@ export function validateReport(report, html, evidence, staged = {}) {
   const resolved = resolvedCitations(report, evidence);
   if (!resolved.length) errors.push("Report must contain reader-facing citations resolved to evidence.json");
   for (const label of citationLabelsFound) {
-    if (!resolveCitation(label, evidence) && /(?:\d{4}-\d{2}-\d{2}|p{1,2}\.\s*\d+|lines?\s*\d+)/i.test(label)) errors.push(`Citation has no matching evidence: ${label}`);
+    if (!resolveCitation(label, evidence) && /^(?:id:)|(?:\d{4}-\d{2}-\d{2}|p{1,2}\.\s*\d+|lines?\s*\d+)/i.test(label)) errors.push(`Citation has no matching evidence: ${label}`);
   }
   const matchedEvidence = resolved.map(({ item }) => item);
-  if (!evidence.some((item) => item.stance === "challenge")) errors.push("At least one challenge evidence item is required");
+  if (!evidence.some((item) => item.relation === "challenge")) errors.push("At least one challenge evidence item is required");
   if (/\b(?:corpus|report_id|chunk_id|BM25|research_(?:search|plan|run_modules|synthesize))\b/i.test(report)) errors.push("Report contains internal workflow jargon");
   if (!/^<!doctype html>/i.test(html.trimStart()) || !/class=["'][^"']*report/i.test(html)) errors.push("HTML must be a complete report document");
   if (!preservesNarrative(report, html)) errors.push("HTML omits report.md narrative; render every heading, paragraph, table row, and citation context instead of rewriting a summary");

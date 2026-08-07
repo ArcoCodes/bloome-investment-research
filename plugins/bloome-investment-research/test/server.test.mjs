@@ -123,13 +123,19 @@ test("MCP initializes and exposes the seven focused tools", async () => {
   assert.equal(listed.result.tools.at(-1).annotations.destructiveHint, false);
 });
 
-test("render tool compiles a workspace through React SSR", async () => {
+test("render tool synchronizes final_report.md before React SSR", async () => {
   const workspace = await fixtureWorkspace();
+  await writeFile(path.join(workspace, "report.md"), "# stale report\n");
   const result = await server.callTool("render_research_report", { workspace });
-  const html = await readFile(result.html, "utf8");
+  const [html, report, finalReport] = await Promise.all([
+    readFile(result.html, "utf8"),
+    readFile(path.join(workspace, "report.md"), "utf8"),
+    readFile(path.join(workspace, "final_report.md"), "utf8"),
+  ]);
   assert.equal(result.ok, true);
   assert.match(html, /<meta name="generator" content="Bloome React SSR"/);
   assert.match(html, /class="report"/);
+  assert.equal(report, finalReport);
   assert.doesNotMatch(html, /<script[^>]+src=/i);
 });
 
@@ -317,6 +323,9 @@ test("workspace validator does not require invented primary classification field
   const evidencePath = path.join(workspace, "evidence.json");
   const evidence = JSON.parse(await readFile(evidencePath, "utf8"));
   assert.ok(evidence.filter((item) => item.corpus === "primary").every((item) => !("primary_layer" in item)));
+  for (const item of evidence) item.stance = item.relation === "challenge" ? "near-term downside" : "constructive";
+  await writeFile(evidencePath, JSON.stringify(evidence));
+  await server.callTool("render_research_report", { workspace });
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, true, result.errors.join("\n"));
 });
@@ -393,6 +402,16 @@ test("workspace validator requires claim-linked evidence", async () => {
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
   assert.ok(result.errors.includes("s1: missing claim_ids"));
+});
+
+test("workspace validator rejects claims backed only by context evidence", async () => {
+  const workspace = await fixtureWorkspace();
+  const evidencePath = path.join(workspace, "evidence.json");
+  const evidence = JSON.parse(await readFile(evidencePath, "utf8"));
+  for (const item of evidence) item.relation = "context";
+  await writeFile(evidencePath, JSON.stringify(evidence));
+  const result = await server.validateWorkspace(workspace);
+  assert.ok(result.errors.includes("Claim C1 has no support or challenge evidence"));
 });
 
 test("workspace validator rejects shallow module and chapter artifacts", async () => {

@@ -5,8 +5,8 @@ import { test } from "node:test";
 
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
-  ["skills/investment-research/assets/template.html", "7bbfe936cb8d3f7cd3ebf29597f85446f40f8d257029bd696c49d5d13f997618"],
-  ["skills/investment-research/references/file-specs.md", "e60d10c779a59d39dfc6a5637329b3a84a34216324c9c7b662d5d4dc372161f8"],
+  ["skills/investment-research/assets/template.html", "0bc07d431ece1f8f64b20d42c0ff1746a0d79bc5f62edfe9681a420e4ebee858"],
+  ["skills/investment-research/references/file-specs.md", "c2f390d5ae54ddfa1ce3847710dd8ca501a6c581178a4c45e0d81ed8b32351b7"],
   ["skills/investment-research/references/chart-rules.md", "64888516fee7a54e54822ea839b62a47f816d1a637350ea533da0cb0c45376d7"],
 ]);
 
@@ -100,6 +100,7 @@ test("shared workflow delegates evidence and chapters with host-managed concurre
   assert.match(skill, /one chapter worker to each planned substantive section/);
   assert.match(skill, /rewrite, merge, and de-duplicate chapter prose for flow/);
   assert.match(skill, /call `render_research_report` with the absolute workspace path/);
+  assert.match(skill, /atomically synchronizes `final_report\.md` to `report\.md`/);
   assert.match(skill, /evidence_disposition\.md/);
   assert.match(skill, /Save `decision\.md`/);
   assert.match(skill, /Continue until additional retrieval no longer materially changes/);
@@ -115,6 +116,7 @@ test("shared workflow delegates evidence and chapters with host-managed concurre
   assert.match(chapterContract, /complete evidence-to-conclusion chain/);
   assert.match(chapterContract, /supporting evidence or calculation in reader-facing analysis/);
   assert.match(chapterContract, /Do not add “图表输入”/);
+  assert.match(chapterContract, /\{\{cite:<evidence-id>\}\}/);
   assert.match(reportStructure, /natural-language editorial plan/);
   assert.match(reportStructure, /Do not require internal labels such as `S01` or `V01`/);
   assert.match(worker, /Write only the assigned module memo/);

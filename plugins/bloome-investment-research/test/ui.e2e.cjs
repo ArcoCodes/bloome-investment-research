@@ -134,6 +134,12 @@ function fixtureHtml({ disableAutoPanel = false } = {}) {
   assert.equal(await reportFrame.locator("[data-report-tab]").count(), 0);
   await reportFrame.locator(".src").first().hover();
   assert.equal(await reportFrame.locator(".tip-bd u").count(), 0, "tooltip body underline");
+  const tooltipBounds = await reportFrame.locator(".tip").first().evaluate((node) => {
+    const box = node.getBoundingClientRect();
+    return { left:box.left,right:box.right,top:box.top,bottom:box.bottom,width:innerWidth,height:innerHeight };
+  });
+  assert.ok(tooltipBounds.left >= 0 && tooltipBounds.right <= tooltipBounds.width, "tooltip horizontal bounds");
+  assert.ok(tooltipBounds.top >= 0 && tooltipBounds.bottom <= tooltipBounds.height, "tooltip vertical bounds");
 
   const screenshot = path.resolve(__dirname, "../assets/screenshot.png");
   await page.screenshot({ path:screenshot, fullPage:false });

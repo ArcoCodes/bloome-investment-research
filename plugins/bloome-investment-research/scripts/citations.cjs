@@ -10,14 +10,21 @@ function normalize(value) {
 
 function citationLabels(markdown) {
   const text = String(markdown || "");
+  const markers = [...text.matchAll(/\{\{cite:([A-Za-z0-9._-]+)\}\}/g)].map((match) => `id:${match[1]}`);
   const brackets = [...text.matchAll(/(?:\[([^\]\n]+)\]|〔([^〕\n]+)〕|【([^】\n]+)】)/g)].map((match) => match[1] ?? match[2] ?? match[3]);
   const sources = [...text.matchAll(/^\s*>?\s*来源[:：]\s*(.+)$/gm)].map((match) => match[1].trim());
-  return [...brackets, ...sources];
+  return [...markers, ...brackets, ...sources];
 }
 
 function resolveCitation(label, evidence) {
+  const items = Array.isArray(evidence) ? evidence : [];
+  const id = String(label || "").match(/^id:([A-Za-z0-9._-]+)$/)?.[1];
+  if (id) {
+    const matches = items.filter((item) => [item.id, item.chunk_id].some((value) => String(value || "") === id));
+    return matches.length === 1 ? matches[0] : null;
+  }
   const normalized = normalize(label);
-  const candidates = (Array.isArray(evidence) ? evidence : [])
+  const candidates = items
     .map((item) => ({ item, title:normalize(item.title) }))
     .filter(({ title }) => title && normalized.includes(title))
     .sort((a, b) => b.title.length - a.title.length);

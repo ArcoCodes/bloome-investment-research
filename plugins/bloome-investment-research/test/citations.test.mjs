@@ -10,6 +10,7 @@ const evidence = [
 ];
 
 test("shared citation resolver accepts locators, dates, and primary source lines", () => {
+  assert.equal(resolveCitation("id:s1", evidence).chunk_id, "s1");
   assert.equal(resolveCitation("Market Outlook，机构，2026-07-01，p.7", evidence).chunk_id, "s1");
   assert.equal(resolveCitation("Industry Interview · 2026-07-02", evidence).chunk_id, "p1");
   const markdown = "判断。[Market Outlook, p.7]\n\n> 访谈原文。\n>\n> 来源：Industry Interview · 2026-07-02";

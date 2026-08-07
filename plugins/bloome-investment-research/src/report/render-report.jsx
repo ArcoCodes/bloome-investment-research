@@ -10,13 +10,15 @@ const VISUAL_TYPES = new Set(["bar", "line", "range", "flow", "table", "matrix"]
 
 function Citation({ item, label }) {
   const source = [item.title, item.published_at].filter(Boolean).join(" · ");
-  return <span className="src" tabIndex="0">{label}<span className="tip"><span className="tip-hd">{source}</span><span className="tip-bd">{item.quote_zh || item.quote}</span></span></span>;
+  const display = /^\{\{cite:/.test(label) ? `〔${item.title}, ${locator(item) || item.published_at}〕` : label;
+  return <span className="src" tabIndex="0">{display}<span className="tip"><span className="tip-hd">{source}</span><span className="tip-bd">{item.quote_zh || item.quote}</span></span></span>;
 }
 
 function citationParts(text, evidence) {
-  const pattern = /(\[[^\]\n]+\]|〔[^〕\n]+〕|【[^】\n]+】)/g;
+  const pattern = /(\{\{cite:[A-Za-z0-9._-]+\}\}|\[[^\]\n]+\]|〔[^〕\n]+〕|【[^】\n]+】)/g;
   return String(text).split(pattern).filter(Boolean).map((part, index) => {
-    const item = /^[\[〔【]/.test(part) ? resolveCitation(part.slice(1, -1), evidence) : null;
+    const marker = part.match(/^\{\{cite:([A-Za-z0-9._-]+)\}\}$/);
+    const item = marker ? resolveCitation(`id:${marker[1]}`, evidence) : /^[\[〔【]/.test(part) ? resolveCitation(part.slice(1, -1), evidence) : null;
     return item ? <Citation key={`${part}-${index}`} item={item} label={part} /> : <React.Fragment key={index}>{part}</React.Fragment>;
   });
 }
@@ -217,14 +219,17 @@ export function renderReport({ markdown, evidence = [], coverage = {}, visuals =
 
 export function renderWorkspace(workspace, pluginRoot = path.resolve(__dirname, "..")) {
   const root = path.resolve(workspace);
-  const markdown = fs.readFileSync(path.join(root, "report.md"), "utf8");
+  const finalPath = path.join(root, "final_report.md");
+  const reportPath = path.join(root, "report.md");
+  const markdown = fs.readFileSync(fs.existsSync(finalPath) ? finalPath : reportPath, "utf8");
+  fs.writeFileSync(reportPath, markdown);
   const evidence = JSON.parse(fs.readFileSync(path.join(root, "evidence.json"), "utf8"));
   const coverage = JSON.parse(fs.readFileSync(path.join(root, "coverage_stats.json"), "utf8"));
   const visuals = JSON.parse(fs.readFileSync(path.join(root, "visuals.json"), "utf8"));
   const template = fs.readFileSync(path.join(pluginRoot, "skills", "investment-research", "assets", "template.html"), "utf8");
   const html = renderReport({ markdown, evidence, coverage, visuals, template });
   fs.writeFileSync(path.join(root, "report.html"), `${html}\n`);
-  return { ok:true, workspace:root, report:path.join(root, "report.md"), visuals:path.join(root, "visuals.json"), html:path.join(root, "report.html") };
+  return { ok:true, workspace:root, report:reportPath, visuals:path.join(root, "visuals.json"), html:path.join(root, "report.html") };
 }
 
 if (require.main === module) {

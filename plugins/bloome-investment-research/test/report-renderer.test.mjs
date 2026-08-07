@@ -12,7 +12,7 @@ test("React SSR compiles Markdown into self-contained report HTML", async () => 
   const workspace = await mkdtemp(path.join(os.tmpdir(), "bloome-react-report-"));
   await mkdir(workspace, { recursive:true });
   await Promise.all([
-    writeFile(path.join(workspace, "report.md"), `# AI NAND 周期研究\n\n# 核心判断\n\n需求改善，但验证周期仍限制盈利兑现。[NAND Market Outlook, p.3]\n\n渠道也观察到改善。[Channel Check，2026-08-01]\n\n> 渠道反馈显示订单改善，但库存仍需观察。\n>\n> 来源：Channel Check · 2026-08-01\n\n# 情景与估值\n\n| 情景 | 结论 |\n|---|---|\n| 基准 | 谨慎增持 |\n\n<div id="unsafe">bad</div>\n\n{{visual:scenario-range}}\n`),
+    writeFile(path.join(workspace, "report.md"), `# AI NAND 周期研究\n\n# 核心判断\n\n需求改善，但验证周期仍限制盈利兑现。{{cite:s1}}\n\n渠道也观察到改善。[Channel Check，2026-08-01]\n\n> 渠道反馈显示订单改善，但库存仍需观察。\n>\n> 来源：Channel Check · 2026-08-01\n\n# 情景与估值\n\n| 情景 | 结论 |\n|---|---|\n| 基准 | 谨慎增持 |\n\n<div id="unsafe">bad</div>\n\n{{visual:scenario-range}}\n`),
     writeFile(path.join(workspace, "evidence.json"), JSON.stringify([
       { chunk_id:"s1",title:"NAND Market Outlook",page_start:3,published_at:"2026-08-01",quote:"Demand is improving while qualification remains uncertain.",quote_zh:"需求正在改善，但验证仍存在不确定性。" },
       { chunk_id:"s2",title:"Channel Check",published_at:"2026-08-01",quote:"Channel demand improved." },
@@ -27,6 +27,7 @@ test("React SSR compiles Markdown into self-contained report HTML", async () => 
   assert.match(html, /<meta name="generator" content="Bloome React SSR"/);
   assert.match(html, /class="report"/);
   assert.match(html, /AI NAND 周期研究/);
+  assert.match(html, /〔NAND Market Outlook, p\.3〕/);
   assert.match(html, /需求正在改善，但验证仍存在不确定性。/);
   assert.match(html, /Channel demand improved\./);
   assert.equal((html.match(/class="src"/g) || []).length, 2);
