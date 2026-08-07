@@ -8,7 +8,7 @@ Cross-runtime, evidence-first investment research for Codex and Claude Code.
 - The shared MCP server provides the same research and validation tools in both hosts.
 - Codex renders the native PiP/fullscreen workbench. Claude Code returns progress, evidence, artifacts, and `reportPath` without injecting the complete HTML report into model context.
 - Bloome styling applies to the optional workbench only.
-- `skills/investment-research/assets/template.html` remains the final report's single-page visual source of truth. Evidence disposition, decision logic, and the evidence ledger remain separate Markdown/JSON workspace artifacts.
+- The bundled React server renderer reads `skills/investment-research/assets/template.html` as the visual source of truth, parses Markdown once with `marked`, resolves citations through `evidence.json`, renders `visuals.json` through controlled components, and emits a self-contained `report.html` with no browser React runtime or model-authored page HTML. Validation reuses the same token inspection and a deterministic rerender instead of parsing generated HTML with regular expressions. Evidence disposition, decision logic, and the evidence ledger remain separate Markdown/JSON workspace artifacts.
 - `skills/investment-visualization/` owns editorial chart selection, annotation, uncertainty, responsive composition, and screenshot-based visual review; those judgments are not encoded as validator regex.
 
 Runtime manifests are generated from `plugin.config.json`; do not edit `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`, or either marketplace by hand.
@@ -16,6 +16,7 @@ Runtime manifests are generated from `plugin.config.json`; do not edit `.codex-p
 ## Verify
 
 ```bash
+npm run build:report
 npm run verify
 npm run test:ui
 python3 ~/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py .

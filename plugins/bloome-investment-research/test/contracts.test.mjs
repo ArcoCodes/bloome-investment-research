@@ -5,9 +5,9 @@ import { test } from "node:test";
 
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
-  ["skills/investment-research/assets/template.html", "fd2ae028ffb631a17a5ec806daca3cef62db3f5f9a18bc6c484b567a2d758ae1"],
-  ["skills/investment-research/references/file-specs.md", "ba0243ece9ddb41fda84cb9a327c2614711629e5f4ce439dec06b5dde3aabc77"],
-  ["skills/investment-research/references/chart-rules.md", "0f00fd2b12f7dac44b6ee3c718d638fd09fd5e078e03c1c6d2bc72b108282e10"],
+  ["skills/investment-research/assets/template.html", "0bc07d431ece1f8f64b20d42c0ff1746a0d79bc5f62edfe9681a420e4ebee858"],
+  ["skills/investment-research/references/file-specs.md", "c2f390d5ae54ddfa1ce3847710dd8ca501a6c581178a4c45e0d81ed8b32351b7"],
+  ["skills/investment-research/references/chart-rules.md", "64888516fee7a54e54822ea839b62a47f816d1a637350ea533da0cb0c45376d7"],
 ]);
 
 test("investment report contracts remain byte-for-byte unchanged", async () => {
@@ -17,11 +17,12 @@ test("investment report contracts remain byte-for-byte unchanged", async () => {
   }
 });
 
-test("cross-runtime skill keeps the original report template as source of truth", async () => {
+test("cross-runtime skill uses React SSR with the original report styles", async () => {
   const skill = await readFile(new URL("skills/investment-research/SKILL.md", root), "utf8");
   const template = await readFile(new URL("skills/investment-research/assets/template.html", root), "utf8");
-  assert.match(skill, /Use `assets\/template\.html` as the visual source of truth/);
-  assert.match(skill, /Do not replace it with a newly invented card layout/);
+  assert.match(skill, /React static renderer reads `assets\/template\.html` as the visual source of truth/);
+  assert.match(skill, /must not insert raw page HTML, SVG, CSS, JavaScript/);
+  assert.match(skill, /call `render_research_report`/);
   assert.match(skill, /evidence\.json` as the unified evidence backbone/);
   assert.match(skill, /Codex or Claude\/Cowork/);
   assert.match(skill, /host's existing account supplies the model/);
@@ -83,45 +84,63 @@ test("research skill makes industry-expert evidence a mandatory completion gate"
   assert.match(skill, /instead of dropping the claim, thinning the analysis, or withholding the report/);
 });
 
-test("shared workflow delegates memos with host-managed concurrency and a sequential fallback", async () => {
-  const [skill, moduleContract, workflow, reportStructure, worker, auditor] = await Promise.all([
+test("shared workflow delegates evidence and chapters with host-managed concurrency and a sequential fallback", async () => {
+  const [skill, moduleContract, chapterContract, workflow, reportStructure, worker, chapterWriter, auditor] = await Promise.all([
     "skills/investment-research/SKILL.md",
     "skills/investment-research/references/module-contract.md",
+    "skills/investment-research/references/chapter-contract.md",
     "skills/investment-research/references/multiagent-workflow.md",
     "skills/investment-research/references/report-structure.md",
     "agents/research-module.md",
+    "agents/chapter-writer.md",
     "agents/evidence-auditor.md",
   ].map((file) => readFile(new URL(file, root), "utf8")));
   assert.match(skill, /Let the host manage worker scheduling and concurrency/);
-  assert.match(skill, /run only the missing modules sequentially in the parent/);
-  assert.match(skill, /render all of `report\.md` into a static single-page `report\.html`/);
+  assert.match(skill, /run only the missing modules or chapters sequentially in the parent/);
+  assert.match(skill, /one chapter worker to each planned substantive section/);
+  assert.match(skill, /rewrite, merge, and de-duplicate chapter prose for flow/);
+  assert.match(skill, /call `render_research_report` with the absolute workspace path/);
+  assert.match(skill, /atomically synchronizes `final_report\.md` to `report\.md`/);
   assert.match(skill, /evidence_disposition\.md/);
   assert.match(skill, /Save `decision\.md`/);
   assert.match(skill, /Continue until additional retrieval no longer materially changes/);
-  assert.match(skill, /Synthesize `final_report\.md` from the chapter drafts, reconciled evidence, and `decision\.md`/);
+  assert.match(skill, /Edit `final_report\.md` from the chapter drafts in outline order/);
+  assert.match(skill, /Planned visual: <descriptive-key>/);
+  assert.match(skill, /Visual treatment: prose/);
   assert.match(skill, /writes only `modules\/<id>\.md`/);
   assert.match(workflow, /MCP provides research data and deterministic validation; it never starts agents or calls a model/);
+  assert.match(workflow, /Chapter files may be written concurrently in the second pass/);
   assert.match(moduleContract, /# Conflicts and date reconciliation/);
   assert.match(moduleContract, /must not write an executive summary, chapter, outline, `evidence\.json`, or final report/);
+  assert.match(chapterContract, /Write only the assigned chapter file/);
+  assert.match(chapterContract, /complete evidence-to-conclusion chain/);
+  assert.match(chapterContract, /supporting evidence or calculation in reader-facing analysis/);
+  assert.match(chapterContract, /Do not add “图表输入”/);
+  assert.match(chapterContract, /\{\{cite:<evidence-id>\}\}/);
   assert.match(reportStructure, /natural-language editorial plan/);
   assert.match(reportStructure, /Do not require internal labels such as `S01` or `V01`/);
   assert.match(worker, /Write only the assigned module memo/);
+  assert.match(chapterWriter, /Write only the assigned chapter file/);
   assert.match(auditor, /Do not edit files or write report prose/);
 });
 
-test("editorial investment visualization is owned by a reusable skill, not validator markup", async () => {
-  const [skill, grammar, review, researchSkill] = await Promise.all([
+test("editorial investment visualization uses evidence-linked controlled components", async () => {
+  const [skill, grammar, review, visualSpec, researchSkill] = await Promise.all([
     "skills/investment-visualization/SKILL.md",
     "skills/investment-visualization/references/editorial-grammar.md",
     "skills/investment-visualization/references/review.md",
+    "skills/investment-research/references/visual-spec.md",
     "skills/investment-research/SKILL.md",
   ].map((file) => readFile(new URL(file, root), "utf8")));
   assert.match(skill, /This skill owns visual judgment/);
   assert.match(skill, /quality bar, not a request to reproduce another publisher's brand/);
   assert.match(skill, /Render the actual report in a browser and inspect it at desktop and narrow-phone widths/);
+  assert.match(skill, /never write raw HTML, SVG, CSS, JavaScript, or event handlers/);
+  assert.match(visualSpec, /`bar`, `line`, `range`, `flow`, `table`, or `matrix`/);
+  assert.match(visualSpec, /Every specification must have one marker/);
   assert.match(grammar, /The visual sentence/);
   assert.match(grammar, /Show probability evidence separately from payoff/);
   assert.match(review, /Five-second test/);
   assert.match(review, /Final decision test/);
-  assert.match(researchSkill, /use the `investment-visualization` skill/);
+  assert.match(researchSkill, /use the `investment-visualization` skill/i);
 });
