@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { marked } from "marked";
 import citationUtils from "../../scripts/citations.cjs";
 
-const { locator, resolveCitation } = citationUtils;
+const { citationLabels, locator, resolveCitation, resolvedCitations } = citationUtils;
 const VISUAL_TYPES = new Set(["bar", "line", "range", "flow", "table", "matrix"]);
 
 function Citation({ item, label }) {
@@ -154,7 +154,7 @@ function Blocks({ tokens = [], context }) {
 function reportParts(markdown) {
   const tokens = marked.lexer(markdown, { gfm:true });
   const titleIndex = tokens.findIndex((token) => token.type === "heading" && token.depth === 1);
-  if (titleIndex < 0) return { title:"Investment Research", preamble:[], sections:[{ title:"核心判断", tokens }] };
+  if (titleIndex < 0) return { title:"Investment Research", hasTitle:false, sections:[{ title:"核心判断", tokens }] };
   const title = tokens[titleIndex].text.trim();
   const sections = [];
   let current = { title:"核心判断", tokens:[] };
@@ -165,7 +165,40 @@ function reportParts(markdown) {
     } else current.tokens.push(token);
   }
   if (current.tokens.length || !sections.length) sections.push(current);
-  return { title, sections };
+  return { title, hasTitle:true, sections };
+}
+
+function tokenText(token) {
+  if (!token) return "";
+  if (Array.isArray(token)) return token.map(tokenText).join("\n");
+  if (token.type === "table") return tokenText([...token.header, ...token.rows.flat()]);
+  if (token.type === "list") return tokenText(token.items);
+  if (token.tokens) return tokenText(token.tokens);
+  return String(token.text || "");
+}
+
+export function inspectReport(markdown, evidence = []) {
+  const parts = reportParts(markdown);
+  const primaryQuotes = [];
+  for (const section of parts.sections) {
+    let context = [];
+    let inQuoteGroup = false;
+    for (const token of section.tokens) {
+      if (token.type === "blockquote") {
+        primaryQuotes.push({ text:tokenText(token.tokens), precedingText:context.join("\n"), groupStart:!inQuoteGroup });
+        inQuoteGroup = true;
+        continue;
+      }
+      const text = tokenText(token);
+      if (!text.trim() || /^\{\{visual:[^}]+\}\}$/.test(text.trim())) continue;
+      if (String(text).replace(/[^\p{Letter}\p{Number}]+/gu, "").length >= 24) {
+        if (inQuoteGroup) context = [];
+        inQuoteGroup = false;
+      }
+      if (!inQuoteGroup) context.push(text);
+    }
+  }
+  return { ...parts, citations:resolvedCitations(markdown, evidence), citationLabels:citationLabels(markdown), primaryQuotes };
 }
 
 function normalizeVisuals(value, evidenceById, markdown) {

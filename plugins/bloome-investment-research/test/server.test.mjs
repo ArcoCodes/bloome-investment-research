@@ -107,6 +107,12 @@ async function fixtureWorkspace() {
   return root;
 }
 
+async function updateFinalReport(workspace, transform) {
+  const target = path.join(workspace, "final_report.md");
+  await writeFile(target, transform(await readFile(target, "utf8")));
+  await server.callTool("render_research_report", { workspace });
+}
+
 test("MCP initializes and exposes the seven focused tools", async () => {
   const initialized = await server.handleRpc({ jsonrpc:"2.0",id:1,method:"initialize",params:{} }, "codex");
   const listed = await server.handleRpc({ jsonrpc:"2.0",id:2,method:"tools/list",params:{} }, "codex");
@@ -234,35 +240,30 @@ test("workspace validator rejects English evidence without quote_zh in a Chinese
 
 test("workspace validator requires substantive local argument before a primary quote group", async () => {
   const workspace = await fixtureWorkspace();
-  const htmlPath = path.join(workspace, "report.html");
-  const html = await readFile(htmlPath, "utf8");
-  const detached = html.replace(
-    /(<div class="analysis-text">)[\s\S]*?(?=<blockquote class="primary-quote">)/,
-    "$1<p>简短标题。</p>",
-  );
-  await writeFile(htmlPath, detached);
+  await updateFinalReport(workspace, (markdown) => markdown.replace(
+    /(# Executive judgment\n)[\s\S]*?(?=> 交付仍受约束)/,
+    "$1\n简短标题。\n\n{{visual:demand-transmission}}\n\n",
+  ));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
   assert.ok(result.errors.includes("Each primary quote group needs a substantive local argument immediately before it"));
 });
 
-test("workspace validator rejects underlined sell-side tooltip passages", async () => {
+test("workspace validator rejects post-render HTML mutation", async () => {
   const workspace = await fixtureWorkspace();
   const htmlPath = path.join(workspace, "report.html");
   const html = await readFile(htmlPath, "utf8");
   await writeFile(htmlPath, html.replace('<span class="tip-bd">需求增长</span>', '<span class="tip-bd"><u>需求增长</u></span>'));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
-  assert.ok(result.errors.some((error) => /plain text without underlines/.test(error)));
+  assert.ok(result.errors.some((error) => /report\.html is stale/.test(error)));
 });
 
 test("workspace validator requires visible primary verbatim evidence", async () => {
   const workspace = await fixtureWorkspace();
-  const htmlPath = path.join(workspace, "report.html");
-  const html = await readFile(htmlPath, "utf8");
-  await writeFile(htmlPath, html
-    .replace(/<blockquote class="primary-quote">(?:(?!<\/blockquote>)[\s\S])*交付仍受约束，客户验证时间也存在不确定性。[\s\S]*?<\/blockquote>/g, "")
-    .replace(/<blockquote class="primary-quote">(?:(?!<\/blockquote>)[\s\S])*渠道反馈显示订单能见度正在改善，但库存消化仍需观察。[\s\S]*?<\/blockquote>/g, ""));
+  await updateFinalReport(workspace, (markdown) => markdown
+    .replace(/> 交付仍受约束，客户验证时间也存在不确定性。\n>\n> 来源：Industry Interview · 2026-07-02\n*/g, "")
+    .replace(/> 渠道反馈显示订单能见度正在改善，但库存消化仍需观察。\n>\n> 来源：Customer Channel Check · 2026-07-03\n*/g, ""));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
   assert.ok(result.errors.includes("Report body must show multiple independent primary passages; one isolated quote or source-bar listing is insufficient"));
@@ -270,9 +271,7 @@ test("workspace validator requires visible primary verbatim evidence", async () 
 
 test("workspace validator rejects a report body with only one primary passage", async () => {
   const workspace = await fixtureWorkspace();
-  const htmlPath = path.join(workspace, "report.html");
-  const html = await readFile(htmlPath, "utf8");
-  await writeFile(htmlPath, html.replace(/<blockquote class="primary-quote">(?:(?!<\/blockquote>)[\s\S])*渠道反馈显示订单能见度正在改善，但库存消化仍需观察。[\s\S]*?<\/blockquote>/g, ""));
+  await updateFinalReport(workspace, (markdown) => markdown.replace(/> 渠道反馈显示订单能见度正在改善，但库存消化仍需观察。\n>\n> 来源：Customer Channel Check · 2026-07-03\n*/g, ""));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
   assert.ok(result.errors.includes("Report body must show multiple independent primary passages; one isolated quote or source-bar listing is insufficient"));
@@ -288,21 +287,9 @@ test("workspace validator rejects a single accepted primary source", async () =>
   assert.ok(result.errors.includes("One primary source is insufficient. Continue primary retrieval until multiple independent sources are accepted"));
 });
 
-test("workspace validator rejects a sell-side tooltip that shortens the original passage", async () => {
-  const workspace = await fixtureWorkspace();
-  const htmlPath = path.join(workspace, "report.html");
-  const html = await readFile(htmlPath, "utf8");
-  await writeFile(htmlPath, html.replace(/<span class="tip-bd">需求增长<\/span>/g, '<span class="tip-bd">需求</span>'));
-  const result = await server.validateWorkspace(workspace);
-  assert.equal(result.ok, false);
-  assert.ok(result.errors.some((error) => /Sell-side tooltip must show the complete reader-facing passage/.test(error)));
-});
-
 test("workspace validator rejects a primary quote trimmed to an excerpt", async () => {
   const workspace = await fixtureWorkspace();
-  const htmlPath = path.join(workspace, "report.html");
-  const html = await readFile(htmlPath, "utf8");
-  await writeFile(htmlPath, html.replace(/交付仍受约束，客户验证时间也存在不确定性。/g, "交付仍受约束。"));
+  await updateFinalReport(workspace, (markdown) => markdown.replace("> 交付仍受约束，客户验证时间也存在不确定性。", "> 交付仍受约束。"));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
   assert.ok(result.errors.includes("Report body must show multiple independent primary passages; one isolated quote or source-bar listing is insufficient"));
@@ -310,9 +297,7 @@ test("workspace validator rejects a primary quote trimmed to an excerpt", async 
 
 test("workspace validator rejects a primary quote attributed to the wrong source", async () => {
   const workspace = await fixtureWorkspace();
-  const htmlPath = path.join(workspace, "report.html");
-  const html = await readFile(htmlPath, "utf8");
-  await writeFile(htmlPath, html.replace("来源：Industry Interview · 2026-07-02", "来源：Customer Channel Check · 2026-07-03"));
+  await updateFinalReport(workspace, (markdown) => markdown.replace("来源：Industry Interview · 2026-07-02", "来源：Customer Channel Check · 2026-07-03"));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
   assert.ok(result.errors.includes("Primary quote does not match its stated source: Customer Channel Check"));
@@ -453,7 +438,7 @@ test("workspace validator rejects summary HTML that omits the Markdown report", 
   await writeFile(path.join(workspace, "report.html"), summaryHtml);
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
-  assert.ok(result.errors.some((error) => /HTML omits report\.md narrative/.test(error)));
+  assert.ok(result.errors.some((error) => /report\.html is stale/.test(error)));
 });
 
 test("research artifacts use natural headings without internal section or visual IDs", async () => {
@@ -473,7 +458,7 @@ test("workspace validator requires planned visuals in report HTML", async () => 
   await writeFile(htmlPath, html.replace(/<figure\b[\s\S]*?<\/figure>/, ""));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
-  assert.ok(result.errors.includes("report.html is missing planned visual: demand-transmission"));
+  assert.ok(result.errors.some((error) => /report\.html is stale/.test(error)));
 });
 
 test("workspace validator allows a topic with no useful visual", async () => {

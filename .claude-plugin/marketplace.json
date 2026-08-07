@@ -11,7 +11,7 @@
       "name": "bloome-investment-research",
       "source": "./plugins/bloome-investment-research",
       "description": "Cross-runtime, evidence-first investment research with traceable sources and a Bloome workbench.",
-      "version": "0.4.13",
+      "version": "0.4.14",
       "author": {
         "name": "Bloome",
         "url": "https://github.com/ArcoCodes"

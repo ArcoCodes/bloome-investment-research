@@ -14,7 +14,7 @@ test("React SSR compiles Markdown into self-contained report HTML", async () => 
   await Promise.all([
     writeFile(path.join(workspace, "report.md"), `# AI NAND 周期研究\n\n# 核心判断\n\n需求改善，但验证周期仍限制盈利兑现。{{cite:s1}}\n\n渠道也观察到改善。[Channel Check，2026-08-01]\n\n> 渠道反馈显示订单改善，但库存仍需观察。\n>\n> 来源：Channel Check · 2026-08-01\n\n# 情景与估值\n\n| 情景 | 结论 |\n|---|---|\n| 基准 | 谨慎增持 |\n\n<div id="unsafe">bad</div>\n\n{{visual:scenario-range}}\n`),
     writeFile(path.join(workspace, "evidence.json"), JSON.stringify([
-      { chunk_id:"s1",title:"NAND Market Outlook",page_start:3,published_at:"2026-08-01",quote:"Demand is improving while qualification remains uncertain.",quote_zh:"需求正在改善，但验证仍存在不确定性。" },
+      { chunk_id:"s1",title:"NAND Market Outlook",page_start:3,published_at:"2026-08-01",quote:"Demand is improving while qualification remains uncertain.",quote_zh:"需求正在改善，但验证仍存在不确定性。<u>非标注</u>" },
       { chunk_id:"s2",title:"Channel Check",published_at:"2026-08-01",quote:"Channel demand improved." },
     ])),
     writeFile(path.join(workspace, "visuals.json"), JSON.stringify({ visuals:[{ key:"scenario-range",type:"range",title:"基准情景保留上行空间",deck:"估值区间与当前价格使用同一口径。",uncertainty:"验证延迟会把兑现时间推后",aria_label:"NAND 基准估值区间",evidence_ids:["s1"],items:[{label:"NAND",low:8,base:13,high:18,current:10,display:"8–18"}] }] })),
@@ -29,6 +29,7 @@ test("React SSR compiles Markdown into self-contained report HTML", async () => 
   assert.match(html, /AI NAND 周期研究/);
   assert.match(html, /〔NAND Market Outlook, p\.3〕/);
   assert.match(html, /需求正在改善，但验证仍存在不确定性。/);
+  assert.match(html, /&lt;u&gt;非标注&lt;\/u&gt;/);
   assert.match(html, /Channel demand improved\./);
   assert.equal((html.match(/class="src"/g) || []).length, 2);
   assert.match(html, /class="primary-quote"/);
@@ -37,6 +38,13 @@ test("React SSR compiles Markdown into self-contained report HTML", async () => 
   assert.match(html, /<details class="viz-sources">/);
   assert.doesNotMatch(html, /react(?:-dom)?(?:\.production)?\.js|<script[^>]+src=/i);
   assert.doesNotMatch(html, /dangerouslySetInnerHTML|\{\{visual:|id="unsafe"/);
+  const inspection = renderer.inspectReport(
+    await readFile(path.join(workspace, "report.md"), "utf8"),
+    JSON.parse(await readFile(path.join(workspace, "evidence.json"), "utf8")),
+  );
+  assert.equal(inspection.title, "AI NAND 周期研究");
+  assert.equal(inspection.primaryQuotes.length, 1);
+  assert.match(inspection.primaryQuotes[0].text, /来源：Channel Check/);
   await writeFile(path.join(workspace, "report.md"), `${await readFile(path.join(workspace, "report.md"), "utf8")}\n{{visual:scenario-range}}\n`);
   assert.throws(() => renderer.renderWorkspace(workspace), /must be placed exactly once/);
 });

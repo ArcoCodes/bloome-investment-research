@@ -49,29 +49,7 @@ function normalizedNarrative(value) {
   return value.replace(/[^\p{Letter}\p{Number}]+/gu, "").toLowerCase();
 }
 
-function htmlNarrative(html) {
-  return normalizedNarrative(html
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&(?:amp|lt|gt|quot|#39);/g, " "));
-}
-
-function preservesNarrative(report, html) {
-  const rendered = htmlNarrative(html);
-  const segments = report
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/\{\{(?:visual|cite):[^}]+\}\}/gi, "")
-    .replace(/\[([^\]\n]+)\]\([^)\n]+\)/g, "$1")
-    .replace(/(?:\[[^\]\n]+\]|〔[^〕\n]+〕|【[^】\n]+】)/g, "\n")
-    .split(/\n+/)
-    .map((line) => normalizedNarrative(line.replace(/<[^>]*>/g, " ")))
-    .filter(Boolean);
-  return segments.every((segment) => rendered.includes(segment));
-}
-
-export function validateReport(report, html, evidence, staged = {}) {
+export function validateReport(report, evidence, inspection, staged = {}) {
   const errors = [];
   const warnings = [];
   const chineseCharacters = (value) => (String(value ?? "").match(/[\u3400-\u9fff]/g) || []).length;
@@ -116,41 +94,12 @@ export function validateReport(report, html, evidence, staged = {}) {
   const matchedEvidence = resolved.map(({ item }) => item);
   if (!evidence.some((item) => item.relation === "challenge")) errors.push("At least one challenge evidence item is required");
   if (/\b(?:corpus|report_id|chunk_id|BM25|research_(?:search|plan|run_modules|synthesize))\b/i.test(report)) errors.push("Report contains internal workflow jargon");
-  if (!/^<!doctype html>/i.test(html.trimStart()) || !/class=["'][^"']*report/i.test(html)) errors.push("HTML must be a complete report document");
-  if (!preservesNarrative(report, html)) errors.push("HTML omits report.md narrative; render every heading, paragraph, table row, and citation context instead of rewriting a summary");
-  const requiredTemplateClasses = ["report", "top-bar", "header", "header-title", "header-meta", "section", "judge-box", "source-bar", "bottom-bar"];
-  const missingTemplateClasses = requiredTemplateClasses.filter((name) => !new RegExp(`class\\s*=\\s*[\"'][^\"']*\\b${name}\\b`).test(html));
-  if (missingTemplateClasses.length) errors.push(`HTML must preserve assets/template.html structure; missing: ${missingTemplateClasses.join(", ")}`);
-  if (/\{\{[^}]+\}\}/.test(html)) errors.push("HTML contains unresolved template placeholders");
-  const classes = [...html.matchAll(/class\s*=\s*["']([^"']*)["']/gi)].map((match) => match[1].split(/\s+/));
-  const sourceCount = classes.filter((names) => names.includes("src")).length;
-  const tooltipCount = classes.filter((names) => names.includes("tip")).length;
-  const primaryQuoteCount = classes.filter((names) => names.includes("primary-quote")).length;
-  const sellCitationCount = matchedEvidence.filter((item) => item?.corpus === "sell").length;
-  if (sourceCount < sellCitationCount || tooltipCount < sellCitationCount) {
-    errors.push("Every sell-side Markdown citation must have a matching src tooltip");
-  }
-  const tooltipBodies = [...html.matchAll(/<span\s+class=["'][^"']*\btip-bd\b[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi)].map((match) => match[1]);
-  if (tooltipBodies.some((body) => /<u\b/i.test(body))) {
-    errors.push("Sell-side tooltip bodies must preserve the reader-facing passage as plain text without underlines or <u> markup");
-  }
-  // Every cited sell-side passage must appear in a tooltip in the report language. For Chinese reports,
-  // quote_zh is the complete reader-facing translation while quote remains the untouched audit source.
   const displayQuote = (item) => String(item?.quote_zh || item?.quote || "");
-  const tooltipNarratives = tooltipBodies.map((body) => htmlNarrative(body));
-  for (const item of matchedEvidence.filter((item) => item?.corpus === "sell")) {
-    const quote = normalizedNarrative(displayQuote(item));
-    if (quote && !tooltipNarratives.some((body) => body.includes(quote))) {
-      errors.push(`Sell-side tooltip must show the complete reader-facing passage from evidence.json (quote_zh when present, otherwise quote): ${item.title}`);
-    }
-  }
-  const primaryQuoteElements = [...html.matchAll(/<blockquote\s+class=["'][^"']*\bprimary-quote\b[^"']*["'][^>]*>([\s\S]*?)<\/blockquote>/gi)];
-  const primaryQuoteBodies = primaryQuoteElements.map((match) => htmlNarrative(match[1]));
-  for (const quote of primaryQuoteElements) {
-    const text = quote[1].replace(/<\/(?:p|div|cite|li)>/gi, "\n").replace(/<[^>]*>/g, " ")
-      .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-    const sourceLabel = text.match(/来源[:：]\s*([^\n]+)/)?.[1]?.trim();
-    const quoteBody = htmlNarrative(quote[1]);
+  const primaryQuotes = inspection?.primaryQuotes || [];
+  const primaryQuoteBodies = primaryQuotes.map((quote) => normalizedNarrative(quote.text));
+  for (const quote of primaryQuotes) {
+    const sourceLabel = quote.text.match(/来源[:：]\s*([^\n]+)/)?.[1]?.trim();
+    const quoteBody = normalizedNarrative(quote.text);
     let source = sourceLabel && resolveCitation(sourceLabel, evidence);
     if (!source && sourceLabel) {
       const label = normalize(sourceLabel);
@@ -160,36 +109,18 @@ export function validateReport(report, html, evidence, staged = {}) {
     if (!source || source.corpus !== "primary") errors.push(`Primary quote source does not resolve to primary evidence: ${sourceLabel || "missing source line"}`);
     else if (!quoteBody.includes(normalizedNarrative(displayQuote(source)))) errors.push(`Primary quote does not match its stated source: ${source.title}`);
   }
-  const quoteGroupStarts = primaryQuoteElements.length ? [primaryQuoteElements[0]] : [];
-  for (let index = 1; index < primaryQuoteElements.length; index += 1) {
-    const previous = primaryQuoteElements[index - 1];
-    const current = primaryQuoteElements[index];
-    const gap = html.slice(previous.index + previous[0].length, current.index);
-    if (htmlNarrative(gap).length >= 24) quoteGroupStarts.push(current);
+  if (primaryQuotes.some((quote) => quote.groupStart && normalizedNarrative(quote.precedingText).length < 80)) {
+    errors.push("Each primary quote group needs a substantive local argument immediately before it");
   }
-  const sectionLabelMarkers = [...html.matchAll(/<[^>]+class=["'][^"']*\b(?:section-label|judge-label)\b[^"']*["'][^>]*>/gi)];
-  for (const quote of quoteGroupStarts) {
-    const label = sectionLabelMarkers.filter((marker) => marker.index < quote.index).at(-1);
-    const contextStart = label ? label.index + label[0].length : Math.max(0, quote.index - 1600);
-    const localContext = html.slice(contextStart, quote.index).replace(/<blockquote\b[^>]*>[\s\S]*?<\/blockquote>/gi, " ");
-    if (htmlNarrative(localContext).length < 80) {
-      errors.push("Each primary quote group needs a substantive local argument immediately before it");
-      break;
-    }
-  }
-  // A visible primary-quote block must reproduce the complete reader-facing passage, using quote_zh when present.
-  // The block may run longer than the passage, but it must contain the whole display text.
-  const MIN_VISIBLE_QUOTE = 12;
   const quoteIsVisible = (item) => {
     const quote = normalizedNarrative(displayQuote(item));
-    return quote.length >= MIN_VISIBLE_QUOTE && primaryQuoteBodies.some((body) => body.includes(quote));
+    return quote.length >= 12 && primaryQuoteBodies.some((body) => body.includes(quote));
   };
   const primaryEvidence = evidence.filter((item) => item.corpus === "primary");
   if (primaryEvidence.length && !primaryEvidence.some(quoteIsVisible)) {
     errors.push("Report must show at least one complete primary-source passage in a visible primary-quote block");
   }
-  const citedPrimaryEvidence = matchedEvidence.filter((item) => item?.corpus === "primary");
-  for (const item of citedPrimaryEvidence) {
+  for (const item of matchedEvidence.filter((item) => item?.corpus === "primary")) {
     if (!quoteIsVisible(item)) warnings.push(`Primary citation would read better with its quote shown in a visible primary-quote block: ${item.title}`);
   }
   if (primaryEvidence.length) {
@@ -197,12 +128,8 @@ export function validateReport(report, html, evidence, staged = {}) {
     const independentPrimaryOrigins = new Set(primaryEvidence.map(primaryOrigin));
     const visiblePrimaryEvidence = primaryEvidence.filter(quoteIsVisible);
     const visiblePrimaryOrigins = new Set(visiblePrimaryEvidence.map(primaryOrigin));
-    if (independentPrimaryOrigins.size < 2) {
-      errors.push("One primary source is insufficient. Continue primary retrieval until multiple independent sources are accepted");
-    }
-    if (visiblePrimaryOrigins.size < 2) {
-      errors.push("Report body must show multiple independent primary passages; one isolated quote or source-bar listing is insufficient");
-    }
+    if (independentPrimaryOrigins.size < 2) errors.push("One primary source is insufficient. Continue primary retrieval until multiple independent sources are accepted");
+    if (visiblePrimaryOrigins.size < 2) errors.push("Report body must show multiple independent primary passages; one isolated quote or source-bar listing is insufficient");
     const primaryClaimIds = new Set(primaryEvidence.flatMap((item) =>
       Array.isArray(item.claim_ids) ? item.claim_ids.map((id) => String(id).toUpperCase()) : []));
     for (const id of primaryClaimIds) {
@@ -211,7 +138,7 @@ export function validateReport(report, html, evidence, staged = {}) {
       if (!claimHasVisiblePrimary) warnings.push(`Core claim ${id} has accepted primary evidence but no matched primary passage visible in report.html`);
     }
   }
-  if (primaryQuoteCount && /专家纪要\s*\/\s*产业访谈\s*·\s*日期|evidence\.json\s*回填|来源待填/i.test(html)) {
+  if (primaryQuotes.length && /专家纪要\s*\/\s*产业访谈\s*·\s*日期|evidence\.json\s*回填|来源待填/i.test(report)) {
     errors.push("Primary quote source must be populated from evidence.json, not a generic placeholder");
   }
   const origins = new Map();
