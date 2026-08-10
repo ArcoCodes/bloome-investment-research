@@ -5,6 +5,8 @@ const path = require("node:path");
 const readline = require("node:readline");
 const { pathToFileURL } = require("node:url");
 const finance = require("./finance-client.cjs");
+const reportRenderer = require("../dist/render-report.cjs");
+const { resolvedCitations } = require("../scripts/citations.cjs");
 
 const ROOT = path.resolve(__dirname, "..");
 const PLUGIN_CONFIG = JSON.parse(fs.readFileSync(path.join(ROOT, "plugin.config.json"), "utf8"));
@@ -21,6 +23,7 @@ const REQUIRED_FILES = [
   "report.md",
   "report.html",
   "evidence.json",
+  "visuals.json",
   "coverage_stats.json",
 ];
 
@@ -68,13 +71,13 @@ function runtimeProfile(runtime = runtimeName()) {
     return {
       name: runtime,
       supportsWorkbench: false,
-      instructions: `Use Claude Code as the reasoning runtime. Preserve the investment research workflow and assets/template.html report contract. Use the returned reportPath to inspect the finished HTML report. ${billing}`,
+      instructions: `Use Claude Code as the reasoning runtime. Preserve the investment research workflow and render report.html with the bundled React static renderer. Use the returned reportPath to inspect the finished HTML report. ${billing}`,
     };
   }
   return {
     name: "codex",
     supportsWorkbench: true,
-    instructions: `Use Codex as the reasoning runtime. Preserve the investment research workflow and assets/template.html report contract. Bloome styling applies only to the workbench shell. ${billing}`,
+    instructions: `Use Codex as the reasoning runtime. Preserve the investment research workflow and render report.html with the bundled React static renderer. Bloome styling applies only to the workbench shell. ${billing}`,
   };
 }
 
@@ -158,10 +161,17 @@ function toolDefinitions(runtime = runtimeName()) {
       { widget: profile.supportsWorkbench },
     ),
     tool(
+      "render_research_report",
+      "Render static investment report",
+      "Synchronize final_report.md to report.md, then compile it with evidence.json, visuals.json, and coverage_stats.json through the bundled React server renderer into a self-contained report.html. The output preserves the native report style, includes no React browser runtime, and is ready for visual review and upload.",
+      objectSchema({ workspace: WORKSPACE_PROPERTY }, ["workspace"]),
+      { readOnly: false, destructive: false },
+    ),
+    tool(
       "validate_research_workspace",
       "Validate report and generate link",
-      "Validate evidence traceability, multiple independent visible primary passages, chapter substance, report completeness, and the native report template contract. Successful validation generates and returns a directly accessible report link, then closes the active research run.",
-      objectSchema({ workspace: { type: "string", minLength: 1 } }, ["workspace"]),
+      "Validate evidence traceability, multiple independent visible primary passages, chapter substance, report completeness, planned visuals, and React-rendered static HTML. Successful validation generates and returns a directly accessible report link, then closes the active research run.",
+      objectSchema({ workspace: WORKSPACE_PROPERTY }, ["workspace"]),
       { readOnly: false, destructive: false },
     ),
   ];
@@ -264,12 +274,6 @@ function coverageErrors(coverage) {
   return errors;
 }
 
-function citations(markdown) {
-  return [...markdown.matchAll(/(?:\[([^\]\n]+)\]|〔([^〕\n]+)〕|【([^】\n]+)】)/g)]
-    .map((match) => match[1] ?? match[2] ?? match[3])
-    .filter((value) => /,\s*(?:p{1,2}\.\d+(?:-\d+)?|lines? \d+(?:-\d+)?)/.test(value));
-}
-
 function bodyParagraphs(markdown) {
   return markdown
     .replace(/^#{1,6}\s+.*$/gm, "")
@@ -278,17 +282,29 @@ function bodyParagraphs(markdown) {
     .filter(Boolean);
 }
 
-function moduleErrors(id, markdown) {
+function moduleErrors(id, markdown, evidence) {
   const errors = [];
   if (!bodyParagraphs(markdown).length) errors.push(`module ${id} is title-only or lacks substantive evidence`);
-  if (!citations(markdown).length) errors.push(`module ${id} requires at least one exact source citation`);
+  if (!resolvedCitations(markdown, evidence).length) errors.push(`module ${id} requires at least one citation resolved to evidence.json`);
   return errors;
 }
 
-function chapterErrors(name, markdown) {
+function chapterErrors(name, markdown, evidence) {
   const errors = [];
   if (!bodyParagraphs(markdown).length) errors.push(`${name} is title-only or lacks substantive analysis`);
-  if (!citations(markdown).length) errors.push(`${name} requires at least one exact source citation`);
+  if (!resolvedCitations(markdown, evidence).length) errors.push(`${name} requires at least one citation resolved to evidence.json`);
+  return errors;
+}
+
+function chapterCoverageErrors(chapters, finalReport, evidence) {
+  const errors = [];
+  const finalEvidence = new Set(resolvedCitations(finalReport, evidence).map(({ item }) => item.chunk_id));
+  for (const { name, markdown } of chapters) {
+    const heading = markdown.match(/^#\s+(.+)$/m)?.[1]?.trim();
+    if (heading && !finalReport.includes(heading)) errors.push(`${name} heading is missing from final_report.md`);
+    const chapterEvidence = resolvedCitations(markdown, evidence).map(({ item }) => item.chunk_id);
+    if (chapterEvidence.length && !chapterEvidence.some((id) => finalEvidence.has(id))) errors.push(`${name} has no evidence represented in final_report.md`);
+  }
   return errors;
 }
 
@@ -303,6 +319,7 @@ async function validateWorkspace(workspace) {
   const chapters = chapterArtifacts.length;
   if (!chapters) errors.push("research workspace requires chapter drafts");
 
+  const evidence = readJson(path.join(root, "evidence.json"), []);
   const plan = readJson(path.join(root, "plan.json"), {});
   const modules = Array.isArray(plan.modules) ? plan.modules : [];
   if (!names.has("plan.json")) errors.push("missing plan.json");
@@ -312,26 +329,37 @@ async function validateWorkspace(workspace) {
     if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) { errors.push(`invalid module id: ${id || "missing"}`); continue; }
     const memo = readText(path.join(root, "modules", `${id}.md`));
     if (!memo) errors.push(`missing modules/${id}.md`);
-    else errors.push(...moduleErrors(id, memo));
+    else errors.push(...moduleErrors(id, memo, evidence));
   }
 
   const chapterFiles = chapterArtifacts.map(({ name }) => ({ name, markdown: readText(path.join(root, name)) }));
-  for (const chapter of chapterFiles) errors.push(...chapterErrors(chapter.name, chapter.markdown));
+  for (const chapter of chapterFiles) errors.push(...chapterErrors(chapter.name, chapter.markdown, evidence));
   const finalReport = readText(path.join(root, "final_report.md"));
+  errors.push(...chapterCoverageErrors(chapterFiles, finalReport, evidence));
 
-  const evidence = readJson(path.join(root, "evidence.json"), []);
+  const visuals = readJson(path.join(root, "visuals.json"), null);
+  const coverage = readJson(path.join(root, "coverage_stats.json"), {});
   const report = readText(path.join(root, "report.md"));
+  const inspection = reportRenderer.inspectReport(report, Array.isArray(evidence) ? evidence : []);
+  const chapterHeadings = new Set(chapterFiles.map(({ markdown }) => markdown.match(/^#\s+(.+)$/m)?.[1]?.trim()).filter(Boolean));
+  if (!inspection.hasTitle || chapterHeadings.has(inspection.title)) errors.push("report.md requires a distinct H1 report title before its first H1 section");
   if (report.replace(/\s+/g, " ").trim() !== finalReport.replace(/\s+/g, " ").trim()) {
     errors.push("report.md must match the synthesized final_report.md");
   }
   const html = readText(path.join(root, "report.html"));
+  try {
+    const template = readText(path.join(ROOT, "skills", "investment-research", "assets", "template.html"));
+    const expected = reportRenderer.renderReport({ markdown:report, evidence, coverage, visuals, template });
+    if (html.trim() !== expected.trim()) errors.push("report.html is stale; rerun render_research_report after changing report, evidence, visuals, coverage, or template inputs");
+  } catch (error) {
+    errors.push(`React report render failed: ${error.message}`);
+  }
   const sellSideLogic = readText(path.join(root, "sell_side_logic.md"));
   const validationMarkdown = readText(path.join(root, "validation.md"));
-  const coverage = readJson(path.join(root, "coverage_stats.json"), {});
   errors.push(...coverageErrors(coverage));
   let result;
   if (Array.isArray(evidence) && report && html) {
-    const validation = core.validateReport(report, html, evidence, { sellSideLogic, validation: validationMarkdown });
+    const validation = core.validateReport(report, evidence, inspection, { sellSideLogic, validation: validationMarkdown });
     errors.push(...validation.errors);
     result = { ok: errors.length === 0, workspace: root, errors: [...new Set(errors)], warnings: validation.warnings, artifacts, chapters };
   } else {
@@ -396,6 +424,7 @@ async function callTool(name, args = {}, runtime = runtimeName(), options = {}) 
       workbenchAvailable: profile.supportsWorkbench,
     };
   }
+  if (name === "render_research_report") return reportRenderer.renderWorkspace(args.workspace, ROOT);
   if (name === "validate_research_workspace") return validateWorkspace(args.workspace);
   throw new Error(`unknown tool: ${name}`);
 }

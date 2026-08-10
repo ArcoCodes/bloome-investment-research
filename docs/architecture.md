@@ -15,6 +15,8 @@ mcp/server.cjs                    shared MCP protocol and research tools
 mcp/finance-client.cjs            local device auth, research run, and Finance gateway client
 .mcp.json                         portable launcher for both hosts
 assets/workbench.html             optional Codex MCP App presentation
+src/report/render-report.jsx      React server component source
+dist/render-report.cjs            bundled runtime static renderer
 ```
 
 ## Boundaries
@@ -24,6 +26,7 @@ assets/workbench.html             optional Codex MCP App presentation
 - `mcp/server.cjs` selects a small runtime profile. Codex receives MCP App resource metadata and inline report HTML. Claude Code receives the same research state plus `reportPath`, without injecting a large HTML document into model context.
 - `mcp/finance-client.cjs` keeps MCP local while delegating identity, entitlements, run lifecycle, research-data access, and report-link generation to Bloome Finance. Successful validation generates the directly accessible report URL and closes the run.
 - `.mcp.json` uses `CLAUDE_PLUGIN_ROOT` when Claude Code provides it and the plugin process working directory otherwise. This keeps one MCP server declaration and avoids duplicated tool configuration.
+- The report renderer uses React only on the server. It parses `report.md` into Markdown tokens, resolves citations through `evidence.json`, renders `visuals.json` through controlled components, reads the protected template styles, and emits self-contained `report.html` with no browser React runtime or raw model-authored HTML.
 - The report template and evidence contracts remain byte-for-byte protected by tests.
 
 ## Adding another host
@@ -37,6 +40,7 @@ assets/workbench.html             optional Codex MCP App presentation
 
 1. Change `version` and other shared metadata in `plugin.config.json`.
 2. Run `npm run generate:manifests`.
-3. Run `npm run verify` and `npm run test:ui`.
-4. Run the native validators: Codex `validate_plugin.py` and `claude plugin validate`.
-5. Publish the same repository revision to both marketplaces.
+3. Run `npm run build:report` after changing React report components; commit the generated `dist/render-report.cjs`.
+4. Run `npm run verify` and `npm run test:ui`.
+5. Run the native validators: Codex `validate_plugin.py` and `claude plugin validate`.
+6. Publish the same repository revision to both marketplaces.

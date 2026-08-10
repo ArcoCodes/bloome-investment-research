@@ -2,7 +2,7 @@
 
 面向 Codex 与 Claude Code 的金融投研插件。它把可追溯的投研工作流、受控研究数据接口和统一报告契约打包成同一份共享实现，并为两个宿主生成各自的插件清单和 marketplace。
 
-宿主使用用户现有账号完成规划、推理和写作，不需要额外的模型 API Key。Investment Research Skill 自带的研报结构、引用规则与 HTML 模板保持为最终输出标准。Codex 还会渲染 Bloome PiP / fullscreen 工作台；Claude Code 返回同一工作区的进度、证据和 `reportPath`，直接读取最终报告，不假装支持 Codex 专属面板。
+宿主使用用户现有账号完成规划、推理和写作，不需要额外的模型 API Key。Investment Research Skill 自带的研报结构和引用规则保持为最终输出标准；React 服务端渲染器读取现有模板样式，将 Markdown 解析为结构化 token、通过 `evidence.json` 解析引用，并将 `visuals.json` 渲染为受控图表组件，最终编译为可直接上传的单文件 `report.html`；浏览器端不加载 React，也不执行模型生成的 HTML/JS。Codex 还会渲染 Bloome PiP / fullscreen 工作台；Claude Code 返回同一工作区的进度、证据和 `reportPath`，直接读取最终报告，不假装支持 Codex 专属面板。
 
 ## Codex 安装
 
@@ -60,6 +60,8 @@ plugins/bloome-investment-research/
 ├── .mcp.json
 ├── plugin.config.json
 ├── skills/investment-research/
+├── src/report/render-report.jsx
+├── dist/render-report.cjs
 ├── mcp/server.cjs
 ├── scripts/core.mjs
 └── assets/
@@ -70,6 +72,7 @@ plugins/bloome-investment-research/
 ```bash
 cd plugins/bloome-investment-research
 npm ci
+npm run build:report
 npm run verify
 npm run test:ui
 claude plugin validate ../.. --strict
