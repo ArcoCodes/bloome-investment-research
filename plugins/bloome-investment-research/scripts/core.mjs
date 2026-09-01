@@ -94,6 +94,9 @@ export function validateReport(report, evidence, inspection, staged = {}) {
   const matchedEvidence = resolved.map(({ item }) => item);
   if (!evidence.some((item) => item.relation === "challenge")) errors.push("At least one challenge evidence item is required");
   if (/\b(?:corpus|report_id|chunk_id|BM25|research_(?:search|plan|run_modules|synthesize))\b/i.test(report)) errors.push("Report contains internal workflow jargon");
+  if (/(?:来源|source)\s*[:：]\s*(?:id:official-|primary[_-]|sell[_-]|chunk[_-]|source[_-]|evidence[_-])/i.test(report)) {
+    errors.push("Reader-facing source attribution exposes an internal evidence or retrieval key");
+  }
   const displayQuote = (item) => String(item?.quote_zh || item?.quote || "");
   const primaryQuotes = inspection?.primaryQuotes || [];
   const primaryQuoteBodies = primaryQuotes.map((quote) => normalizedNarrative(quote.text));

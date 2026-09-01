@@ -5,8 +5,8 @@ import { test } from "node:test";
 
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
-  ["skills/investment-research/assets/template.html", "0bc07d431ece1f8f64b20d42c0ff1746a0d79bc5f62edfe9681a420e4ebee858"],
-  ["skills/investment-research/references/file-specs.md", "c2f390d5ae54ddfa1ce3847710dd8ca501a6c581178a4c45e0d81ed8b32351b7"],
+  ["skills/investment-research/assets/template.html", "9dd363e6eeeb94e270635c207ba375eebce729a5d3a99b235e5a9a2364c00084"],
+  ["skills/investment-research/references/file-specs.md", "df79b8ae44b68d4e29e51dffe05e7682fccfbe09dae2926246f0fa7fb1207a30"],
   ["skills/investment-research/references/chart-rules.md", "64888516fee7a54e54822ea839b62a47f816d1a637350ea533da0cb0c45376d7"],
 ]);
 

@@ -156,16 +156,27 @@ function reportParts(markdown) {
   const titleIndex = tokens.findIndex((token) => token.type === "heading" && token.depth === 1);
   if (titleIndex < 0) return { title:"Investment Research", hasTitle:false, sections:[{ title:"核心判断", tokens }] };
   const title = tokens[titleIndex].text.trim();
+  const preamble = [];
   const sections = [];
-  let current = { title:"核心判断", tokens:[] };
+  let current = null;
   for (const token of tokens.slice(titleIndex + 1)) {
     if (token.type === "heading" && token.depth === 1) {
-      if (current.tokens.length) sections.push(current);
+      if (current?.tokens.length) sections.push(current);
       current = { title:token.text.trim(), tokens:[] };
-    } else current.tokens.push(token);
+    } else if (current) current.tokens.push(token);
+    else preamble.push(token);
   }
-  if (current.tokens.length || !sections.length) sections.push(current);
-  return { title, hasTitle:true, sections };
+  if (current?.tokens.length) sections.push(current);
+
+  const isJudgment = (section) => /^(?:核心判断|投资判断|投资评级|investment\s+(?:judg(?:e)?ment|thesis|rating))(?=\s*[:：·—-]|\s*$)/i.test(section.title);
+  const explicitJudgments = sections.filter(isJudgment);
+  if (explicitJudgments.length > 1) throw new Error("Report must contain exactly one explicit core-investment-judgment section");
+  if (explicitJudgments.length === 1) {
+    const lead = explicitJudgments[0];
+    return { title, hasTitle:true, sections:[lead, ...sections.filter((section) => section !== lead)] };
+  }
+  if (preamble.some((token) => tokenText(token).trim())) return { title, hasTitle:true, sections:[{ title:"核心判断", tokens:preamble }, ...sections] };
+  return { title, hasTitle:true, sections:sections.length ? sections : [{ title:"核心判断", tokens:[] }] };
 }
 
 function tokenText(token) {
@@ -233,7 +244,7 @@ function Report({ markdown, evidence, coverage, visuals, css }) {
   const sourceSummary = `来源覆盖：卖方研报 ${coverage.sell_reports_read || 0} 篇 · 产业资料 ${coverage.primary_sources_read || 0} 篇 · 完整来源见正文与证据台账`;
   return <html lang="zh-CN"><head><meta charSet="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Bloome React SSR" /><title>{title}</title><style dangerouslySetInnerHTML={{ __html:css }} /></head><body>
     <main className="report"><div className="top-bar" /><header className="header"><div className="header-label">Global Investment Research</div><div className="header-title">{title}</div><div className="header-meta">数据覆盖：卖方机构研报已读 {coverage.sell_reports_read || 0} 篇 · 产业资料已读 {coverage.primary_sources_read || 0} 篇 · 数据截至 {reportMonth}</div></header>
-      <section className="section judge-box"><div className="judge-label">{lead.title}</div><div className="analysis-text"><Blocks tokens={lead.tokens} context={context} /></div></section>
+      <section className="section judge-box" data-report-role="investment-judgment"><div className="judge-label">{lead.title}</div><div className="analysis-text"><Blocks tokens={lead.tokens} context={context} /></div></section>
       {rest.map((section) => <section className="section" key={section.title}><div className="section-label">{section.title}</div><div className="analysis-text"><Blocks tokens={section.tokens} context={context} /></div></section>)}
       <footer className="source-bar">{sourceSummary}</footer><div className="bottom-bar" /></main>
   </body></html>;

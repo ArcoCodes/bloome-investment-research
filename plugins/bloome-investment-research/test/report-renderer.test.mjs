@@ -8,6 +8,19 @@ import { test } from "node:test";
 const require = createRequire(import.meta.url);
 const renderer = require("../dist/render-report.cjs");
 
+test("explicit core judgment owns the single opening judgment slot", () => {
+  const markdown = `# AMD Research\n\n研究截止：2026-08-31\n\n# 核心判断：基本面加速，但估值已提前反映\n\n观望，现有持有人持有但不追高。\n\n# 商业模式本质\n\nAMD销售计算芯片与平台。`;
+  const inspection = renderer.inspectReport(markdown, []);
+  assert.equal(inspection.sections.filter((section) => /核心判断/.test(section.title)).length, 1);
+  assert.match(inspection.sections[0].title, /核心判断：基本面加速/);
+  assert.doesNotMatch(JSON.stringify(inspection.sections), /研究截止/);
+});
+
+test("multiple explicit core judgments fail closed", () => {
+  const markdown = `# AMD Research\n\n# 核心判断\n\n判断一。\n\n# 投资判断：判断二\n\n判断二。`;
+  assert.throws(() => renderer.inspectReport(markdown, []), /exactly one explicit core-investment-judgment/);
+});
+
 test("React SSR compiles Markdown into self-contained report HTML", async () => {
   const workspace = await mkdtemp(path.join(os.tmpdir(), "bloome-react-report-"));
   await mkdir(workspace, { recursive:true });

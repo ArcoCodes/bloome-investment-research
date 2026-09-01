@@ -65,12 +65,12 @@
     <div class="header-meta">数据覆盖：卖方机构研报已读 {{sell_reports_read}} 篇 · 产业资料已读 {{primary_sources_read}} 篇 · 数据截至 {{report_month}}</div>
   </div>
 
-  <!-- 第一屏：研判 -->
-  <div class="section judge-box">
-    <div class="judge-label">【研判】</div>
+  <!-- 第一屏：唯一投资判断入口。渲染器消费正文判断，不得在正文再次生成同义章节。 -->
+  <div class="section judge-box" data-report-role="investment-judgment">
+    <div class="judge-label">核心判断</div>
     <div class="analysis-text">
-      <p>核心判断……</p>
-      <div class="confidence"><span class="dot"></span>置信度：高/中/低 — 原因</div>
+      <p>{{investment_judgment}}</p>
+      <div class="confidence"><span class="dot"></span>置信度：{{confidence_level}} — {{confidence_reason}}</div>
     </div>
   </div>
 
