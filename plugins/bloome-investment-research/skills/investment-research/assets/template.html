@@ -29,6 +29,7 @@
   tbody tr{border-bottom:1px solid #E0DCD4}
   td{padding:8px 0;color:#1A1A1A}
   .source-bar{padding:16px 28px;border-top:1px solid #E0DCD4;font-size:10px;color:#5A5A5A;font-family:'Helvetica Neue',Arial,sans-serif;line-height:1.6}
+  .report-disclaimer{padding:16px 28px;background:#F7F5F0;border-top:1px solid #E0DCD4;color:#5A5A5A;font:600 10px/1.6 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2px}
   .highlight{color:#003A5C;font-weight:700}
   .upside{color:#003A5C;font-weight:700}
   .judge-box{background:#F7F5F0;border-left:3px solid #B59A57;padding:20px 24px}
@@ -50,7 +51,7 @@
   .data-card .val{font-size:18px;font-weight:700;color:#003A5C;font-family:'Helvetica Neue',Arial,sans-serif}
   .data-card .lbl{font-size:10px;color:#5A5A5A;margin-top:3px;font-family:'Helvetica Neue',Arial,sans-serif}
   svg text{font-family:'Helvetica Neue',Arial,sans-serif}
-  @media(max-width:560px){.report{border-left:0;border-right:0}.header,.section,.source-bar{padding-left:18px;padding-right:18px}.chart-row,.data-callout{flex-direction:column}.src .tip{width:min(320px,calc(100vw - 24px));max-height:50vh}}
+  @media(max-width:560px){.report{border-left:0;border-right:0}.header,.section,.source-bar,.report-disclaimer{padding-left:18px;padding-right:18px}.chart-row,.data-callout{flex-direction:column}.src .tip{width:min(320px,calc(100vw - 24px));max-height:50vh}}
   @media print{.report{max-width:none;border:0}.src .tip{display:none!important}}
 </style>
 </head>
@@ -96,6 +97,7 @@
     </div>
   </div>
 
+  <div class="report-disclaimer">本投资报告由 AI 生成，仅供研究参考，不构成投资建议。</div>
   <div class="source-bar">机构 · 报告名 · 2026年X月</div>
   <div class="bottom-bar"></div>
 </div>

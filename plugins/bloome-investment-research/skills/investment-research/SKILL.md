@@ -1,6 +1,6 @@
 ---
 name: investment-research-agent
-description: Runs long-form multi-agent investment research in Codex or Claude/Cowork through staged intermediate artifacts instead of one-shot output. Use for deep company, industry, theme, or thesis reports that separate sell-side logic extraction from primary validation and produce traceable Markdown, HTML, and evidence deliverables.
+description: Runs long-form multi-agent investment research in Codex or Claude/Cowork through staged intermediate artifacts instead of one-shot output. Use for deep company, industry, theme, or thesis reports that separate sell-side logic extraction from primary validation and produce professional Markdown and HTML deliverables.
 ---
 
 # Investment Research Agent
@@ -9,6 +9,16 @@ Use the active host—Codex or Claude/Cowork (including Claude Code plugin runti
 
 Do not write a long report in one pass. Keep `evidence.json` as the unified evidence backbone. MCP is the shared data plane only: it must never spawn an agent, invoke a model CLI, or call a model API.
 
+## Concise Start Gate
+
+This is a long-running workflow. Before creating the workspace, calling any research or retrieval tool, starting a remote run, or dispatching research workers, send one concise paragraph in the user's language that covers: the estimated duration as a range, the high-level research plan, the use of professional sell-side brokerage research and industry-expert interview databases, and the two final deliverables. Then wait for explicit user confirmation. Do not begin execution merely because the user supplied a research topic.
+
+Use this Chinese default when appropriate, adapting the company, scope, and time range without making it longer:
+
+> 这是一项完整的机构级深度研究，预计约 45—90 分钟。我会调用专业券商研报与产业专家访谈数据库，先建立公司与商业模式认知，再还原市场共识并交叉验证预期差，最后完成经营预测、情景估值、风险与重评条件及投资行动建议。最终交付一份可直接支持投资决策的 HTML 和 Markdown 报告；确认后我再开始。
+
+Treat “确认”“开始”“按这个计划做” and clear equivalents in the same conversation as approval. If the user's initiating message already explicitly says to start immediately without another confirmation, the start gate is satisfied, but still send the concise timing-and-plan paragraph before the first tool call. Do not show internal agent roles, staged filenames, tool names, retrieval mechanics, or a long checklist. If the Finance service later returns a priced confirmation quote that was not available at the start gate, show only the topic, cost, and balance and obtain the required cost confirmation; do not repeat the research plan.
+
 ## Expert Evidence Gate
 
 `sell` and `primary` may be searched in either order. Keep `sell` and `primary` as separate corpus searches. Primary results have no expert/official source label, so within `primary` run separate expert-targeted and official-targeted `research_search` calls using different concepts and phrases—never `source_types`. Search experts with company or product plus customer, supplier, competitor, channel, and former-employee roles, varying demand, orders, inventory, capacity, pricing, delivery, product progress, share, and time terms. Finding official materials does not complete primary research. Expert evidence is the highest-priority retrieval requirement for completed research: the report must show multiple independent expert passages distributed across the core industry claims rather than concentrated in one section. This is a floor on expert coverage, not a ceiling on other evidence — never cut or thin sell-side or official content to shift the evidence mix toward experts. If a core industry claim lacks expert evidence, repeat the expert search with different roles, chain positions, and wording. If a gap remains after exhaustive expert search, still write the complete report: state the gap explicitly where the affected claim is argued and label that claim as lacking expert corroboration, instead of dropping the claim, thinning the analysis, or withholding the report because only official material supports it.
@@ -16,7 +26,7 @@ Do not write a long report in one pass. Keep `evidence.json` as the unified evid
 ## Cross-Runtime Run
 
 1. Create a project workspace at `.bloome/research/<topic-slug>/`.
-2. Use the bundled research tools for retrieval and the active host for planning, validation, and synthesis.
+2. Use the bundled research tools for retrieval and the active host for planning, validation, and synthesis. For any listed security, also read the bundled `../stock-market-data/SKILL.md` and use its unified dispatcher for security identity, current price, and historical market data.
 3. Save every required staged artifact in that workspace.
 4. Call `validate_research_workspace` before final delivery and repair every reported error.
 5. Call `open_research_workspace` with the absolute workspace path. In Codex, promote the compact launcher into the native PiP panel and use fullscreen for the report. In Claude Code, use the returned `reportPath` to inspect `report.html`; the same progress, evidence, artifact, and validation data remain available without a rendered MCP App panel. The workbench may frame the report where supported, but the report itself must use the bundled React static renderer, which reads `assets/template.html` as its visual source of truth.
@@ -80,6 +90,14 @@ The bundled `research_search` and `research_get_chunk` tools are the research co
 
 `sell` is also the primary source of structured quantitative material—market size, shipments, pricing, capex, shares, costs, forecasts, model tables, and historical series—and it should be used extensively to build the report's tables, charts, forecasts, valuation ranges, and model calculations. Calibrate key figures against `primary` where available, but using `sell` quantitative content is expected and correct, not a defect; only its uncalibrated conclusions are treated as hypotheses rather than proven fact.
 
+## Current Market Price Gate
+
+Never use a price printed in a sell-side report as the report's current share price, valuation anchor, or basis for upside/downside. It is only historical context for the broker's publication date. For every listed security, use the bundled `stock-market-data` skill rather than writing an ad hoc `yfinance` call. First run its unified security resolver (`python scripts/market_data.py resolve "<company or ticker>"` from that skill directory), then fetch the quote through `python scripts/market_data.py price <resolved-ticker>`. The dispatcher uses the configured provider chain—`yfinance` for supported US/HK/JP/KR securities and explicit market-specific fallbacks where configured—and returns provenance and freshness metadata. Do not bypass it with `yf.Ticker()`, `yf.download()`, a web snippet, or model memory.
+
+Save the normalized resolver and price outputs in the research workspace as `market_data_snapshot.json`. The snapshot must contain the resolved entity/listing/security identity, ticker, exchange or venue, currency, price, quote timestamp or latest completed trading date, retrieval timestamp, quote availability/delay status, adjustment convention, provider, source metadata, provider attempts, and whether a fallback was used. Use the current regular-market price when available and clearly timestamp it; otherwise use the latest completed trading-session close. Use the same verified price and valuation timestamp consistently in the opening metadata, reverse valuation, scenario tables, target-price returns, charts, and investment conclusion.
+
+Prefer unadjusted market price for the current valuation anchor and adjusted prices for total-return historical series unless the analysis requires a different documented convention. For ADRs, secondary listings, share classes, or cross-listed securities, verify that the ticker, trading venue, currency, and share/ADR ratio match the security being valued. Respect the dispatcher's declared fallback chain and freshness result. If every configured provider is unavailable or stale, disclose that the current price is unavailable and stop price-based valuation; never fall back to a broker report's quoted price. A listed-security report fails delivery when `market_data_snapshot.json` is missing, its stated “current price” is supported only by sell-side research, or different sections use inconsistent price dates.
+
 Within `primary`, search two material categories separately:
 
 - **Industry-expert material:** expert interviews, former-employee interviews, industry-participant or consultant conversations, channel checks, fieldwork, and research notes based on direct industry-participant commentary. Search across customers and end users, procurement or operations staff, upstream suppliers, competitors, distributors and channel partners, integrators, and former executives or employees. Use these materials to identify leading changes in demand, orders, inventory, capacity, pricing, delivery, product progress, and market share. Seek supporting, opposing, and conflicting views from different roles and value-chain positions.
@@ -118,6 +136,19 @@ Place each visible `primary-quote` immediately after the paragraph, list item, o
 The bundled React static renderer reads `assets/template.html` as the visual source of truth and owns the page shell, Markdown token rendering, section wrappers, evidence-linked citation tooltips, responsive rules, controlled visual components, and static-document assembly. Models write `report.md` plus `visuals.json`; they must not insert raw page HTML, SVG, CSS, JavaScript, a card layout, or a different structure. Preserve the template's header, judgment block, section layout, source bar, hover-tooltip system, and visual language. Record `report_month` or the data cutoff in `coverage_stats.json` so the renderer can display it.
 
 Keep `report.html` reader-facing and single-page, exactly following the bundled template's structure and visual language. Do not add report/evidence tabs or embed the audit ledger into the page. The audit trail remains in `sell_side_logic.md`, `validation.md`, `evidence_disposition.md`, `decision.md`, and `evidence.json`. Do not leave template placeholders unresolved. Treat duplicated opening/core-judgment components, unresolved judgment placeholders, disconnected source-only cards, and reader-visible internal evidence IDs as hard delivery failures.
+
+## User-facing Deliverables and Names
+
+Expose exactly two final files to the user: one self-contained HTML report and one Markdown report with identical content. Do not present `report.md`, `final_report.md`, evidence ledgers, visual assets, ZIP archives, JSON files, chapter drafts, or other workspace artifacts as additional deliverables. They remain internal research artifacts.
+
+Use a professional, descriptive basename rather than `report` or `final_report`:
+
+- Chinese: `{公司简称}_{Ticker}_机构级深度投资研究_{YYYY-MM-DD}`
+- English: `{Company}_{Ticker}_Institutional_Investment_Research_{YYYY-MM-DD}`
+- Japanese: `{Company}_{Ticker}_機関投資家向け投資調査_{YYYY-MM-DD}`
+- Korean: `{Company}_{Ticker}_기관투자자용_심층투자리서치_{YYYY-MM-DD}`
+
+Use the research cutoff date, preserve a widely recognized company name in the report language, keep the ticker uppercase, replace unsafe filename characters with underscores, and use the same basename for `.html` and `.md`. For example: `英伟达_NVDA_机构级深度投资研究_2026-09-01.html` and `英伟达_NVDA_机构级深度投资研究_2026-09-01.md`. In the final response, link only these two files plus the directly accessible report URL when one was generated.
 
 Long HTML should feel like an editorial report, not a tall text dump. Keep the full prose, but break it with natural section labels, compact evidence tables, visible primary quotations, and only the figures that materially advance the decision. On desktop and narrow-phone screenshots, inspect the beginning, middle, and end of the page; verify that wide tables remain readable, no section is clipped, and the renderer has not silently dropped late-report content.
 

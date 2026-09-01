@@ -5,8 +5,8 @@ import { test } from "node:test";
 
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
-  ["skills/investment-research/assets/template.html", "9dd363e6eeeb94e270635c207ba375eebce729a5d3a99b235e5a9a2364c00084"],
-  ["skills/investment-research/references/file-specs.md", "df79b8ae44b68d4e29e51dffe05e7682fccfbe09dae2926246f0fa7fb1207a30"],
+  ["skills/investment-research/assets/template.html", "55d0d65bc04c0eb303aa95635b9985f57ec7f34253cf293adced91aa127d1e99"],
+  ["skills/investment-research/references/file-specs.md", "6878dab5bddb3833f9831ebfd36df720142580b57af51b5e97fef8cdf0b54c04"],
   ["skills/investment-research/references/chart-rules.md", "64888516fee7a54e54822ea839b62a47f816d1a637350ea533da0cb0c45376d7"],
 ]);
 
@@ -29,6 +29,7 @@ test("cross-runtime skill uses React SSR with the original report styles", async
   assert.match(skill, /returned `reportPath`/);
   assert.match(skill, /reader-facing and single-page/);
   assert.match(template, /class="report"/);
+  assert.match(template, /本投资报告由 AI 生成，仅供研究参考，不构成投资建议。/);
   assert.doesNotMatch(template, /data-report-tab|data-evidence-section/);
 });
 
@@ -82,6 +83,48 @@ test("research skill makes industry-expert evidence a mandatory completion gate"
   assert.match(skill, /Continue searching industry-expert material until the core industry claims have broad, independent expert coverage/);
   assert.match(skill, /still write the complete report/);
   assert.match(skill, /instead of dropping the claim, thinning the analysis, or withholding the report/);
+});
+
+test("deep research waits behind a concise user-facing start gate", async () => {
+  const skill = await readFile(new URL("skills/investment-research/SKILL.md", root), "utf8");
+  assert.match(skill, /## Concise Start Gate/);
+  assert.match(skill, /estimated duration as a range/);
+  assert.match(skill, /professional sell-side brokerage research and industry-expert interview databases/);
+  assert.match(skill, /Then wait for explicit user confirmation/);
+  assert.match(skill, /45—90 分钟/);
+  assert.match(skill, /确认后我再开始/);
+});
+
+test("user-facing delivery exposes only professionally named HTML and Markdown", async () => {
+  const skill = await readFile(new URL("skills/investment-research/SKILL.md", root), "utf8");
+  assert.match(skill, /Expose exactly two final files to the user/);
+  assert.match(skill, /机构级深度投资研究/);
+  assert.match(skill, /Institutional_Investment_Research/);
+  assert.match(skill, /機関投資家向け投資調査/);
+  assert.match(skill, /기관투자자용_심층투자리서치/);
+  assert.match(skill, /Do not present `report\.md`, `final_report\.md`/);
+});
+
+test("valuation uses latest market data instead of a broker report price", async () => {
+  const skill = await readFile(new URL("skills/investment-research/SKILL.md", root), "utf8");
+  assert.match(skill, /## Current Market Price Gate/);
+  assert.match(skill, /use the bundled `stock-market-data` skill/);
+  assert.match(skill, /market_data\.py resolve/);
+  assert.match(skill, /market_data\.py price/);
+  assert.match(skill, /market_data_snapshot\.json/);
+  assert.match(skill, /Never use a price printed in a sell-side report/);
+  assert.match(skill, /never fall back to a broker report's quoted price/);
+});
+
+test("plugin bundles the executable stock market data dependency", async () => {
+  const [marketSkill, dispatcher, providerConfig] = await Promise.all([
+    "skills/stock-market-data/SKILL.md",
+    "skills/stock-market-data/scripts/market_data.py",
+    "skills/stock-market-data/scripts/provider_config.json",
+  ].map((file) => readFile(new URL(file, root), "utf8")));
+  assert.match(marketSkill, /Unified Dispatch Layer/);
+  assert.match(dispatcher, /def main/);
+  assert.match(providerConfig, /"prices": \["yfinance"\]/);
 });
 
 test("shared workflow delegates evidence and chapters with host-managed concurrency and a sequential fallback", async () => {

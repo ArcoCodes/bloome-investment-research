@@ -46,6 +46,7 @@ test("React SSR compiles Markdown into self-contained report HTML", async () => 
   assert.match(html, /Channel demand improved\./);
   assert.equal((html.match(/class="src"/g) || []).length, 2);
   assert.match(html, /class="primary-quote"/);
+  assert.match(html, /class="report-disclaimer">本投资报告由 AI 生成，仅供研究参考，不构成投资建议。/);
   assert.match(html, /<table>/);
   assert.match(html, /<figure class="viz viz-type-range"/);
   assert.match(html, /<details class="viz-sources">/);

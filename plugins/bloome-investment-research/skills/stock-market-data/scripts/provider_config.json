@@ -1,0 +1,106 @@
+{
+  "version": 2,
+  "fallback_policy": "explicit_only",
+  "dataset_modes": {
+    "security_master": "fallback",
+    "prices": "fallback",
+    "financials": "fallback",
+    "events": "union",
+    "news": "union",
+    "earnings_calendar": "fallback",
+    "positioning": "union",
+    "technicals": "union",
+    "macro": "union",
+    "filings": "fallback"
+  },
+  "datasets": {
+    "security_master": ["yfinance", "novark"],
+    "prices": ["yfinance"],
+    "financials": ["yfinance"],
+    "events": ["yfinance", "eastmoney", "finviz", "sec_edgar", "hkex", "web_search"],
+    "news": ["yfinance", "google_news", "seeking_alpha"],
+    "earnings_calendar": ["yfinance", "hkex", "eastmoney"],
+    "positioning": ["hkex", "finra", "sec_edgar", "yfinance"],
+    "technicals": ["tencent", "yfinance"],
+    "macro": ["yfinance", "eastmoney"],
+    "filings": ["sec_edgar", "hkex"]
+  },
+  "dataset_market_chains": {
+    "prices": {
+      "CN-SH": ["tencent", "sina", "yfinance"],
+      "CN-SZ": ["tencent", "sina", "yfinance"]
+    }
+  },
+  "provider_market_metadata": {
+    "tencent": {
+      "prices": {
+        "CN-SH": {
+          "availability_status": "near_real_time_unofficial",
+          "declared_delay_seconds": null,
+          "delay_basis": "provider_timestamp_observation",
+          "delay_source_url": null,
+          "service_level": "none"
+        },
+        "CN-SZ": {
+          "availability_status": "near_real_time_unofficial",
+          "declared_delay_seconds": null,
+          "delay_basis": "provider_timestamp_observation",
+          "delay_source_url": null,
+          "service_level": "none"
+        }
+      }
+    },
+    "sina": {
+      "prices": {
+        "CN-SH": {
+          "availability_status": "near_real_time_unofficial",
+          "declared_delay_seconds": null,
+          "delay_basis": "provider_timestamp_observation",
+          "delay_source_url": null,
+          "service_level": "none"
+        },
+        "CN-SZ": {
+          "availability_status": "near_real_time_unofficial",
+          "declared_delay_seconds": null,
+          "delay_basis": "provider_timestamp_observation",
+          "delay_source_url": null,
+          "service_level": "none"
+        }
+      }
+    },
+    "yfinance": {
+      "prices": {
+        "JP": {
+          "availability_status": "delayed",
+          "declared_delay_seconds": 1200,
+          "delay_basis": "provider_exchange_table",
+          "delay_source_url": "https://help.yahoo.com/kb/finance/article-exchanges-data-delays-sln2310.html"
+        },
+        "KR": {
+          "availability_status": "delayed",
+          "declared_delay_seconds": 1200,
+          "delay_basis": "provider_exchange_table",
+          "delay_source_url": "https://help.yahoo.com/kb/finance/article-exchanges-data-delays-sln2310.html"
+        },
+        "HK": {
+          "availability_status": "delayed",
+          "declared_delay_seconds": 900,
+          "delay_basis": "provider_exchange_table",
+          "delay_source_url": "https://help.yahoo.com/kb/finance/article-exchanges-data-delays-sln2310.html"
+        },
+        "CN-SH": {
+          "availability_status": "delayed",
+          "declared_delay_seconds": 1800,
+          "delay_basis": "provider_exchange_table",
+          "delay_source_url": "https://help.yahoo.com/kb/finance/article-exchanges-data-delays-sln2310.html"
+        },
+        "CN-SZ": {
+          "availability_status": "delayed",
+          "declared_delay_seconds": 1800,
+          "delay_basis": "provider_exchange_table",
+          "delay_source_url": "https://help.yahoo.com/kb/finance/article-exchanges-data-delays-sln2310.html"
+        }
+      }
+    }
+  }
+}

@@ -54,10 +54,15 @@ For a ranked decision, make the following explicit:
 - why each alternative represents the thing being compared;
 - the evidence that drives each material comparison;
 - the common valuation date, forecast period, currency, and accounting basis;
+- the current market price from the bundled `stock-market-data` dispatcher, including ticker, venue, currency, timestamp or latest completed trading date, provider/fallback path, freshness status, and price convention; never a sell-side report's stale quoted price;
 - any normalization used when raw sources are not directly comparable;
 - what would change the order.
 
 Use scores or weights only when they genuinely improve the reasoning. The narrative must still explain why the order follows from the stated rule. For a report without ranked alternatives, state the calibrated conclusion and why a ranking is not useful.
+
+## `market_data_snapshot.json`
+
+Required for every report that values one or more listed securities. Generate it through the bundled `stock-market-data` unified dispatcher after resolving the security identity; do not hand-author it. Preserve the complete resolver and price payloads, including provenance, provider attempts, freshness/delay status, timestamps, venue, currency, adjustment basis, and fallback state. The report's current price, valuation date, upside/downside, and price charts must reconcile exactly to this snapshot. Industry or theme reports with no valued listed security may omit it.
 
 ## `report_outline.md`
 
@@ -189,3 +194,7 @@ Treat `report.md` as a generated mirror of `final_report.md`. Do not maintain it
 ## `report.html`
 
 Treat `report.html` as the complete reader-facing report compiled by `render_research_report`. The bundled React server renderer reads `assets/template.html`, parses Markdown tokens, renders `visuals.json` through controlled components, emits a single-page self-contained document, and includes no browser React runtime. Do not hand-write the page shell, add a second evidence tab, or embed audit artifacts in the HTML; those remain as Markdown and JSON files in the research workspace.
+
+## Final delivery copies
+
+The research workspace may retain `final_report.md`, `report.md`, `report.html`, evidence files, chapter drafts, and visual specifications for validation and reproducibility. These are internal artifacts. The user-facing handoff contains exactly two professionally named copies with the same basename: the self-contained HTML and the final Markdown. Derive the basename from company/topic, ticker when applicable, report type, and research cutoff date; localize the report-type phrase to the report language. Never expose generic names such as `report.html` or `final_report.md`, and do not create or present ZIP bundles unless the user explicitly requests one.

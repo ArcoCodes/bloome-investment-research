@@ -246,6 +246,7 @@ function Report({ markdown, evidence, coverage, visuals, css }) {
     <main className="report"><div className="top-bar" /><header className="header"><div className="header-label">Global Investment Research</div><div className="header-title">{title}</div><div className="header-meta">数据覆盖：卖方机构研报已读 {coverage.sell_reports_read || 0} 篇 · 产业资料已读 {coverage.primary_sources_read || 0} 篇 · 数据截至 {reportMonth}</div></header>
       <section className="section judge-box" data-report-role="investment-judgment"><div className="judge-label">{lead.title}</div><div className="analysis-text"><Blocks tokens={lead.tokens} context={context} /></div></section>
       {rest.map((section) => <section className="section" key={section.title}><div className="section-label">{section.title}</div><div className="analysis-text"><Blocks tokens={section.tokens} context={context} /></div></section>)}
+      <div className="report-disclaimer">本投资报告由 AI 生成，仅供研究参考，不构成投资建议。</div>
       <footer className="source-bar">{sourceSummary}</footer><div className="bottom-bar" /></main>
   </body></html>;
 }
