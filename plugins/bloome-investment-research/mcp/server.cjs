@@ -77,7 +77,7 @@ function runtimeProfile(runtime = runtimeName()) {
   return {
     name: "codex",
     supportsWorkbench: true,
-    instructions: `Use Codex as the reasoning runtime. Preserve the investment research workflow and render report.html with the bundled React static renderer. Bloome styling applies only to the workbench shell. ${billing}`,
+    instructions: `Use Codex as the reasoning runtime. Preserve the investment research workflow and render report.html with the bundled React static renderer. YouWare styling applies only to the workbench shell. Refer to the product only as YouWare in user-facing text. ${billing}`,
   };
 }
 
@@ -104,7 +104,7 @@ function toolDefinitions(runtime = runtimeName()) {
     tool(
       "research_search",
       "Search investment research",
-      "Search the controlled sell-side or primary research corpus. Keep sell and primary as separate calls. Primary results have no expert/official source label: search industry-expert and official material in separate primary calls using different concepts and phrases, not source_types. Expert search has priority and official results do not complete it. Before the first retrieval call, tell the user that Bloome Finance may open in their browser for sign-in and device approval. A new workspace returns a quote without charging; stop, show its topic, returned cost, and balance, then call confirm_research_run only after explicit user approval. Later requests in the same active run do not charge again.",
+      "Search the controlled sell-side or primary research corpus. Keep sell and primary as separate calls. Primary results have no expert/official source label: search industry-expert and official material in separate primary calls using different concepts and phrases, not source_types. Expert search has priority and official results do not complete it. Before the first retrieval call, tell the user that YouWare may open in their browser for sign-in and device approval. A new workspace returns a quote without charging; stop, show its topic, returned cost, and balance, then call confirm_research_run only after explicit user approval. Later requests in the same active run do not charge again.",
       objectSchema(SEARCH_PROPERTIES, ["workspace", "corpus"]),
       { openWorld: true, readOnly: false, idempotent: false },
     ),
@@ -153,10 +153,10 @@ function toolDefinitions(runtime = runtimeName()) {
     ),
     tool(
       "open_research_workspace",
-      profile.supportsWorkbench ? "Open Bloome Research" : "Inspect Bloome Research workspace",
+      profile.supportsWorkbench ? "Open YouWare Investment Research" : "Inspect YouWare investment research workspace",
       profile.supportsWorkbench
-        ? "Open the Bloome research workbench for an absolute project workspace path. The UI promotes from a compact conversation launcher into a native PiP panel and expands to fullscreen for the report while preserving the investment skill's native report HTML."
-        : "Inspect an absolute Bloome research workspace path and return progress, evidence, artifacts, and report paths. Read report.html from reportPath to view the finished report in Claude Code.",
+        ? "Open the YouWare investment research workbench for an absolute project workspace path. The UI promotes from a compact conversation launcher into a native PiP panel and expands to fullscreen for the report while preserving the investment skill's native report HTML."
+        : "Inspect an absolute YouWare investment research workspace path and return progress, evidence, artifacts, and report paths. Read report.html from reportPath to view the finished report in Claude Code.",
       objectSchema({ workspace: { type: "string", minLength: 1 } }, ["workspace"]),
       { widget: profile.supportsWorkbench },
     ),
@@ -376,7 +376,7 @@ async function validateWorkspace(workspace) {
 
 function resourceMeta() {
   return {
-    "openai/widgetDescription": "Bloome investment research panel with progress, evidence, artifacts, and an unmodified native report preview. The inline surface is only a compact launcher.",
+    "openai/widgetDescription": "YouWare investment research panel with progress, evidence, artifacts, and an unmodified native report preview. The inline surface is only a compact launcher.",
     "openai/widgetPrefersBorder": false,
     "openai/widgetCSP": {
       connect_domains: ["https://fonts.googleapis.com", "https://fonts.gstatic.com"],
@@ -396,15 +396,15 @@ function resourceMeta() {
 
 function resourceText() {
   const html = fs.readFileSync(path.join(ROOT, "assets", "workbench.html"), "utf8");
-  const logo = fs.readFileSync(path.join(ROOT, "assets", "wordmark-black.svg")).toString("base64");
+  const logo = fs.readFileSync(path.join(ROOT, "assets", "youware-wordmark-black.svg")).toString("base64");
   return html.replaceAll("{{BLOOME_WORDMARK}}", `data:image/svg+xml;base64,${logo}`);
 }
 
 function resources() {
   return [{
     uri: WIDGET_URI,
-    name: "bloome_research_workbench",
-    title: "Bloome Investment Research",
+    name: "youware_investment_research_workbench",
+    title: "YouWare Investment Research",
     description: "Native research workspace and investment report viewer.",
     mimeType: WIDGET_MIME,
     _meta: resourceMeta(),
@@ -460,7 +460,7 @@ async function handleRpc(message, runtime = runtimeName(), options = {}) {
       capabilities: profile.supportsWorkbench
         ? { tools: { listChanged: false }, resources: { subscribe: false, listChanged: false }, logging: {} }
         : { tools: { listChanged: false }, logging: {} },
-      serverInfo: { name: SERVER_NAME, title: "Bloome Investment Research", version: SERVER_VERSION },
+      serverInfo: { name: SERVER_NAME, title: "YouWare Investment Research", version: SERVER_VERSION },
       instructions: profile.instructions,
     });
     if (method === "ping") return rpcResponse(id, {});

@@ -3,15 +3,15 @@
   "schemaVersion": 1,
   "name": "bloome-investment-research",
   "version": "0.4.14",
-  "displayName": "Bloome Investment Research",
+  "displayName": "YouWare Investment Research",
   "marketplace": {
     "name": "bloome-research",
-    "displayName": "Bloome Research",
+    "displayName": "YouWare Research",
     "category": "Finance"
   },
-  "description": "Cross-runtime, evidence-first investment research with traceable sources and a Bloome workbench.",
+  "description": "Cross-runtime, evidence-first investment research with traceable sources and a YouWare workbench.",
   "author": {
-    "name": "Bloome",
+    "name": "YouWare",
     "url": "https://github.com/ArcoCodes"
   },
   "repository": "https://github.com/ArcoCodes/bloome-investment-research",
@@ -26,7 +26,7 @@
   },
   "codex": {
     "shortDescription": "Evidence-first investment research in Codex",
-    "longDescription": "Run staged company, industry, theme, and thesis research with sell-side framing, primary-source validation, an evidence ledger, and the investment skill's native report format. The Codex host also provides a Bloome workbench for progress, evidence, and report views.",
+    "longDescription": "Run staged company, industry, theme, and thesis research with sell-side framing, primary-source validation, an evidence ledger, and the investment skill's native report format. The Codex host also provides a YouWare workbench for progress, evidence, and report views.",
     "capabilities": [
       "Interactive",
       "Read",
@@ -34,13 +34,13 @@
     ],
     "defaultPrompt": [
       "研究 AI 推理需求对 NAND 价格周期的影响，并生成完整研报。",
-      "打开当前项目的 Bloome Research 工作台。",
+      "打开当前项目的 YouWare 投资研究工作台。",
       "验证当前研报是否满足全部输出要求。"
     ],
     "brandColor": "#2556B6",
-    "composerIcon": "./assets/logo-mark.svg",
-    "logo": "./assets/wordmark-black.svg",
-    "logoDark": "./assets/wordmark-white.svg",
+    "composerIcon": "./assets/youware-mark.svg",
+    "logo": "./assets/youware-wordmark-black.svg",
+    "logoDark": "./assets/youware-wordmark-white.svg",
     "screenshots": [
       "./assets/screenshot.png",
       "./assets/screenshot-mobile.png"

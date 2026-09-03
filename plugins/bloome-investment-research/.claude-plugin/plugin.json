@@ -1,11 +1,11 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "bloome-investment-research",
-  "displayName": "Bloome Investment Research",
+  "displayName": "YouWare Investment Research",
   "version": "0.4.14",
-  "description": "Cross-runtime, evidence-first investment research with traceable sources and a Bloome workbench.",
+  "description": "Cross-runtime, evidence-first investment research with traceable sources and a YouWare workbench.",
   "author": {
-    "name": "Bloome",
+    "name": "YouWare",
     "url": "https://github.com/ArcoCodes"
   },
   "repository": "https://github.com/ArcoCodes/bloome-investment-research",

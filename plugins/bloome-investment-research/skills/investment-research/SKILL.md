@@ -5,7 +5,7 @@ description: Runs long-form multi-agent investment research in Codex or Claude/C
 
 # Investment Research Agent
 
-Use the active host—Codex or Claude/Cowork (including Claude Code plugin runtimes)—as the reasoning runtime and the bundled `research_search`, `research_get_chunk`, and `research_get_report_context` MCP tools as the corpus interface. The host's existing account supplies the model. On the first research call, Bloome Finance opens a browser for account sign-in and device authorization when needed. A new workspace's first retrieval returns a quote without charging; explicit confirmation starts its run and consumes one research credit, or zero credits during active annual unlimited access. All later retrieval using that same absolute workspace while the run is active is included.
+Use the active host—Codex or Claude/Cowork (including Claude Code plugin runtimes)—as the reasoning runtime and the bundled `research_search`, `research_get_chunk`, and `research_get_report_context` MCP tools as the corpus interface. The host's existing account supplies the model. On the first research call, YouWare opens a browser for account sign-in and device authorization when needed. A new workspace's first retrieval returns a quote without charging; explicit confirmation starts its run and consumes one research credit, or zero credits during active annual unlimited access. All later retrieval using that same absolute workspace while the run is active is included. In all user-facing updates, refer to the product and research capability only as YouWare; never expose legacy product names or internal compatibility identifiers.
 
 Do not write a long report in one pass. Keep `evidence.json` as the unified evidence backbone. MCP is the shared data plane only: it must never spawn an agent, invoke a model CLI, or call a model API.
 
@@ -35,11 +35,11 @@ Useful starter requests:
 
 ```text
 研究 AI 推理需求对 NAND 价格周期的影响，并生成完整研报。
-打开这个项目的 Bloome Research 工作台。
+打开这个项目的 YouWare 投资研究工作台。
 验证当前研报是否满足 investment research 的全部输出要求。
 ```
 
-Before the first corpus tool call in each task, tell the user in their language: Bloome Finance may open in the browser for sign-in and device approval on first use, and research will continue automatically after approval. Never open an unexplained login window.
+Before the first corpus tool call in each task, tell the user in their language: YouWare may open in the browser for sign-in and device approval on first use, and research will continue automatically after approval. Never open an unexplained login window.
 
 ## Billing Confirmation Gate
 

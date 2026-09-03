@@ -36,11 +36,11 @@ async function responseJson(response, options = {}) {
   const text = await response.text();
   let payload = {};
   try { payload = text ? JSON.parse(text) : {}; }
-  catch { throw new Error("Bloome Finance returned invalid JSON"); }
+  catch { throw new Error("YouWare returned invalid JSON"); }
   if (!response.ok) {
     const message = String(payload.error || payload.message || "request failed").slice(0, 300);
     if (response.status === 402) throw new Error(`${message}. Purchase research credits at ${baseUrl(options)}/pricing`);
-    throw new Error(`Bloome Finance ${response.status}: ${message}`);
+    throw new Error(`YouWare ${response.status}: ${message}`);
   }
   return payload;
 }
@@ -73,20 +73,20 @@ async function authorizeDevice(options = {}) {
   const start = await responseJson(await fetcher(`${baseUrl(options)}/api/public/device/start`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ deviceName: String(options.deviceName || `${os.hostname()} · Bloome Investment Research`).slice(0, 80) }),
+    body: JSON.stringify({ deviceName: String(options.deviceName || `${os.hostname()} · YouWare Investment Research`).slice(0, 80) }),
     signal: options.signal,
   }), options);
-  if (!start.deviceCode || !start.verificationUri) throw new Error("Bloome Finance returned an invalid device authorization");
+  if (!start.deviceCode || !start.verificationUri) throw new Error("YouWare returned an invalid device authorization");
 
   const approvalUrl = start.verificationUriComplete || start.verificationUri;
   const verificationUri = new URL(approvalUrl, baseUrl(options)).toString();
   await options.onStatus?.({
     type: "authorization_required",
-    message: "Bloome Finance sign-in will open in your browser. Sign in and approve this device; research will continue automatically.",
+    message: "YouWare sign-in will open in your browser. Sign in and approve this device; research will continue automatically.",
     verificationUri,
   });
   try { await (options.openBrowser || launchBrowser)(verificationUri); }
-  catch { throw new Error(`Open ${verificationUri} to authorize Bloome Investment Research`); }
+  catch { throw new Error(`Open ${verificationUri} to authorize YouWare Investment Research`); }
 
   const deadline = Date.now() + Math.min(Number(start.expiresIn) || 600, 900) * 1000;
   const interval = Math.max(0, Number(start.interval) || 5) * 1000;
@@ -101,12 +101,12 @@ async function authorizeDevice(options = {}) {
     });
     if (response.status === 202) continue;
     const payload = await responseJson(response, options);
-    if (!payload.accessToken) throw new Error("Bloome Finance did not return an access token");
+    if (!payload.accessToken) throw new Error("YouWare did not return an access token");
     const credential = { accessToken: payload.accessToken };
     writePrivateJson(credentialFile(options), credential);
     return credential;
   }
-  throw new Error(`Bloome Finance authorization expired. Retry and open ${verificationUri}`);
+  throw new Error(`YouWare authorization expired. Retry and open ${verificationUri}`);
 }
 
 async function authorizedRequest(endpoint, init = {}, options = {}) {
@@ -122,7 +122,7 @@ async function authorizedRequest(endpoint, init = {}, options = {}) {
   try { fs.unlinkSync(file); } catch (error) { if (error.code !== "ENOENT") throw error; }
   credential = await authorizeDevice({ ...options, signal: init.signal });
   response = await request(credential);
-  if (response.status === 401) throw new Error("Bloome Finance authorization failed after sign-in");
+  if (response.status === 401) throw new Error("YouWare authorization failed after sign-in");
   return response;
 }
 
@@ -168,12 +168,12 @@ async function researchRequest(operation, payload, workspace, signal, options = 
   if (run.confirmationRequired) {
     return {
       ...run,
-      message: `Using Bloome professional research for “${run.topic}” ${run.cost === 0 ? "is included in your annual unlimited plan" : `costs ${run.cost} credit${run.cost === 1 ? "" : "s"}`}. Current balance: ${run.balance}. Ask the user to confirm before calling confirm_research_run.`,
+      message: `Using YouWare professional research for “${run.topic}” ${run.cost === 0 ? "is included in your annual unlimited plan" : `costs ${run.cost} credit${run.cost === 1 ? "" : "s"}`}. Current balance: ${run.balance}. Ask the user to confirm before calling confirm_research_run.`,
     };
   }
   const runId = run.runId || run.run?.id;
   const expiresAt = run.expiresAt || run.run?.expiresAt;
-  if (!runId) throw new Error("Bloome Finance did not return a research run");
+  if (!runId) throw new Error("YouWare did not return a research run");
   writePrivateJson(path.join(root, RUN_FILE), { runId, status: "active", expiresAt });
   return responseJson(await authorizedRequest(`/api/public/mcp/research/${operation}`, {
     method: "POST",
@@ -189,7 +189,7 @@ async function confirmResearchRun(workspace, confirmationId, signal, options = {
   const run = await startResearchRun(root, confirmationId, signal, options);
   const runId = run.runId || run.run?.id;
   const expiresAt = run.expiresAt || run.run?.expiresAt;
-  if (!runId) throw new Error("Bloome Finance did not confirm the research run");
+  if (!runId) throw new Error("YouWare did not confirm the research run");
   writePrivateJson(path.join(root, RUN_FILE), { runId, status: "active", expiresAt });
   return { confirmed: true, charged: Boolean(run.charged), run: run.run || { id: runId, expiresAt } };
 }
@@ -207,7 +207,7 @@ async function completeResearchRun(workspace, options = {}) {
   }
   const prepared = await responseJson(preparedResponse, options);
   if (typeof prepared.uploadUrl !== "string" || !prepared.requiredHeaders || typeof prepared.requiredHeaders !== "object") {
-    throw new Error("Bloome Finance did not return a report link target");
+    throw new Error("YouWare did not return a report link target");
   }
   const reportPath = path.join(root, "report.html");
   if (!fs.existsSync(reportPath)) throw new Error("Validated workspace is missing report.html");

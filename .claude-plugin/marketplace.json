@@ -1,19 +1,19 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "bloome-research",
-  "description": "Bloome plugins for evidence-first investment research.",
+  "description": "YouWare plugins for evidence-first investment research.",
   "owner": {
-    "name": "Bloome",
+    "name": "YouWare",
     "url": "https://github.com/ArcoCodes"
   },
   "plugins": [
     {
       "name": "bloome-investment-research",
       "source": "./plugins/bloome-investment-research",
-      "description": "Cross-runtime, evidence-first investment research with traceable sources and a Bloome workbench.",
+      "description": "Cross-runtime, evidence-first investment research with traceable sources and a YouWare workbench.",
       "version": "0.4.14",
       "author": {
-        "name": "Bloome",
+        "name": "YouWare",
         "url": "https://github.com/ArcoCodes"
       },
       "repository": "https://github.com/ArcoCodes/bloome-investment-research",

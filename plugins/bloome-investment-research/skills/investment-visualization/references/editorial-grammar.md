@@ -101,7 +101,7 @@ Use when readers need exact lookup across several measures. Apply editorial hier
 
 ## Visual language
 
-Inside the Bloome report:
+Inside the YouWare report:
 
 - deep blue carries the main analytical series;
 - gold marks the decisive point, threshold, or selected alternative;

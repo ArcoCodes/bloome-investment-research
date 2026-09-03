@@ -68,7 +68,7 @@ async function fixtureWorkspace() {
   const inlineEvidence = `<span class="src">NAND Market Outlook<span class="tip"><span class="tip-bd">需求增长</span></span></span><blockquote class="primary-quote">交付仍受约束，客户验证时间也存在不确定性。<cite>Industry Interview · 2026-07-02</cite></blockquote><blockquote class="primary-quote">渠道反馈显示订单能见度正在改善，但库存消化仍需观察。<cite>Customer Channel Check · 2026-07-03</cite></blockquote><p>这两条独立一手证据共同限定了需求传导的时间，因此在结论中保留验证和库存边界。</p>`;
   const figures = visualPlans.map((visual) => `<figure aria-label="${visual.title}"><h3>${visual.title}</h3><svg viewBox="0 0 640 240" role="img" aria-label="${visual.title}"><text>Demand</text></svg><div class="chart-source">NAND Market Outlook · evidence s1 p1</div></figure>`);
   const reportSections = chapters.map((chapter, index) => `<section class="section"><div class="section-label">${sectionTitles[index]}</div><div class="analysis-text">${chapter}</div>${inlineEvidence}${figures[index] || ""}</section>`).join("");
-  const html = `<!doctype html><html><head><meta name="generator" content="Bloome React SSR"></head><body><div class="report"><div class="top-bar"></div><div class="header"><div class="header-title">NAND cycle</div><div class="header-meta">2026年7月</div></div><div class="section judge-box">${reportSections}</div><div class="source-bar">Sources</div><div class="bottom-bar"></div></div></body></html>`;
+  const html = `<!doctype html><html><head><meta name="generator" content="YouWare Research Renderer"></head><body><div class="report"><div class="top-bar"></div><div class="header"><div class="header-title">NAND cycle</div><div class="header-meta">2026年7月</div></div><div class="section judge-box">${reportSections}</div><div class="source-bar">Sources</div><div class="bottom-bar"></div></div></body></html>`;
   const moduleMemo = [
     "# Direct answer", "需求与供给纪律共同决定周期弹性。[NAND Market Outlook, p.1]",
     "# Claim–evidence pairs", "chunk_id: `s1`\n\n需求扩张构成支持证据。[NAND Market Outlook, p.1]\n\nchunk_id: `p1`\n\n产业访谈对交付节奏构成反方校准。[Industry Interview, lines 2-3]\n\nchunk_id: `p2`\n\n渠道调研为订单能见度提供独立支持。[Customer Channel Check, lines 5-7]",
@@ -119,6 +119,9 @@ test("MCP initializes and exposes the seven focused tools", async () => {
   const initialized = await server.handleRpc({ jsonrpc:"2.0",id:1,method:"initialize",params:{} }, "codex");
   const listed = await server.handleRpc({ jsonrpc:"2.0",id:2,method:"tools/list",params:{} }, "codex");
   assert.equal(initialized.result.serverInfo.name, "bloome-investment-research");
+  const readerFacingMetadata = JSON.stringify({ title:initialized.result.serverInfo.title, instructions:initialized.result.instructions, tools:listed.result.tools.map(({ title, description }) => ({ title, description })) });
+  assert.match(readerFacingMetadata, /YouWare/);
+  assert.doesNotMatch(readerFacingMetadata, /Bloome(?: Finance| Research| Investment)/i);
   assert.deepEqual(listed.result.tools.map((tool) => tool.name), [
     "research_search", "research_get_chunk", "research_get_report_context", "confirm_research_run", "open_research_workspace", "render_research_report", "validate_research_workspace",
   ]);
@@ -141,7 +144,7 @@ test("render tool synchronizes final_report.md before React SSR", async () => {
     readFile(path.join(workspace, "final_report.md"), "utf8"),
   ]);
   assert.equal(result.ok, true);
-  assert.match(html, /<meta name="generator" content="Bloome React SSR"/);
+  assert.match(html, /<meta name="generator" content="YouWare Research Renderer"/);
   assert.match(html, /class="report"/);
   assert.equal(report, finalReport);
   assert.doesNotMatch(html, /<script[^>]+src=/i);
@@ -162,7 +165,7 @@ test("runtime profiles keep host-specific presentation out of the shared researc
   assert.match(claudeInit.result.instructions, /confirmationRequired as a quote, not an error or quota block/);
 });
 
-test("research proxy starts a confirmed workspace run through Bloome Finance", async () => {
+test("research proxy starts a confirmed workspace run through YouWare", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "bloome-finance-proxy-test-"));
   const credentialFile = path.join(root, "credential.json");
   const workspace = path.join(root, "workspace");
@@ -381,7 +384,7 @@ test("workspace validator rejects ASCII audit tables rendered as code blocks", a
   assert.ok(result.errors.includes("Investment reports must not contain fenced or indented code blocks; express analytical content as prose, a Markdown table, or a controlled visual"));
 });
 
-test("successful workspace validation closes its Bloome Finance run", async () => {
+test("successful workspace validation closes its YouWare research run", async () => {
   const workspace = await fixtureWorkspace();
   const credentialFile = path.join(workspace, "credential.json");
   await writeFile(credentialFile, JSON.stringify({ accessToken:"device-token" }));
@@ -534,7 +537,7 @@ test("workspace validator allows a topic with no useful visual", async () => {
   assert.equal(result.ok, true, result.errors.join("\n"));
 });
 
-test("widget resource is a self-contained MCP app with real Bloome assets", async () => {
+test("widget resource is a self-contained MCP app with real YouWare assets", async () => {
   const html = server.resourceText();
   assert.match(html, /data:image\/svg\+xml;base64,/);
   assert.match(html, /--blue:#2556b6/);

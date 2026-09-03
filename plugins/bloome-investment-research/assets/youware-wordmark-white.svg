@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" role="img" aria-label="YouWare">
+  <rect width="48" height="48" rx="11" fill="#fff"/>
+  <path d="M10 12h7l7 12 7-12h7L27 31v8h-6v-8L10 12Z" fill="#003A5C"/>
+  <text x="60" y="33" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" fill="#fff">YouWare</text>
+</svg>

@@ -13,7 +13,7 @@ This skill owns visual judgment. The renderer contract defines only safe recurri
 
 Use this skill after the main research has reconciled evidence and formed a provisional decision. The investment-research workflow owns the thesis, evidence, ranking, and final report. This skill turns the most important relationships into reader-facing graphics without changing the underlying judgment.
 
-When working inside the Bloome plugin:
+When working inside the YouWare investment research plugin:
 
 - preserve `../investment-research/assets/template.html` as the single-page report shell;
 - write safe component inputs to workspace `visuals.json` using `../investment-research/references/visual-spec.md`;

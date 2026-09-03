@@ -262,7 +262,7 @@ function Report({ markdown, evidence, coverage, visuals, css }) {
   const context = { evidenceByCitation, evidenceById, visuals:visualMap };
   const reportMonth = coverage.report_month || coverage.data_cutoff || coverage.report_date || "未注明";
   const sourceSummary = `来源覆盖：卖方研报 ${coverage.sell_reports_read || 0} 篇 · 产业资料 ${coverage.primary_sources_read || 0} 篇 · 完整来源见正文与证据台账`;
-  return <html lang="zh-CN"><head><meta charSet="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Bloome React SSR" /><title>{title}</title><style dangerouslySetInnerHTML={{ __html:css }} /></head><body>
+  return <html lang="zh-CN"><head><meta charSet="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="YouWare Research Renderer" /><title>{title}</title><style dangerouslySetInnerHTML={{ __html:css }} /></head><body>
     <main className="report"><div className="top-bar" /><header className="header"><div className="header-label">Global Investment Research</div><div className="header-title">{title}</div><div className="header-meta">数据覆盖：卖方机构研报已读 {coverage.sell_reports_read || 0} 篇 · 产业资料已读 {coverage.primary_sources_read || 0} 篇 · 数据截至 {reportMonth}</div></header>
       <section className="section judge-box" data-report-role="investment-judgment"><div className="judge-label">{lead.title}</div><div className="analysis-text"><Blocks tokens={lead.tokens} context={context} /></div></section>
       {rest.map((section) => <section className="section" key={section.title}><div className="section-label">{section.title}</div><div className="analysis-text"><Blocks tokens={section.tokens} context={context} /></div></section>)}

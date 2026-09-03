@@ -37,7 +37,7 @@ test("React SSR compiles Markdown into self-contained report HTML", async () => 
   const result = renderer.renderWorkspace(workspace);
   const html = await readFile(result.html, "utf8");
   assert.match(html, /^<!DOCTYPE html>/);
-  assert.match(html, /<meta name="generator" content="Bloome React SSR"/);
+  assert.match(html, /<meta name="generator" content="YouWare Research Renderer"/);
   assert.match(html, /class="report"/);
   assert.match(html, /AI NAND 周期研究/);
   assert.match(html, /〔NAND Market Outlook, p\.3〕/);

@@ -42,6 +42,7 @@ test("report-link delivery uses direct user-facing language", async () => {
   assert.match(skill, /报告链接已生成：<link>/);
   assert.match(skill, /never knowingly generate a stale link/);
   assert.doesNotMatch(skill, /我先把当前版本上传|Bloome 外部服务|私有链接/);
+  assert.doesNotMatch(skill, /Bloome(?: Finance| Research| Investment)/i);
   assert.match(server, /Validate report and generate link/);
   assert.doesNotMatch(server, /file-upload|deployable report link/);
   assert.match(readme, /生成可直接访问的报告链接/);

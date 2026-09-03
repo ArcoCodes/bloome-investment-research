@@ -75,7 +75,7 @@ const codexMarketplace = {
 const claudeMarketplace = {
   $schema: "https://json.schemastore.org/claude-code-marketplace.json",
   name: config.marketplace.name,
-  description: "Bloome plugins for evidence-first investment research.",
+  description: "YouWare plugins for evidence-first investment research.",
   owner: config.author,
   plugins: [{
     name: config.name,
