@@ -358,14 +358,6 @@ test("workspace validator requires three independent sell-side documents in the 
   assert.ok(result.errors.includes("Report must cite accepted passages from at least three independent sell-side documents"));
 });
 
-test("workspace validator rejects one sell-side document dominating repeated citations", async () => {
-  const workspace = await fixtureWorkspace();
-  await updateFinalReport(workspace, (markdown) => `${markdown}\n\n重复引用不构成来源广度。[NAND Market Outlook, p.1] [NAND Market Outlook, p.1] [NAND Market Outlook, p.1] [NAND Market Outlook, p.1]\n`);
-  const result = await server.validateWorkspace(workspace);
-  assert.equal(result.ok, false);
-  assert.ok(result.errors.includes("One sell-side document supplies more than 60% of sell-side citations; diversify the evidence used across the report"));
-});
-
 test("renderer pairs two consecutive compact visuals and rejects missing direct labels", async () => {
   const workspace = await fixtureWorkspace();
   const visualsPath = path.join(workspace, "visuals.json");
