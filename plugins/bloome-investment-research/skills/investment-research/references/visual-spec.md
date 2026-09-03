@@ -25,9 +25,11 @@ Each visual requires:
 - `key` is a descriptive lowercase slug, unique within the report. Do not use `V01`-style IDs.
 - `title` states the conclusion.
 - `evidence_ids` contains exact accepted `evidence.json` `id` or `chunk_id` values.
-- `deck`, `aria_label`, and `uncertainty` are recommended; uncertainty is required when scenarios, forecasts, normalization, or conflicting evidence affect the conclusion.
+- `aria_label` is required. `deck` is recommended, and uncertainty is required when scenarios, forecasts, normalization, or conflicting evidence affect the conclusion.
+- Quantitative `bar`, `line`, and `range` visuals require `unit`. Every bar/range item requires a concise `label` and human-readable `display`; every line series requires `name`, and every point requires both `label` and `display`. The renderer rejects missing labels rather than guessing axis text or exposing auto-generated decimal ticks.
 - Place the visual in `report.md` on its own line: `{{visual:qualified-capacity-gap}}`.
 - Every specification must have one marker, and every marker must resolve to one specification.
+- To create one professional two-chart row, place two compatible markers consecutively with no intervening prose. The renderer creates a two-column desktop grid and stacks it on narrow screens. Pair only compact, complementary charts; keep dense tables and matrices full width.
 
 ## Supported types
 

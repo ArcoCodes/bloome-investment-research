@@ -20,6 +20,7 @@ When working inside the Bloome plugin:
 - place each component in `report.md` with one descriptive `{{visual:key}}` marker;
 - use the report palette and typography through the renderer rather than custom CSS;
 - keep exact source links through accepted `evidence.json` IDs.
+- pair two compact, complementary visuals with consecutive markers when side-by-side reading improves comparison; keep dense tables and matrices full width.
 
 Do not add a separate visualization dashboard or evidence tab.
 
@@ -39,7 +40,7 @@ For each possible visual, answer in plain Markdown:
 
 Do not force these notes into a fixed table. A short paragraph or bullets are enough.
 
-Discard a proposed visual when prose or a small table answers the question more clearly.
+Discard a proposed visual when prose or a small table answers the question more clearly. Otherwise use visuals expansively across decision-relevant time series, composition, comparisons, mechanisms, scenarios, valuation, sensitivities, and monitoring; more useful visuals are preferred, but never repeat the same evidence merely to raise a count.
 
 ### 2. Build a visual sequence
 
@@ -92,6 +93,7 @@ Every graphic should have:
 - a conclusion-led title;
 - a short deck only when the title needs context;
 - direct labels near the marks;
+- explicit units and human-readable category or period labels; never expose unexplained auto-generated axis ticks or let labels collide with marks;
 - the decisive number or inflection printed on the graphic;
 - one or two annotations that explain why the pattern matters;
 - visible units and time basis;

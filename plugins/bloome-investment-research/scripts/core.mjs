@@ -133,7 +133,17 @@ export function validateReport(report, evidence, inspection, staged = {}) {
   else {
     for (const id of sellRoundIds) if (!evidenceById.has(id)) errors.push(`Sell-side retrieval accepted evidence ID does not resolve: ${id}`);
     if (sellRoundEvidence.some((item) => item.corpus !== "sell")) errors.push("Sell-side retrieval accepted_evidence_ids must resolve only to sell evidence");
-    if (!matchedEvidence.some((item) => sellRoundEvidence.includes(item))) errors.push("Report must cite at least one accepted sell-side research passage");
+    const sellOrigin = (item) => String(item.origin_id || item.report_id || item.source_path || item.chunk_id);
+    const acceptedSellOrigins = new Set(sellRoundEvidence.map(sellOrigin));
+    const citedSellEvidence = matchedEvidence.filter((item) => sellRoundEvidence.includes(item));
+    const citedSellOrigins = new Set(citedSellEvidence.map(sellOrigin));
+    if (acceptedSellOrigins.size < 3) errors.push("Completed institutional research requires accepted sell-side evidence from at least three independent documents");
+    if (citedSellOrigins.size < 3) errors.push("Report must cite accepted passages from at least three independent sell-side documents");
+    if (citedSellEvidence.length >= 5) {
+      const counts = new Map();
+      for (const item of citedSellEvidence) counts.set(sellOrigin(item), (counts.get(sellOrigin(item)) || 0) + 1);
+      if (Math.max(...counts.values()) / citedSellEvidence.length > 0.6) errors.push("One sell-side document supplies more than 60% of sell-side citations; diversify the evidence used across the report");
+    }
   }
   if (!expertRoundIds.length) errors.push("Expert retrieval rounds must list accepted_evidence_ids that resolve to evidence.json");
   else {

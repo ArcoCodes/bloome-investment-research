@@ -1,6 +1,6 @@
 # Chart Rules
 
-Use a visual only when structure helps the argument. A controlled table is better for exact lookup; prose is better for one or two values.
+Use visuals expansively whenever structure materially lowers the reader's effort. A controlled table is better for exact lookup and prose is better for one or two isolated values, but do not leave decision-relevant time series, composition, comparison, causal transmission, scenarios, valuation, sensitivities, or monitoring frameworks as dense prose when a supported visual can express them clearly. More useful visuals are welcome; duplicated or decorative visuals are not.
 
 ## Selection
 
@@ -18,7 +18,9 @@ Use only types defined in `visual-spec.md`. If a recurring evidence structure ge
 ## Data and editorial rules
 
 - Every visual has a conclusion-led title, visible units or basis, accessible description, uncertainty where material, and exact accepted evidence IDs.
+- Every quantitative mark has a nearby human-readable display label. Category and period labels must be concise, unambiguous, and collision-free; never rely on raw axis ticks such as auto-generated decimals to explain the chart.
 - The sentence before `{{visual:key}}` states the claim the visual supports.
+- Two compact complementary visuals may share one row by using consecutive markers. Their shared preceding sentence must explain why they should be read together; dense tables, matrices, and unrelated arguments remain full width.
 - Observed, forecast, and scenario values remain distinguishable in labels and explanatory text.
 - Keep dates, forecast periods, currencies, fiscal/calendar years, and accounting definitions comparable.
 - Use a zero baseline for `bar` values.

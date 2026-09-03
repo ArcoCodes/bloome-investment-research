@@ -14,10 +14,12 @@ async function fixtureWorkspace() {
     { claim:"需求扩张",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"sell",chunk_id:"s1",report_id:"sr1",quote:"需求增长",source_type:"sell-side",title:"NAND Market Outlook",source_path:"sell/report.pdf",page_start:1,published_at:"2026-07-01" },
     { claim:"交付约束",claim_ids:["C1"],relation:"challenge",stance:"challenge",kind:"fact",corpus:"primary",chunk_id:"p1",report_id:"pr1",origin_id:"expert-origin-1",quote:"交付仍受约束，客户验证时间也存在不确定性。",title:"Industry Interview",source_path:"primary/interview.txt",line_start:2,line_end:3,published_at:"2026-07-02" },
     { claim:"订单能见度",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"primary",chunk_id:"p2",report_id:"pr2",origin_id:"expert-origin-2",quote:"渠道反馈显示订单能见度正在改善，但库存消化仍需观察。",title:"Customer Channel Check",source_path:"primary/channel-check.txt",line_start:5,line_end:7,published_at:"2026-07-03" },
+    { claim:"价格弹性",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"sell",chunk_id:"s2",report_id:"sr2",quote:"库存改善支持价格弹性",source_type:"sell-side",title:"Memory Pricing Review",source_path:"sell/pricing.pdf",page_start:4,published_at:"2026-07-04" },
+    { claim:"资本纪律",claim_ids:["C1"],relation:"challenge",stance:"challenge",kind:"fact",corpus:"sell",chunk_id:"s3",report_id:"sr3",quote:"新增产能可能压制周期上行空间",source_type:"sell-side",title:"Capacity Discipline Monitor",source_path:"sell/capacity.pdf",page_start:6,published_at:"2026-07-05" },
   ];
   const coverage = {
     retrieval_rounds: [
-      { corpus:"sell",accepted_evidence_ids:["s1"] },
+      { corpus:"sell",accepted_evidence_ids:["s1","s2","s3"] },
       { corpus:"primary",source_layer:"expert",accepted_evidence_ids:["p1","p2"] },
       { corpus:"primary",source_layer:"official" },
     ],
@@ -25,7 +27,7 @@ async function fixtureWorkspace() {
     stopping_reason:"Additional searches repeated the same claims and did not close the remaining company-level gap.",
     remaining_gaps:["Company product mix"],
     sell_reports_retrieved:3, primary_sources_retrieved:2,
-    sell_reports_read:2, primary_sources_read:2,
+    sell_reports_read:3, primary_sources_read:2,
   };
   const sectionTitles = ["Executive judgment", "Causal mechanism"];
   const chapters = Array.from({ length:sectionTitles.length }, (_, offset) => {
@@ -35,7 +37,7 @@ async function fixtureWorkspace() {
       "",
       "## Evidence and transmission",
       "",
-      `第${index}章保留完整的论证链：需求扩张先改变订单能见度，再通过库存与供给纪律影响价格弹性；这个判断以可追溯数据为基础，而不是把行业常识当作证据。[NAND Market Outlook, p.1]${index === 1 ? " 综合排序为 base > challenger。" : ""}`,
+      `第${index}章保留完整的论证链：需求扩张先改变订单能见度，再通过库存与供给纪律影响价格弹性；这个判断以可追溯数据为基础，而不是把行业常识当作证据。[NAND Market Outlook, p.1] ${index === 1 ? "定价研究提供第二条独立验证。[Memory Pricing Review, p.4] 综合排序为 base > challenger。" : "产能研究构成独立的反方校准。[Capacity Discipline Monitor, p.6]"}`,
       "",
       index === 1 ? "{{visual:demand-transmission}}" : "",
       "",
@@ -190,7 +192,7 @@ test("workspace snapshot drives progress, evidence, and native report preview", 
   assert.equal(snapshot.topic, "AI 与 NAND");
   assert.equal(snapshot.progress, 100);
   assert.equal(snapshot.stage, 5);
-  assert.equal(snapshot.evidence.length, 3);
+  assert.equal(snapshot.evidence.length, 5);
   assert.match(snapshot.reportHtml, /class="report"/);
   assert.equal(snapshot.reportPath, path.join(workspace, "report.html"));
 });
@@ -348,12 +350,35 @@ test("workspace validator requires multiple independent expert origins", async (
   assert.ok(result.errors.includes("Completed research requires accepted expert evidence from multiple independent origins"));
 });
 
-test("workspace validator requires an accepted sell-side passage in the report", async () => {
+test("workspace validator requires three independent sell-side documents in the report", async () => {
   const workspace = await fixtureWorkspace();
-  await updateFinalReport(workspace, (markdown) => markdown.replaceAll("[NAND Market Outlook, p.1]", ""));
+  await updateFinalReport(workspace, (markdown) => markdown.replaceAll("[Memory Pricing Review, p.4]", "").replaceAll("[Capacity Discipline Monitor, p.6]", ""));
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
-  assert.ok(result.errors.includes("Report must cite at least one accepted sell-side research passage"));
+  assert.ok(result.errors.includes("Report must cite accepted passages from at least three independent sell-side documents"));
+});
+
+test("workspace validator rejects one sell-side document dominating repeated citations", async () => {
+  const workspace = await fixtureWorkspace();
+  await updateFinalReport(workspace, (markdown) => `${markdown}\n\n重复引用不构成来源广度。[NAND Market Outlook, p.1] [NAND Market Outlook, p.1] [NAND Market Outlook, p.1] [NAND Market Outlook, p.1]\n`);
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("One sell-side document supplies more than 60% of sell-side citations; diversify the evidence used across the report"));
+});
+
+test("renderer pairs two consecutive compact visuals and rejects missing direct labels", async () => {
+  const workspace = await fixtureWorkspace();
+  const visualsPath = path.join(workspace, "visuals.json");
+  const visuals = JSON.parse(await readFile(visualsPath, "utf8"));
+  visuals.visuals.push({ key:"pricing-comparison",type:"bar",title:"价格改善仍取决于供给纪律",aria_label:"比较需求与供给纪律的强弱",unit:"指数",evidence_ids:["s2"],items:[{label:"需求",value:100,display:"100"},{label:"供给纪律",value:82,display:"82"}] });
+  await writeFile(visualsPath, JSON.stringify(visuals));
+  await updateFinalReport(workspace, (markdown) => markdown.replace("{{visual:demand-transmission}}", "{{visual:demand-transmission}}\n\n{{visual:pricing-comparison}}"));
+  const html = await readFile(path.join(workspace, "report.html"), "utf8");
+  assert.match(html, /class="viz-pair"/);
+
+  visuals.visuals[1].items[0].display = "";
+  await writeFile(visualsPath, JSON.stringify(visuals));
+  await assert.rejects(() => server.callTool("render_research_report", { workspace }), /requires a category label and direct display value/);
 });
 
 test("workspace validator rejects ASCII audit tables rendered as code blocks", async () => {

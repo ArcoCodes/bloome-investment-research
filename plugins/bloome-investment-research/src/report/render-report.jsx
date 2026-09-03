@@ -45,7 +45,7 @@ function Inline({ tokens = [], evidenceByCitation }) {
 function Figure({ visual, evidenceById, children }) {
   const sources = visual.evidence_ids.map((id) => ({ id, item:evidenceById.get(id) }));
   return <figure className={`viz viz-type-${visual.type}`} data-visual-key={visual.key} aria-label={visual.aria_label || visual.title}>
-    <figcaption><strong>{visual.title}</strong>{visual.deck && <span>{visual.deck}</span>}</figcaption>
+    <figcaption><strong>{visual.title}</strong>{visual.deck && <span>{visual.deck}</span>}{visual.unit && <small className="viz-unit">单位：{visual.unit}</small>}</figcaption>
     {children}
     {visual.uncertainty && <p className="viz-uncertainty">边界：{visual.uncertainty}</p>}
     <details className="viz-sources"><summary>来源：{sources.length} 项已核验证据</summary><ul>{sources.map(({ id, item }) => <li key={id}><strong>{id}</strong> · {item.title}{locator(item) && ` · ${locator(item)}`}</li>)}</ul></details>
@@ -125,13 +125,23 @@ function Visual({ visual, evidenceById }) {
 }
 
 function Blocks({ tokens = [], context }) {
+  const visualMarker = (token) => token?.type === "paragraph" ? token.text.trim().match(/^\{\{visual:([a-z0-9][a-z0-9_-]*)\}\}$/i)?.[1] : null;
+  const adjacentToken = (index, step) => {
+    for (let cursor = index + step; cursor >= 0 && cursor < tokens.length; cursor += step) if (tokens[cursor].type !== "space") return tokens[cursor];
+    return null;
+  };
   return tokens.map((token, index) => {
     const key = `${token.type}-${index}`;
     if (token.type === "space") return null;
     if (token.type === "paragraph") {
       const text = token.text.trim();
       const marker = text.match(/^\{\{visual:([a-z0-9][a-z0-9_-]*)\}\}$/i);
-      if (marker) return <Visual key={key} visual={context.visuals.get(marker[1])} evidenceById={context.evidenceById} />;
+      if (marker) {
+        if (visualMarker(adjacentToken(index, -1))) return null;
+        const nextKey = visualMarker(adjacentToken(index, 1));
+        if (nextKey) return <div className="viz-pair" key={key}><Visual visual={context.visuals.get(marker[1])} evidenceById={context.evidenceById} /><Visual visual={context.visuals.get(nextKey)} evidenceById={context.evidenceById} /></div>;
+        return <Visual key={key} visual={context.visuals.get(marker[1])} evidenceById={context.evidenceById} />;
+      }
       return <p key={key}><Inline tokens={token.tokens} evidenceByCitation={context.evidenceByCitation} /></p>;
     }
     if (token.type === "heading") {
@@ -222,11 +232,19 @@ function normalizeVisuals(value, evidenceById, markdown) {
     if (map.has(visual.key)) throw new Error(`Duplicate visual key: ${visual.key}`);
     if (!VISUAL_TYPES.has(visual.type)) throw new Error(`Unsupported visual type for ${visual.key}: ${visual.type}`);
     if (!String(visual.title || "").trim()) throw new Error(`Visual ${visual.key} requires a conclusion-led title`);
+    if (!String(visual.aria_label || "").trim()) throw new Error(`Visual ${visual.key} requires an accessible description in aria_label`);
     if (!Array.isArray(visual.evidence_ids) || !visual.evidence_ids.length) throw new Error(`Visual ${visual.key} requires evidence_ids`);
     for (const id of visual.evidence_ids) if (!evidenceById.has(String(id))) throw new Error(`Visual ${visual.key} references unknown evidence ID: ${id}`);
+    if (["bar", "line", "range"].includes(visual.type) && !String(visual.unit || "").trim()) throw new Error(`Quantitative visual ${visual.key} requires a visible unit`);
+    if (visual.type === "bar" && (!Array.isArray(visual.items) || visual.items.some((item) => !String(item.label || "").trim() || !String(item.display ?? "").trim()))) throw new Error(`Bar visual ${visual.key} requires a category label and direct display value for every bar`);
+    if (visual.type === "line" && (!Array.isArray(visual.series) || visual.series.some((series) => !String(series.name || "").trim() || !Array.isArray(series.values) || series.values.some((point) => !String(point.label || "").trim() || !String(point.display ?? "").trim())))) throw new Error(`Line visual ${visual.key} requires named series plus period and direct display labels for every point`);
+    if (visual.type === "range" && (!Array.isArray(visual.items) || visual.items.some((item) => !String(item.label || "").trim() || !String(item.display ?? "").trim()))) throw new Error(`Range visual ${visual.key} requires a category label and direct display range for every item`);
     map.set(visual.key, visual);
   }
   const markers = [...markdown.matchAll(/\{\{visual:([a-z0-9][a-z0-9_-]*)\}\}/gi)].map((match) => match[1]);
+  const pairedMarkers = [...markdown.matchAll(/^\{\{visual:([a-z0-9][a-z0-9_-]*)\}\}\s*\n\s*^\{\{visual:([a-z0-9][a-z0-9_-]*)\}\}/gim)];
+  if (/^\{\{visual:[^}]+\}\}\s*\n\s*^\{\{visual:[^}]+\}\}\s*\n\s*^\{\{visual:[^}]+\}\}/im.test(markdown)) throw new Error("A visual row may contain at most two consecutive visual markers");
+  for (const pair of pairedMarkers) if ([pair[1], pair[2]].some((key) => ["table", "matrix"].includes(map.get(key)?.type))) throw new Error("Dense table and matrix visuals must remain full width");
   for (const key of markers) if (!map.has(key)) throw new Error(`Missing visual specification: ${key}`);
   for (const key of map.keys()) {
     const placements = markers.filter((marker) => marker === key).length;
@@ -255,6 +273,8 @@ function Report({ markdown, evidence, coverage, visuals, css }) {
 
 const componentCss = `
 .analysis-text h2,.analysis-text h3{margin:22px 0 10px;color:#003A5C;line-height:1.35}.analysis-text ul,.analysis-text ol{margin:0 0 14px 22px}.analysis-text li{margin:6px 0}.analysis-text pre{overflow:auto;margin:16px 0;padding:14px;background:#F7F5F0}.analysis-text code{font-family:ui-monospace,SFMono-Regular,monospace}.analysis-text table{margin:16px 0}.viz{margin:24px 0;padding:18px 20px;border:1px solid #E0DCD4;border-radius:8px;background:#fff;font-family:'Helvetica Neue',Arial,sans-serif}.viz figcaption{margin-bottom:18px}.viz figcaption strong{display:block;color:#003A5C;font-size:14px;line-height:1.4}.viz figcaption span{display:block;margin-top:5px;color:#5A5A5A;font-size:11px;line-height:1.5}.viz-uncertainty{margin:14px 0 0;padding-top:10px;border-top:1px solid #E0DCD4;color:#5A5A5A;font-size:11px;line-height:1.5}.viz-sources{margin-top:10px;color:#777;font-size:10px;line-height:1.5}.viz-sources summary{cursor:pointer}.viz-sources ul{max-height:180px;overflow:auto;margin:8px 0 0;padding-left:18px}.viz-sources li{margin:4px 0}.viz-table-cards{display:none}.viz-bars,.viz-ranges{display:flex;flex-direction:column;gap:12px}.viz-bar-row,.viz-range-row{display:grid;grid-template-columns:minmax(90px,1fr) minmax(180px,3fr) auto;gap:12px;align-items:center;font-size:11px}.viz-label{color:#003A5C;font-weight:600}.viz-track{height:10px;background:#E0DCD4;border-radius:5px;overflow:hidden}.viz-track i{display:block;height:100%;background:#7A93A6}.viz-track i.highlight{background:#B59A57}.viz-svg{display:block;width:100%;height:auto}.viz-svg polyline{stroke:#003A5C;stroke-width:2}.viz-svg circle{fill:#B59A57}.viz-svg text{fill:#5A5A5A;font-size:10px}.viz-svg .viz-context polyline{stroke:#7A93A6;stroke-dasharray:5 4}.viz-axis{fill:#5A5A5A}.viz-range-track{position:relative;height:26px;border-bottom:1px solid #D5D1C8}.viz-range-track i{position:absolute;top:10px;height:7px;border-radius:4px;background:#B59A57}.viz-range-track b,.viz-range-track em{position:absolute;top:4px;width:2px;height:19px;background:#003A5C}.viz-range-track em{width:7px;height:7px;top:10px;border-radius:50%;background:#C65B4A;transform:translateX(-3px)}.viz-flow{display:flex;align-items:center;gap:8px}.viz-node{flex:1;min-width:0;padding:12px;border:1px solid #E0DCD4;border-radius:6px;text-align:center}.viz-node.highlight{border-color:#B59A57;background:#F7F5F0}.viz-node strong,.viz-node span{display:block}.viz-node strong{color:#003A5C;font-size:12px}.viz-node span{margin-top:4px;color:#5A5A5A;font-size:10px;line-height:1.4}.viz-arrow{position:relative;width:22px;height:12px;flex:none}.viz-arrow::before{content:'';position:absolute;top:5px;left:0;width:18px;border-top:1.5px solid #B59A57}.viz-arrow::after{content:'';position:absolute;top:2px;right:1px;width:6px;height:6px;border-top:1.5px solid #B59A57;border-right:1.5px solid #B59A57;transform:rotate(45deg)}.viz .data-table{padding:0;overflow-x:auto}.viz-matrix td.highlight{background:#F1EAD9;color:#003A5C;font-weight:700}@media(max-width:560px){.viz{padding:15px 14px}.viz-table-grid{display:none}.viz-table-cards{display:grid;gap:10px}.viz-table-cards section{padding:12px;border:1px solid #E0DCD4;border-radius:6px;background:#fff}.viz-table-cards p{display:grid;grid-template-columns:minmax(90px,.8fr) 1.2fr;gap:10px;margin:0;padding:6px 0;border-bottom:1px solid #EEEAE2;font-size:11px;line-height:1.45}.viz-table-cards p:last-child{border-bottom:0}.viz-table-cards strong{color:#003A5C}.viz-table-cards span{color:#333}.viz-bar-row,.viz-range-row{grid-template-columns:80px minmax(110px,1fr) auto;gap:8px}.viz-flow{align-items:stretch;flex-direction:column}.viz-arrow{transform:rotate(90deg);align-self:center}.viz-svg text{font-size:11px}}
+.viz figcaption{position:relative;padding-right:88px}.viz-unit{position:absolute;top:0;right:0;color:#777;font-size:10px;font-weight:500}
+.viz-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}.viz-pair>.viz{margin-top:24px;margin-bottom:24px}@media(max-width:760px){.viz-pair{grid-template-columns:1fr}}
 `;
 
 export function renderReport({ markdown, evidence = [], coverage = {}, visuals = { visuals:[] }, template }) {

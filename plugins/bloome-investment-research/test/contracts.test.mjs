@@ -6,8 +6,8 @@ import { test } from "node:test";
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
   ["skills/investment-research/assets/template.html", "55d0d65bc04c0eb303aa95635b9985f57ec7f34253cf293adced91aa127d1e99"],
-  ["skills/investment-research/references/file-specs.md", "530dbd68a63d237af337f4bb33cd4c7b48986a0bb8c5c6d4c5cef09272023a8e"],
-  ["skills/investment-research/references/chart-rules.md", "64888516fee7a54e54822ea839b62a47f816d1a637350ea533da0cb0c45376d7"],
+  ["skills/investment-research/references/file-specs.md", "ec23e1a68426f3e3e42750222df000670f094148ec2bd9ba5d4101a1d6db3d5c"],
+  ["skills/investment-research/references/chart-rules.md", "418eff36398f45f94889aa288e82ed647a103f05b3ec4df0074b5c614f486d8f"],
 ]);
 
 test("investment report contracts remain byte-for-byte unchanged", async () => {
