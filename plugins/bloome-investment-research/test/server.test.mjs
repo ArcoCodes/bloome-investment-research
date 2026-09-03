@@ -17,8 +17,8 @@ async function fixtureWorkspace() {
   ];
   const coverage = {
     retrieval_rounds: [
-      { corpus:"sell" },
-      { corpus:"primary",source_layer:"expert" },
+      { corpus:"sell",accepted_evidence_ids:["s1"] },
+      { corpus:"primary",source_layer:"expert",accepted_evidence_ids:["p1","p2"] },
       { corpus:"primary",source_layer:"official" },
     ],
     query_seeds:["AI NAND demand", "NAND delivery constraints"],
@@ -324,6 +324,44 @@ test("workspace validator requires separate expert and official primary searches
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
   assert.ok(result.errors.includes("primary expert retrieval must be a separate round in coverage_stats.json"));
+});
+
+test("workspace validator requires expert retrieval to produce accepted visible evidence", async () => {
+  const workspace = await fixtureWorkspace();
+  const coveragePath = path.join(workspace, "coverage_stats.json");
+  const coverage = JSON.parse(await readFile(coveragePath, "utf8"));
+  coverage.retrieval_rounds.find((round) => round.source_layer === "expert").accepted_evidence_ids = [];
+  await writeFile(coveragePath, JSON.stringify(coverage));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("Expert retrieval rounds must list accepted_evidence_ids that resolve to evidence.json"));
+});
+
+test("workspace validator requires multiple independent expert origins", async () => {
+  const workspace = await fixtureWorkspace();
+  const coveragePath = path.join(workspace, "coverage_stats.json");
+  const coverage = JSON.parse(await readFile(coveragePath, "utf8"));
+  coverage.retrieval_rounds.find((round) => round.source_layer === "expert").accepted_evidence_ids = ["p1"];
+  await writeFile(coveragePath, JSON.stringify(coverage));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("Completed research requires accepted expert evidence from multiple independent origins"));
+});
+
+test("workspace validator requires an accepted sell-side passage in the report", async () => {
+  const workspace = await fixtureWorkspace();
+  await updateFinalReport(workspace, (markdown) => markdown.replaceAll("[NAND Market Outlook, p.1]", ""));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("Report must cite at least one accepted sell-side research passage"));
+});
+
+test("workspace validator rejects ASCII audit tables rendered as code blocks", async () => {
+  const workspace = await fixtureWorkspace();
+  await updateFinalReport(workspace, (markdown) => `${markdown}\n\n\`\`\`text\n==== PHYSICS AUDIT ====\nTCO | VALUE\n\`\`\`\n`);
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("Investment reports must not contain fenced or indented code blocks; express analytical content as prose, a Markdown table, or a controlled visual"));
 });
 
 test("successful workspace validation closes its Bloome Finance run", async () => {

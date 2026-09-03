@@ -191,6 +191,7 @@ function tokenText(token) {
 export function inspectReport(markdown, evidence = []) {
   const parts = reportParts(markdown);
   const primaryQuotes = [];
+  const codeBlocks = [];
   for (const section of parts.sections) {
     let context = [];
     let inQuoteGroup = false;
@@ -200,6 +201,7 @@ export function inspectReport(markdown, evidence = []) {
         inQuoteGroup = true;
         continue;
       }
+      if (token.type === "code") codeBlocks.push({ lang:token.lang || "", text:token.text || "" });
       const text = tokenText(token);
       if (!text.trim() || /^\{\{visual:[^}]+\}\}$/.test(text.trim())) continue;
       if (String(text).replace(/[^\p{Letter}\p{Number}]+/gu, "").length >= 24) {
@@ -209,7 +211,7 @@ export function inspectReport(markdown, evidence = []) {
       if (!inQuoteGroup) context.push(text);
     }
   }
-  return { ...parts, citations:resolvedCitations(markdown, evidence), citationLabels:citationLabels(markdown), primaryQuotes };
+  return { ...parts, citations:resolvedCitations(markdown, evidence), citationLabels:citationLabels(markdown), primaryQuotes, codeBlocks };
 }
 
 function normalizeVisuals(value, evidenceById, markdown) {

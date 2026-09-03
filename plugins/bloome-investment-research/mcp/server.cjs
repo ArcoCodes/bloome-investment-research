@@ -359,7 +359,7 @@ async function validateWorkspace(workspace) {
   errors.push(...coverageErrors(coverage));
   let result;
   if (Array.isArray(evidence) && report && html) {
-    const validation = core.validateReport(report, evidence, inspection, { sellSideLogic, validation: validationMarkdown });
+    const validation = core.validateReport(report, evidence, inspection, { sellSideLogic, validation: validationMarkdown, coverage });
     errors.push(...validation.errors);
     result = { ok: errors.length === 0, workspace: root, errors: [...new Set(errors)], warnings: validation.warnings, artifacts, chapters };
   } else {

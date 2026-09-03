@@ -6,7 +6,7 @@ import { test } from "node:test";
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
   ["skills/investment-research/assets/template.html", "55d0d65bc04c0eb303aa95635b9985f57ec7f34253cf293adced91aa127d1e99"],
-  ["skills/investment-research/references/file-specs.md", "6878dab5bddb3833f9831ebfd36df720142580b57af51b5e97fef8cdf0b54c04"],
+  ["skills/investment-research/references/file-specs.md", "530dbd68a63d237af337f4bb33cd4c7b48986a0bb8c5c6d4c5cef09272023a8e"],
   ["skills/investment-research/references/chart-rules.md", "64888516fee7a54e54822ea839b62a47f816d1a637350ea533da0cb0c45376d7"],
 ]);
 
@@ -81,6 +81,9 @@ test("research skill makes industry-expert evidence a mandatory completion gate"
   assert.match(skill, /official results do not count as expert coverage/);
   assert.match(skill, /until the core industry claims are covered by multiple independent expert sources/);
   assert.match(skill, /Continue searching industry-expert material until the core industry claims have broad, independent expert coverage/);
+  assert.match(skill, /accepted_evidence_ids/);
+  assert.match(skill, /cite at least one accepted passage from the `sell` corpus/);
+  assert.match(skill, /must not use fenced code blocks/);
   assert.match(skill, /still write the complete report/);
   assert.match(skill, /instead of dropping the claim, thinning the analysis, or withholding the report/);
 });

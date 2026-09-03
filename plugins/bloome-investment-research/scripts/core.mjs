@@ -92,6 +92,9 @@ export function validateReport(report, evidence, inspection, staged = {}) {
     if (!resolveCitation(label, evidence) && /^(?:id:)|(?:\d{4}-\d{2}-\d{2}|p{1,2}\.\s*\d+|lines?\s*\d+)/i.test(label)) errors.push(`Citation has no matching evidence: ${label}`);
   }
   const matchedEvidence = resolved.map(({ item }) => item);
+  if (inspection?.codeBlocks?.length) {
+    errors.push("Investment reports must not contain fenced or indented code blocks; express analytical content as prose, a Markdown table, or a controlled visual");
+  }
   if (!evidence.some((item) => item.relation === "challenge")) errors.push("At least one challenge evidence item is required");
   if (/\b(?:corpus|report_id|chunk_id|BM25|research_(?:search|plan|run_modules|synthesize))\b/i.test(report)) errors.push("Report contains internal workflow jargon");
   if (/(?:来源|source)\s*[:：]\s*(?:id:official-|primary[_-]|sell[_-]|chunk[_-]|source[_-]|evidence[_-])/i.test(report)) {
@@ -119,6 +122,28 @@ export function validateReport(report, evidence, inspection, staged = {}) {
     const quote = normalizedNarrative(displayQuote(item));
     return quote.length >= 12 && primaryQuoteBodies.some((body) => body.includes(quote));
   };
+  const evidenceById = new Map(evidence.flatMap((item) => [item.id, item.chunk_id].filter(Boolean).map((id) => [String(id), item])));
+  const rounds = Array.isArray(staged.coverage?.retrieval_rounds) ? staged.coverage.retrieval_rounds : [];
+  const acceptedIds = (round) => Array.isArray(round?.accepted_evidence_ids) ? round.accepted_evidence_ids.map(String) : [];
+  const sellRoundIds = rounds.filter((round) => round.corpus === "sell").flatMap(acceptedIds);
+  const expertRoundIds = rounds.filter((round) => round.corpus === "primary" && round.source_layer === "expert").flatMap(acceptedIds);
+  const sellRoundEvidence = sellRoundIds.map((id) => evidenceById.get(id)).filter(Boolean);
+  const expertRoundEvidence = expertRoundIds.map((id) => evidenceById.get(id)).filter(Boolean);
+  if (!sellRoundIds.length) errors.push("Sell-side retrieval rounds must list accepted_evidence_ids that resolve to evidence.json");
+  else {
+    for (const id of sellRoundIds) if (!evidenceById.has(id)) errors.push(`Sell-side retrieval accepted evidence ID does not resolve: ${id}`);
+    if (sellRoundEvidence.some((item) => item.corpus !== "sell")) errors.push("Sell-side retrieval accepted_evidence_ids must resolve only to sell evidence");
+    if (!matchedEvidence.some((item) => sellRoundEvidence.includes(item))) errors.push("Report must cite at least one accepted sell-side research passage");
+  }
+  if (!expertRoundIds.length) errors.push("Expert retrieval rounds must list accepted_evidence_ids that resolve to evidence.json");
+  else {
+    for (const id of expertRoundIds) if (!evidenceById.has(id)) errors.push(`Expert retrieval accepted evidence ID does not resolve: ${id}`);
+    if (expertRoundEvidence.some((item) => item.corpus !== "primary")) errors.push("Expert retrieval accepted_evidence_ids must resolve only to primary evidence");
+    const expertOrigins = new Set(expertRoundEvidence.map((item) => String(item.origin_id || item.report_id || item.chunk_id)));
+    if (expertOrigins.size < 2) errors.push("Completed research requires accepted expert evidence from multiple independent origins");
+    const visibleExpertOrigins = new Set(expertRoundEvidence.filter(quoteIsVisible).map((item) => String(item.origin_id || item.report_id || item.chunk_id)));
+    if (visibleExpertOrigins.size < 2) errors.push("Report body must show complete passages from multiple independently sourced expert interviews");
+  }
   const primaryEvidence = evidence.filter((item) => item.corpus === "primary");
   if (primaryEvidence.length && !primaryEvidence.some(quoteIsVisible)) {
     errors.push("Report must show at least one complete primary-source passage in a visible primary-quote block");
