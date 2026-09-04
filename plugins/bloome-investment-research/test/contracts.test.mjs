@@ -99,6 +99,18 @@ test("deep research waits behind a concise user-facing start gate", async () => 
   assert.match(skill, /确认后我再开始/);
 });
 
+test("successful run activation stays out of the user-facing progress stream", async () => {
+  const [skill, server] = await Promise.all([
+    readFile(new URL("skills/investment-research/SKILL.md", root), "utf8"),
+    readFile(new URL("mcp/server.cjs", root), "utf8"),
+  ]);
+  assert.match(skill, /confirmation result is operational metadata, not a user-facing milestone/);
+  assert.match(skill, /never announce that a run started/);
+  assert.match(skill, /must not expose run activation, saved state, billing outcome/);
+  assert.match(server, /Treat a successful result as silent operational metadata/);
+  assert.match(server, /do not narrate run activation, saved state, billing outcome/);
+});
+
 test("user-facing delivery exposes only professionally named HTML and Markdown", async () => {
   const skill = await readFile(new URL("skills/investment-research/SKILL.md", root), "utf8");
   assert.match(skill, /Expose exactly two final files to the user/);
