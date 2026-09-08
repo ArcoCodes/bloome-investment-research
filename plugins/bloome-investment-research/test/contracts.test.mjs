@@ -107,9 +107,11 @@ test("deep research waits behind a concise user-facing start gate", async () => 
   assert.match(skill, /可复算的经营预测和情景估值/);
   assert.match(skill, /60—120 分钟/);
   assert.match(skill, /复杂标的可能更久/);
-  assert.match(skill, /End with a short, natural question/);
-  assert.match(skill, /研究范围和时间安排符合你的预期/);
-  assert.match(skill, /可以吗？/);
+  assert.match(skill, /End with a short, natural choice/);
+  assert.match(skill, /请回复“开始”/);
+  assert.match(skill, /调整研究重点、投资期限或交付方式/);
+  assert.match(skill, /我会在你确认后开始研究/);
+  assert.doesNotMatch(skill, /可以吗？/);
   assert.doesNotMatch(skill, /确认后我再开始/);
 });
 
