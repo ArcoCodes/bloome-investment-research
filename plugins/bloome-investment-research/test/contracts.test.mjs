@@ -92,10 +92,14 @@ test("research skill makes industry-expert evidence a mandatory completion gate"
 test("deep research waits behind a concise user-facing start gate", async () => {
   const skill = await readFile(new URL("skills/investment-research/SKILL.md", root), "utf8");
   assert.match(skill, /## Concise Start Gate/);
-  assert.match(skill, /estimated duration as a range/);
+  assert.match(skill, /realistic duration range/);
   assert.match(skill, /professional sell-side brokerage research and industry-expert interview databases/);
   assert.match(skill, /Then wait for explicit user confirmation/);
-  assert.match(skill, /45—90 分钟/);
+  assert.match(skill, /normally requires at least one hour/);
+  assert.match(skill, /lower bound is at least 60 minutes/);
+  assert.match(skill, /hard preflight gate/);
+  assert.match(skill, /60—120 分钟/);
+  assert.match(skill, /复杂标的可能更久/);
   assert.match(skill, /确认后我再开始/);
 });
 
