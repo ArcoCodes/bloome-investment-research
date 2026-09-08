@@ -9,8 +9,9 @@ const { citationLabels, locator, resolveCitation, resolvedCitations } = citation
 const VISUAL_TYPES = new Set(["bar", "line", "range", "flow", "table", "matrix"]);
 
 function Citation({ item, label }) {
-  const source = [item.title, item.published_at].filter(Boolean).join(" · ");
-  const display = /^\{\{cite:/.test(label) ? `〔${item.title}, ${locator(item) || item.published_at}〕` : label;
+  const title = item.title_zh || item.title;
+  const source = [title, item.published_at].filter(Boolean).join(" · ");
+  const display = /^\{\{cite:/.test(label) ? `〔${title}, ${locator(item) || item.published_at}〕` : label;
   return <span className="src" tabIndex="0">{display}<span className="tip"><span className="tip-hd">{source}</span><span className="tip-bd">{item.quote_zh || item.quote}</span></span></span>;
 }
 
@@ -48,7 +49,7 @@ function Figure({ visual, evidenceById, children }) {
     <figcaption><strong>{visual.title}</strong>{visual.deck && <span>{visual.deck}</span>}{visual.unit && <small className="viz-unit">单位：{visual.unit}</small>}</figcaption>
     {children}
     {visual.uncertainty && <p className="viz-uncertainty">边界：{visual.uncertainty}</p>}
-    <details className="viz-sources"><summary>来源：{sources.length} 项已核验证据</summary><ul>{sources.map(({ id, item }) => <li key={id}><strong>{id}</strong> · {item.title}{locator(item) && ` · ${locator(item)}`}</li>)}</ul></details>
+    <details className="viz-sources"><summary>来源：{sources.length} 项已核验证据</summary><ul>{sources.map(({ id, item }) => <li key={id}>{item.title_zh || item.title}{locator(item) && ` · ${locator(item)}`}</li>)}</ul></details>
   </figure>;
 }
 

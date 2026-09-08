@@ -25,7 +25,7 @@ function resolveCitation(label, evidence) {
   }
   const normalized = normalize(label);
   const candidates = items
-    .map((item) => ({ item, title:normalize(item.title) }))
+    .flatMap((item) => [item.title, item.title_zh].filter(Boolean).map((title) => ({ item, title:normalize(title) })))
     .filter(({ title }) => title && normalized.includes(title))
     .sort((a, b) => b.title.length - a.title.length);
   if (!candidates.length) return null;

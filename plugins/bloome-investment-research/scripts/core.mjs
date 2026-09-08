@@ -56,6 +56,7 @@ export function validateReport(report, evidence, inspection, staged = {}) {
   const latinCharacters = (value) => (String(value ?? "").match(/[A-Za-z]/g) || []).length;
   const reportIsChinese = chineseCharacters(report) >= 40 && chineseCharacters(report) >= latinCharacters(report);
   const needsChineseTranslation = (value) => latinCharacters(value) >= 20 && chineseCharacters(value) * 4 < latinCharacters(value);
+  const needsChineseTitle = (value) => latinCharacters(value) >= 8 && chineseCharacters(value) * 2 < latinCharacters(value);
   const claimIds = (markdown) => new Set([...String(markdown ?? "").matchAll(/\bC\d+\b/gi)].map((match) => match[0].toUpperCase()));
   const logicClaimIds = claimIds(staged.sellSideLogic);
   const validationClaimIds = claimIds(staged.validation);
@@ -69,6 +70,9 @@ export function validateReport(report, evidence, inspection, staged = {}) {
     if (reportIsChinese && needsChineseTranslation(item.quote)) {
       if (!String(item.quote_zh ?? "").trim()) errors.push(`${item.chunk_id || "unknown"}: Chinese report requires quote_zh for non-Chinese evidence`);
       else if (!chineseCharacters(item.quote_zh)) errors.push(`${item.chunk_id || "unknown"}: quote_zh must contain a Chinese translation`);
+    }
+    if (reportIsChinese && needsChineseTitle(item.title) && !String(item.title_zh ?? "").trim()) {
+      errors.push(`${item.chunk_id || "unknown"}: Chinese report requires title_zh for a non-Chinese source title`);
     }
     const linkedClaims = Array.isArray(item.claim_ids) ? item.claim_ids.map((id) => String(id).toUpperCase()) : [];
     if (!linkedClaims.length) errors.push(`${item.chunk_id || "unknown"}: missing claim_ids`);
@@ -99,6 +103,10 @@ export function validateReport(report, evidence, inspection, staged = {}) {
   if (/\b(?:corpus|report_id|chunk_id|BM25|research_(?:search|plan|run_modules|synthesize))\b/i.test(report)) errors.push("Report contains internal workflow jargon");
   if (/(?:来源|source)\s*[:：]\s*(?:id:official-|primary[_-]|sell[_-]|chunk[_-]|source[_-]|evidence[_-])/i.test(report)) {
     errors.push("Reader-facing source attribution exposes an internal evidence or retrieval key");
+  }
+  const parentheticalPassages = String(report).match(/[（(][^\n()（）]{20,}[）)]/g) || [];
+  if (reportIsChinese && parentheticalPassages.some((passage) => latinCharacters(passage) >= 40 && chineseCharacters(passage) < 8)) {
+    errors.push("Chinese report contains a long source-language passage beside its translation; keep only the report-language text in reader-facing prose");
   }
   const displayQuote = (item) => String(item?.quote_zh || item?.quote || "");
   const primaryQuotes = inspection?.primaryQuotes || [];

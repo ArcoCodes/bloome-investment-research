@@ -308,6 +308,17 @@ function chapterCoverageErrors(chapters, finalReport, evidence) {
   return errors;
 }
 
+function professionalDeliverableBasename(inspection, coverage = {}) {
+  const explicit = String(coverage.deliverable_basename || "").normalize("NFKC").trim();
+  if (explicit) return explicit.replace(/[\\/:*?"<>|]+/g, "_").replace(/^\.+|\.+$/g, "").slice(0, 180);
+  const title = String(inspection?.title || "Investment Research").normalize("NFKC");
+  const ticker = title.match(/(?:NASDAQ|NYSE|HKEX|TSE|KRX)\s*[:：]\s*([A-Z0-9.-]+)/i)?.[1]?.toUpperCase();
+  const company = title.split(/[（(]/)[0].replace(/(?:机构级)?(?:深度)?投资研究.*$/u, "").trim() || "Investment Research";
+  const dateSource = String(coverage.data_cutoff || coverage.report_date || coverage.report_month || "");
+  const date = dateSource.match(/20\d{2}-\d{2}-\d{2}/)?.[0] || new Date().toISOString().slice(0, 10);
+  return [company, ticker, "机构级深度投资研究", date].filter(Boolean).join("_").replace(/[\\/:*?"<>|]+/g, "_").slice(0, 180);
+}
+
 async function validateWorkspace(workspace) {
   const root = workspacePath(workspace);
   const core = await import(pathToFileURL(path.join(ROOT, "scripts", "core.mjs")).href);
@@ -367,6 +378,14 @@ async function validateWorkspace(workspace) {
     result = { ok: errors.length === 0, workspace: root, errors: [...new Set(errors)], warnings: [], artifacts, chapters };
   }
   if (result.ok) {
+    const basename = professionalDeliverableBasename(inspection, coverage);
+    const deliverableDirectory = path.join(root, "deliverables");
+    fs.mkdirSync(deliverableDirectory, { recursive: true });
+    const htmlDeliverable = path.join(deliverableDirectory, `${basename}.html`);
+    const markdownDeliverable = path.join(deliverableDirectory, `${basename}.md`);
+    fs.copyFileSync(path.join(root, "report.html"), htmlDeliverable);
+    fs.copyFileSync(path.join(root, "final_report.md"), markdownDeliverable);
+    result.deliverables = { html: htmlDeliverable, markdown: markdownDeliverable };
     const completion = await finance.completeResearchRun(root);
     result.financeRunCompleted = Boolean(completion);
     if (typeof completion === "string") result.reportUrl = completion;
@@ -521,6 +540,7 @@ module.exports = {
   buildSnapshot,
   callTool,
   handleRpc,
+  professionalDeliverableBasename,
   researchProxy,
   resourceText,
   runStdio,

@@ -11,11 +11,11 @@ const server = require("../mcp/server.cjs");
 async function fixtureWorkspace() {
   const root = await mkdtemp(path.join(os.tmpdir(), "bloome-research-test-"));
   const evidence = [
-    { claim:"需求扩张",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"sell",chunk_id:"s1",report_id:"sr1",quote:"需求增长",source_type:"sell-side",title:"NAND Market Outlook",source_path:"sell/report.pdf",page_start:1,published_at:"2026-07-01" },
-    { claim:"交付约束",claim_ids:["C1"],relation:"challenge",stance:"challenge",kind:"fact",corpus:"primary",chunk_id:"p1",report_id:"pr1",origin_id:"expert-origin-1",quote:"交付仍受约束，客户验证时间也存在不确定性。",title:"Industry Interview",source_path:"primary/interview.txt",line_start:2,line_end:3,published_at:"2026-07-02" },
-    { claim:"订单能见度",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"primary",chunk_id:"p2",report_id:"pr2",origin_id:"expert-origin-2",quote:"渠道反馈显示订单能见度正在改善，但库存消化仍需观察。",title:"Customer Channel Check",source_path:"primary/channel-check.txt",line_start:5,line_end:7,published_at:"2026-07-03" },
-    { claim:"价格弹性",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"sell",chunk_id:"s2",report_id:"sr2",quote:"库存改善支持价格弹性",source_type:"sell-side",title:"Memory Pricing Review",source_path:"sell/pricing.pdf",page_start:4,published_at:"2026-07-04" },
-    { claim:"资本纪律",claim_ids:["C1"],relation:"challenge",stance:"challenge",kind:"fact",corpus:"sell",chunk_id:"s3",report_id:"sr3",quote:"新增产能可能压制周期上行空间",source_type:"sell-side",title:"Capacity Discipline Monitor",source_path:"sell/capacity.pdf",page_start:6,published_at:"2026-07-05" },
+    { claim:"需求扩张",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"sell",chunk_id:"s1",report_id:"sr1",quote:"需求增长",source_type:"sell-side",title:"NAND Market Outlook",title_zh:"NAND市场展望",source_path:"sell/report.pdf",page_start:1,published_at:"2026-07-01" },
+    { claim:"交付约束",claim_ids:["C1"],relation:"challenge",stance:"challenge",kind:"fact",corpus:"primary",chunk_id:"p1",report_id:"pr1",origin_id:"expert-origin-1",quote:"交付仍受约束，客户验证时间也存在不确定性。",title:"Industry Interview",title_zh:"产业专家访谈",source_path:"primary/interview.txt",line_start:2,line_end:3,published_at:"2026-07-02" },
+    { claim:"订单能见度",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"primary",chunk_id:"p2",report_id:"pr2",origin_id:"expert-origin-2",quote:"渠道反馈显示订单能见度正在改善，但库存消化仍需观察。",title:"Customer Channel Check",title_zh:"客户渠道调研",source_path:"primary/channel-check.txt",line_start:5,line_end:7,published_at:"2026-07-03" },
+    { claim:"价格弹性",claim_ids:["C1"],relation:"support",stance:"support",kind:"fact",corpus:"sell",chunk_id:"s2",report_id:"sr2",quote:"库存改善支持价格弹性",source_type:"sell-side",title:"Memory Pricing Review",title_zh:"存储定价回顾",source_path:"sell/pricing.pdf",page_start:4,published_at:"2026-07-04" },
+    { claim:"资本纪律",claim_ids:["C1"],relation:"challenge",stance:"challenge",kind:"fact",corpus:"sell",chunk_id:"s3",report_id:"sr3",quote:"新增产能可能压制周期上行空间",source_type:"sell-side",title:"Capacity Discipline Monitor",title_zh:"产能纪律跟踪",source_path:"sell/capacity.pdf",page_start:6,published_at:"2026-07-05" },
   ];
   const coverage = {
     retrieval_rounds: [
@@ -214,6 +214,8 @@ test("workspace validator enforces all staged and report contracts", async () =>
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, true, result.errors.join("\n"));
   assert.equal(result.chapters, 2);
+  assert.match(path.basename(result.deliverables.html), /NAND cycle research_机构级深度投资研究_\d{4}-\d{2}-\d{2}\.html/);
+  assert.equal(path.basename(result.deliverables.markdown), path.basename(result.deliverables.html, ".html") + ".md");
 });
 
 test("workspace validator accepts complete Chinese display translations while preserving original quotes", async () => {
@@ -241,6 +243,25 @@ test("workspace validator rejects English evidence without quote_zh in a Chinese
   const result = await server.validateWorkspace(workspace);
   assert.equal(result.ok, false);
   assert.ok(result.errors.includes("s1: Chinese report requires quote_zh for non-Chinese evidence"));
+});
+
+test("workspace validator rejects an untranslated source title in a Chinese report", async () => {
+  const workspace = await fixtureWorkspace();
+  const evidencePath = path.join(workspace, "evidence.json");
+  const evidence = JSON.parse(await readFile(evidencePath, "utf8"));
+  delete evidence[0].title_zh;
+  await writeFile(evidencePath, JSON.stringify(evidence));
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("s1: Chinese report requires title_zh for a non-Chinese source title"));
+});
+
+test("workspace validator rejects bilingual quote duplication in Chinese prose", async () => {
+  const workspace = await fixtureWorkspace();
+  await updateFinalReport(workspace, (markdown) => `${markdown}\n\n中文已经表达了该结论。（Demand and supply discipline jointly determine the cycle elasticity while qualification remains uncertain.）\n`);
+  const result = await server.validateWorkspace(workspace);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("Chinese report contains a long source-language passage beside its translation; keep only the report-language text in reader-facing prose"));
 });
 
 test("workspace validator requires substantive local argument before a primary quote group", async () => {

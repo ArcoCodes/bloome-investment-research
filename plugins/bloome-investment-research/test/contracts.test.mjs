@@ -6,7 +6,7 @@ import { test } from "node:test";
 const root = new URL("../", import.meta.url);
 const contracts = new Map([
   ["skills/investment-research/assets/template.html", "55d0d65bc04c0eb303aa95635b9985f57ec7f34253cf293adced91aa127d1e99"],
-  ["skills/investment-research/references/file-specs.md", "52d64ced294678c91b496cb7c88aac4158d087dd5f039007d1fd15b3b81a5653"],
+  ["skills/investment-research/references/file-specs.md", "65397221f12ed87f59374aa3958090b0e948c8938915ea99bfd0177eaf6f3691"],
   ["skills/investment-research/references/chart-rules.md", "418eff36398f45f94889aa288e82ed647a103f05b3ec4df0074b5c614f486d8f"],
 ]);
 
@@ -72,8 +72,9 @@ test("research skill makes industry-expert evidence a mandatory completion gate"
   assert.match(skill, /distributed across the core industry claims rather than concentrated in one section/);
   assert.match(skill, /highest-priority reader-facing evidence layer/);
   assert.match(skill, /complete passages from multiple independent expert sources/);
-  assert.match(skill, /translate every non-Chinese sell-side tooltip and primary quotation into complete, faithful Chinese/);
+  assert.match(skill, /translate every non-Chinese sell-side tooltip, primary quotation, source title, and descriptive expert role into complete, faithful Chinese/);
   assert.match(skill, /evidence\.json\.quote_zh/);
+  assert.match(skill, /evidence\.json\.title_zh/);
   assert.match(skill, /Place each visible `primary-quote` immediately after the paragraph, list item, or table interpretation/);
   assert.match(skill, /Use only accepted evidence mapped in `evidence\.json`; do not invent or add evidence/);
   assert.match(skill, /a single quote, sentence excerpt, or source-only listing is invalid/);
