@@ -96,8 +96,15 @@ test("deep research waits behind a concise user-facing start gate", async () => 
   assert.match(skill, /professional sell-side brokerage research and industry-expert interview databases/);
   assert.match(skill, /Then wait for explicit user confirmation/);
   assert.match(skill, /normally requires at least one hour/);
+  assert.match(skill, /Lead with the decision value/);
+  assert.match(skill, /traceable multi-source evidence/);
+  assert.match(skill, /explicit market-expectations gap/);
+  assert.match(skill, /reproducible valuation/);
   assert.match(skill, /lower bound is at least 60 minutes/);
-  assert.match(skill, /hard preflight gate/);
+  assert.match(skill, /value-and-timing notice is a hard preflight gate/);
+  assert.match(skill, /可直接支持投资决策/);
+  assert.match(skill, /交叉验证核心假设/);
+  assert.match(skill, /可复算的经营预测和情景估值/);
   assert.match(skill, /60—120 分钟/);
   assert.match(skill, /复杂标的可能更久/);
   assert.match(skill, /确认后我再开始/);
