@@ -1,5 +1,19 @@
 # Controlled Visual Specifications
 
+## Full-company institutional baseline
+
+The user-approved `英伟达个股研究_中文版.html` contains 27 figure components: 19 quantitative views (including a numerical sensitivity matrix), 5 causal diagrams and 3 reference tables. Count each complete figure once, not its nested SVGs, screenshots, or responsive copies.
+
+For full-company institutional research, usually plan 15–20 substantive figures, adding more when the complexity warrants it. This is an editorial target, not a hard numeric gate or a ceiling. The NVIDIA example is a reference for richness and sequencing, not a requirement to match its 27 components. Count quantitative charts, causal diagrams and reference tables separately; tables cannot stand in for graphical analysis. Never fabricate values or split the same chart into renamed copies to hit a count.
+
+Adjust density to the user's scope and the available evidence. Review whether business cognition, operating trends, structure, growth, expectations gaps, forecasts, valuation and risk transmission are visually explained where helpful. An intentionally smaller set can pass when it fully covers those questions. The validator reports counts and coverage-review reminders; it does not reject a report solely for its figure count.
+
+Before chapter drafting, map the available evidence to visual opportunities: business value flow; demand/CapEx and supply constraints; historical revenue, segment structure and margins; growth rates and incremental contribution; working capital and cash conversion; market versus independent expectations; forecast drivers; scenarios and returns; valuation and sensitivity; competition, catalysts and risk transmission. A financial table with periods, growth or margins is a candidate for complementary trend and rate charts, with the lookup table retained where useful. Prefer six comparable historical periods when available; mark missing periods and forecasts, never manufacture history.
+
+Use complementary two-chart rows (such as revenue trend with growth, or FCF with conversion rate). Keep complex diagrams and dense matrices full width. Between successive chart groups, write a natural paragraph explaining what the evidence implies and introducing the next question, without `观点：`, a colored box, or repeating the captions. Include causal nodes, directional links, transmission mechanisms and failure conditions for qualitative arguments; prose copied into boxes does not count as a causal diagram.
+
+Render all planned figures, verify exactly one occurrence of every visual key in the final HTML, and inspect desktop and phone screenshots. Never treat a successful JSON parse or a figure-count pass as proof of editorial quality.
+
 `visuals.json` is the only visual data input to the React report renderer. It keeps chart data, evidence links, and presentation intent separate from report prose. A visual must answer one investment question faster than prose; otherwise use prose. Never put raw HTML, SVG, CSS, JavaScript, event handlers, or internal production notes in the reader-facing report.
 
 Use this top-level shape even when no visual is useful:

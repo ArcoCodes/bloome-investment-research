@@ -6,7 +6,7 @@
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:'Georgia','Times New Roman',serif;background:#fff;color:#1A1A1A}
-  .report{max-width:680px;margin:0 auto;border:1px solid #E0DCD4;overflow-x:clip}
+  .report{max-width:1120px;margin:0 auto;border:1px solid #E0DCD4}
   .top-bar{height:4px;background:linear-gradient(90deg,#003A5C,#B59A57)}
   .bottom-bar{height:3px;background:#003A5C}
   .header{padding:24px 28px 16px;border-bottom:1px solid #E0DCD4}
@@ -32,8 +32,9 @@
   .report-disclaimer{padding:16px 28px;background:#F7F5F0;border-top:1px solid #E0DCD4;color:#5A5A5A;font:600 10px/1.6 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2px}
   .highlight{color:#003A5C;font-weight:700}
   .upside{color:#003A5C;font-weight:700}
-  .judge-box{background:#F7F5F0;border-left:3px solid #B59A57;padding:20px 24px}
-  .judge-label{font-size:11px;letter-spacing:1.5px;color:#B59A57;text-transform:uppercase;margin-bottom:8px;font-family:'Helvetica Neue',Arial,sans-serif}
+  .report-preamble{padding:12px 28px;color:#5A5A5A;font:13px/1.8 'Helvetica Neue',Arial,sans-serif;overflow-wrap:anywhere}
+  .report-preamble p{margin:0 0 6px}.report-preamble br{display:none}.report-preamble strong:not(:first-child){margin-left:12px}
+  .section-label{font-size:20px;color:#003A5C;letter-spacing:0;text-transform:none;line-height:1.5}
   .confidence{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:6px 14px;background:#003A5C;color:#fff;border-radius:9999px;font-size:12px;font-family:'Helvetica Neue',Arial,sans-serif;font-weight:500}
   .confidence .dot{width:6px;height:6px;border-radius:50%;background:#B59A57}
   .src{position:relative;color:#5A5A5A;font-size:12px;font-family:'Helvetica Neue',Arial,sans-serif;border-bottom:1px dashed #B59A57;cursor:help;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
@@ -66,14 +67,7 @@
     <div class="header-meta">数据覆盖：卖方机构研报已读 {{sell_reports_read}} 篇 · 产业资料已读 {{primary_sources_read}} 篇 · 数据截至 {{report_month}}</div>
   </div>
 
-  <!-- 第一屏：唯一投资判断入口。渲染器消费正文判断，不得在正文再次生成同义章节。 -->
-  <div class="section judge-box" data-report-role="investment-judgment">
-    <div class="judge-label">核心判断</div>
-    <div class="analysis-text">
-      <p>{{investment_judgment}}</p>
-      <div class="confidence"><span class="dot"></span>置信度：{{confidence_level}} — {{confidence_reason}}</div>
-    </div>
-  </div>
+  <!-- No automatic judgment card or heading. Explicit report headings render as ordinary sections. -->
 
   <!-- 各家观点（含分歧），每节可带图表 -->
   <div class="section">

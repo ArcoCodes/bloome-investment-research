@@ -11,6 +11,8 @@ This skill owns visual judgment. The renderer contract defines only safe recurri
 
 ## Role in an investment report
 
+For a full-company institutional report, use `../investment-research/references/visual-spec.md`: usually plan 15–20 substantive figures, increasing with complexity, without a hard count gate. The NVIDIA report is a richness and sequencing reference, not a mandatory quantity. Audit opportunities across chapters before drafting and confirm final rendered coverage; do not count decorative cards, repeated plots, or nested SVGs. Keep the opening conclusion in ordinary prose, with no default highlighted card or generated heading.
+
 Use this skill after the main research has reconciled evidence and formed a provisional decision. The investment-research workflow owns the thesis, evidence, ranking, and final report. This skill turns the most important relationships into reader-facing graphics without changing the underlying judgment.
 
 When working inside the YouWare investment research plugin:

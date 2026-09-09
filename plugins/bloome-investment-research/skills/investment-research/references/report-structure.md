@@ -7,7 +7,7 @@ Use `report_outline.md` as a natural-language editorial plan. It should help the
 Use normal Markdown headings:
 
 ```markdown
-# 核心判断
+# 增长兑现仍需现金回报验证
 
 Explain the decision, why it wins, the decisive evidence, and the main caveat.
 
@@ -45,7 +45,7 @@ Combine adjacent items when that improves the narrative, but do not omit a layer
 
 ## Chapters
 
-The final report begins with one reader-facing H1 title before the first H1 chapter heading. The renderer uses that first H1 as the document header rather than a substantive section.
+The final report begins with one reader-facing H1 title before consistently authored H1 or H2 chapter headings. The renderer uses that first H1 as the document header rather than a substantive section.
 
 Write one chapter draft for each substantive outline section, in the same editorial order. Use the same natural heading or a clearly equivalent heading. Chapters may add subsections when useful.
 
@@ -77,7 +77,7 @@ Before rendering, compare the final report against every chapter draft and resto
 
 ## Visual notes
 
-Give every outline section one explicit visual treatment. Use `Planned visual: <descriptive-key> — ...` when a visual materially improves the argument; otherwise use `Visual treatment: prose — ...` and explain why prose is clearer. The component type belongs only in `visuals.json`, so the outline cannot disagree with the renderer. Keys describe the argument and map to `visuals.json`; never use opaque labels such as `V01`. Do not target a fixed number of visuals.
+Give every outline section one explicit visual treatment. Use `Planned visual: <descriptive-key> — ...` when a visual materially improves the argument; otherwise use `Visual treatment: prose — ...` and explain why prose is clearer. The component type belongs only in `visuals.json`, so the outline cannot disagree with the renderer. Keys describe the argument and map to `visuals.json`; never use opaque labels such as `V01`. For full-company institutional research, apply the NVIDIA benchmark in visual-spec.md: usually plan 15–20 useful figures; judge coverage and clarity rather than enforcing a fixed count.
 
 For each planned visual, describe:
 

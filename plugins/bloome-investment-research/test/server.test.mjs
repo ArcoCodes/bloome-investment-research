@@ -382,7 +382,7 @@ test("workspace validator requires three independent sell-side documents in the 
   assert.ok(result.errors.includes("Report must cite accepted passages from at least three independent sell-side documents"));
 });
 
-test("renderer pairs two consecutive compact visuals and rejects missing direct labels", async () => {
+test("renderer keeps a mechanism full width and rejects missing direct labels", async () => {
   const workspace = await fixtureWorkspace();
   const visualsPath = path.join(workspace, "visuals.json");
   const visuals = JSON.parse(await readFile(visualsPath, "utf8"));
@@ -390,7 +390,8 @@ test("renderer pairs two consecutive compact visuals and rejects missing direct 
   await writeFile(visualsPath, JSON.stringify(visuals));
   await updateFinalReport(workspace, (markdown) => markdown.replace("{{visual:demand-transmission}}", "{{visual:demand-transmission}}\n\n{{visual:pricing-comparison}}"));
   const html = await readFile(path.join(workspace, "report.html"), "utf8");
-  assert.match(html, /class="viz-pair"/);
+  assert.doesNotMatch(html, /class="viz-pair"/);
+  assert.equal((html.match(/<figure /g) || []).length, 2);
 
   visuals.visuals[1].items[0].display = "";
   await writeFile(visualsPath, JSON.stringify(visuals));

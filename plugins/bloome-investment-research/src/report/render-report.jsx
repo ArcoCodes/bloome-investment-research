@@ -138,9 +138,18 @@ function Blocks({ tokens = [], context }) {
       const text = token.text.trim();
       const marker = text.match(/^\{\{visual:([a-z0-9][a-z0-9_-]*)\}\}$/i);
       if (marker) {
-        if (visualMarker(adjacentToken(index, -1))) return null;
+        const compact = (id) => id && !["table", "matrix", "flow"].includes(context.visuals.get(id)?.type);
+        // Only consume a sibling that was actually paired; never drop a third figure.
+        const run = [];
+        for (let cursor = index - 1; cursor >= 0; cursor--) {
+          if (tokens[cursor].type === "space") continue;
+          const id = visualMarker(tokens[cursor]);
+          if (!compact(id)) break;
+          run.push(id);
+        }
+        if (compact(marker[1]) && run.length % 2 === 1) return null;
         const nextKey = visualMarker(adjacentToken(index, 1));
-        if (nextKey) return <div className="viz-pair" key={key}><Visual visual={context.visuals.get(marker[1])} evidenceById={context.evidenceById} /><Visual visual={context.visuals.get(nextKey)} evidenceById={context.evidenceById} /></div>;
+        if (compact(marker[1]) && compact(nextKey)) return <div className="viz-pair" key={key}><Visual visual={context.visuals.get(marker[1])} evidenceById={context.evidenceById} /><Visual visual={context.visuals.get(nextKey)} evidenceById={context.evidenceById} /></div>;
         return <Visual key={key} visual={context.visuals.get(marker[1])} evidenceById={context.evidenceById} />;
       }
       return <p key={key}><Inline tokens={token.tokens} evidenceByCitation={context.evidenceByCitation} /></p>;
@@ -165,13 +174,15 @@ function Blocks({ tokens = [], context }) {
 function reportParts(markdown) {
   const tokens = marked.lexer(markdown, { gfm:true });
   const titleIndex = tokens.findIndex((token) => token.type === "heading" && token.depth === 1);
-  if (titleIndex < 0) return { title:"Investment Research", hasTitle:false, sections:[{ title:"核心判断", tokens }] };
+  if (titleIndex < 0) throw new Error("Report requires an explicit H1 document title; no title or judgment is generated automatically");
   const title = tokens[titleIndex].text.trim();
   const preamble = [];
   const sections = [];
   let current = null;
-  for (const token of tokens.slice(titleIndex + 1)) {
-    if (token.type === "heading" && token.depth === 1) {
+  const body = tokens.slice(titleIndex + 1);
+  const chapterDepth = Math.min(...body.filter((token) => token.type === "heading").map((token) => token.depth));
+  for (const token of body) {
+    if (token.type === "heading" && token.depth === chapterDepth) {
       if (current?.tokens.length) sections.push(current);
       current = { title:token.text.trim(), tokens:[] };
     } else if (current) current.tokens.push(token);
@@ -182,12 +193,7 @@ function reportParts(markdown) {
   const isJudgment = (section) => /^(?:核心判断|投资判断|投资评级|investment\s+(?:judg(?:e)?ment|thesis|rating))(?=\s*[:：·—-]|\s*$)/i.test(section.title);
   const explicitJudgments = sections.filter(isJudgment);
   if (explicitJudgments.length > 1) throw new Error("Report must contain exactly one explicit core-investment-judgment section");
-  if (explicitJudgments.length === 1) {
-    const lead = explicitJudgments[0];
-    return { title, hasTitle:true, sections:[lead, ...sections.filter((section) => section !== lead)] };
-  }
-  if (preamble.some((token) => tokenText(token).trim())) return { title, hasTitle:true, sections:[{ title:"核心判断", tokens:preamble }, ...sections] };
-  return { title, hasTitle:true, sections:sections.length ? sections : [{ title:"核心判断", tokens:[] }] };
+  return { title, hasTitle:true, preamble, sections };
 }
 
 function tokenText(token) {
@@ -203,7 +209,7 @@ export function inspectReport(markdown, evidence = []) {
   const parts = reportParts(markdown);
   const primaryQuotes = [];
   const codeBlocks = [];
-  for (const section of parts.sections) {
+  for (const section of [{ tokens:parts.preamble }, ...parts.sections]) {
     let context = [];
     let inQuoteGroup = false;
     for (const token of section.tokens) {
@@ -243,9 +249,6 @@ function normalizeVisuals(value, evidenceById, markdown) {
     map.set(visual.key, visual);
   }
   const markers = [...markdown.matchAll(/\{\{visual:([a-z0-9][a-z0-9_-]*)\}\}/gi)].map((match) => match[1]);
-  const pairedMarkers = [...markdown.matchAll(/^\{\{visual:([a-z0-9][a-z0-9_-]*)\}\}\s*\n\s*^\{\{visual:([a-z0-9][a-z0-9_-]*)\}\}/gim)];
-  if (/^\{\{visual:[^}]+\}\}\s*\n\s*^\{\{visual:[^}]+\}\}\s*\n\s*^\{\{visual:[^}]+\}\}/im.test(markdown)) throw new Error("A visual row may contain at most two consecutive visual markers");
-  for (const pair of pairedMarkers) if ([pair[1], pair[2]].some((key) => ["table", "matrix"].includes(map.get(key)?.type))) throw new Error("Dense table and matrix visuals must remain full width");
   for (const key of markers) if (!map.has(key)) throw new Error(`Missing visual specification: ${key}`);
   for (const key of map.keys()) {
     const placements = markers.filter((marker) => marker === key).length;
@@ -255,18 +258,20 @@ function normalizeVisuals(value, evidenceById, markdown) {
 }
 
 function Report({ markdown, evidence, coverage, visuals, css }) {
-  const { title, sections } = reportParts(markdown);
-  const [lead, ...rest] = sections;
+  const { title, preamble, sections } = reportParts(markdown);
   const evidenceByCitation = evidence;
   const evidenceById = new Map(evidence.flatMap((item) => [item.id, item.chunk_id].filter(Boolean).map((id) => [String(id), item])));
   const visualMap = normalizeVisuals(visuals, evidenceById, markdown);
   const context = { evidenceByCitation, evidenceById, visuals:visualMap };
+  const compactPreamble = preamble.map((token) => token.type === "paragraph" ? {
+    ...token, tokens:token.tokens.map((child) => child.type === "br" ? {type:"text",text:" · "} : child),
+  } : token);
   const reportMonth = coverage.report_month || coverage.data_cutoff || coverage.report_date || "未注明";
   const sourceSummary = `来源覆盖：卖方研报 ${coverage.sell_reports_read || 0} 篇 · 产业资料 ${coverage.primary_sources_read || 0} 篇 · 完整来源见正文与证据台账`;
   return <html lang="zh-CN"><head><meta charSet="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="YouWare Research Renderer" /><title>{title}</title><style dangerouslySetInnerHTML={{ __html:css }} /></head><body>
     <main className="report"><div className="top-bar" /><header className="header"><div className="header-label">Global Investment Research</div><div className="header-title">{title}</div><div className="header-meta">数据覆盖：卖方机构研报已读 {coverage.sell_reports_read || 0} 篇 · 产业资料已读 {coverage.primary_sources_read || 0} 篇 · 数据截至 {reportMonth}</div></header>
-      <section className="section judge-box" data-report-role="investment-judgment"><div className="judge-label">{lead.title}</div><div className="analysis-text"><Blocks tokens={lead.tokens} context={context} /></div></section>
-      {rest.map((section) => <section className="section" key={section.title}><div className="section-label">{section.title}</div><div className="analysis-text"><Blocks tokens={section.tokens} context={context} /></div></section>)}
+      {preamble.some((token) => tokenText(token).trim()) && <div className="report-preamble"><Blocks tokens={compactPreamble} context={context} /></div>}
+      {sections.map((section, index) => <section className="section" key={index}><h2 className="section-label">{section.title}</h2><div className="analysis-text"><Blocks tokens={section.tokens} context={context} /></div></section>)}
       <div className="report-disclaimer">本投资报告由 AI 生成，仅供研究参考，不构成投资建议。</div>
       <footer className="source-bar">{sourceSummary}</footer><div className="bottom-bar" /></main>
   </body></html>;
@@ -282,7 +287,7 @@ export function renderReport({ markdown, evidence = [], coverage = {}, visuals =
   const baseCss = template.match(/<style>([\s\S]*?)<\/style>/i)?.[1] || "";
   const behavior = template.match(/<script>([\s\S]*?)<\/script>/i)?.[1] || "";
   const document = renderToStaticMarkup(<Report markdown={markdown} evidence={evidence} coverage={coverage} visuals={visuals} css={`${baseCss}\n${componentCss}`} />);
-  return `<!DOCTYPE html>${document.replace("</body>", `<script>${behavior}</script></body>`)}`;
+  return `<!DOCTYPE html>${document.replace("</head>", '<meta name="youware-renderer-contract" content="editorial-sections-20260909"/></head>').replace("</body>", `<script>${behavior}</script></body>`)}`;
 }
 
 export function renderWorkspace(workspace, pluginRoot = path.resolve(__dirname, "..")) {

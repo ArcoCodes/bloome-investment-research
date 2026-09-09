@@ -351,6 +351,8 @@ async function validateWorkspace(workspace) {
   const visuals = readJson(path.join(root, "visuals.json"), null);
   const coverage = readJson(path.join(root, "coverage_stats.json"), {});
   const report = readText(path.join(root, "report.md"));
+  const visualAudit = require("../scripts/visual-audit.cjs").auditVisuals(report, visuals, coverage);
+  errors.push(...visualAudit.errors);
   const inspection = reportRenderer.inspectReport(report, Array.isArray(evidence) ? evidence : []);
   const chapterHeadings = new Set(chapterFiles.map(({ markdown }) => markdown.match(/^#\s+(.+)$/m)?.[1]?.trim()).filter(Boolean));
   if (!inspection.hasTitle || chapterHeadings.has(inspection.title)) errors.push("report.md requires a distinct H1 report title before its first H1 section");
@@ -372,7 +374,7 @@ async function validateWorkspace(workspace) {
   if (Array.isArray(evidence) && report && html) {
     const validation = core.validateReport(report, evidence, inspection, { sellSideLogic, validation: validationMarkdown, coverage });
     errors.push(...validation.errors);
-    result = { ok: errors.length === 0, workspace: root, errors: [...new Set(errors)], warnings: validation.warnings, artifacts, chapters };
+    result = { ok: errors.length === 0, workspace: root, errors: [...new Set(errors)], warnings: [...validation.warnings, ...visualAudit.warnings], visualAudit:visualAudit.counts, artifacts, chapters };
   } else {
     if (!Array.isArray(evidence)) errors.push("evidence.json must be an array");
     result = { ok: errors.length === 0, workspace: root, errors: [...new Set(errors)], warnings: [], artifacts, chapters };

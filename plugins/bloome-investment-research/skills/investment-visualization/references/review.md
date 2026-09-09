@@ -2,6 +2,10 @@
 
 Review the rendered report, not just its source.
 
+- Reconcile every planned component with final HTML and review quantitative/causal/table coverage separately against visual-spec.md. The usual 15–20-figure target is not a numeric gate. A renamed duplicate does not count.
+- Verify two-column groups at desktop width and single-column stacking on phones; inspect the third and last figures in long runs, not only the first pair.
+- Between chart groups, preserve explanatory prose without a `观点：` prefix or highlight. Dates and prices are metadata, not a generated judgment section.
+
 ## Pass 1: Evidence and comparison
 
 - Every plotted value maps to an exact source or a disclosed calculation.
